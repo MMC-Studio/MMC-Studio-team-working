@@ -162,8 +162,9 @@ test('hỏi 3 câu → đủ 3 cặp, thứ tự như khung chat, ô nhập tự
     const after = await layout()
     expect(after.boxTop).toBeGreaterThanOrEqual(after.viewTop - 1)
     expect(after.boxBottom).toBeLessThanOrEqual(after.viewBottom + 1)
-    // Cuộn VỪA ĐỦ: nếu khung chat có cuộn thì ô nhập vừa chạm mép dưới (không kéo thẻ lên đầu).
-    if (after.scrollTop !== before.scrollTop) expect(after.viewBottom - after.boxBottom).toBeLessThan(8)
+    // Cuộn VỪA ĐỦ: nếu khung chat có cuộn thì ô nhập nằm sát mép dưới (không kéo thẻ lên đầu — lỗi cũ lệch cả trăm px).
+    // Chừa vài chục px cho khác biệt font / kích thước giữa các máy (CI đo được ~15px).
+    if (after.scrollTop !== before.scrollTop) expect(after.viewBottom - after.boxBottom).toBeLessThan(60)
   }
   await expect(code.getByTestId('approval-question')).toHaveText(questions)
   const answers = code.getByTestId('approval-answer')
