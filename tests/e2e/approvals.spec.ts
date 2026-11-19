@@ -126,7 +126,7 @@ test('sửa file: hỏi 2 câu liên tiếp rồi Đồng ý → file được s
   await expect(box()).toBeVisible({ timeout: 20_000 })
 })
 
-test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ không bị gắn lại, không xê dịch', async () => {
+test('hỏi 3 câu → đủ 3 cặp, thứ tự như khung chat, ô nhập tự focus + trong tầm nhìn, hỏi đáp dài thì cuộn riêng', async () => {
   await send('FAKE_EDIT:e.txt')
   const code = card('code')
   await expect(code).toBeVisible({ timeout: 20_000 })
@@ -143,15 +143,27 @@ test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ
             w.__removed++
     }).observe(document.body, { childList: true, subtree: true })
   })
-  const header = code.locator('.font-medium').first()
-  const top = async (): Promise<number> => Math.round((await header.boundingBox())!.y)
-  const startTop = await top()
+  /** Vị trí ô nhập so với vùng cuộn của khung chat + khung chat đã cuộn bao nhiêu. */
+  const layout = (): Promise<{ scrollTop: number; boxTop: number; boxBottom: number; viewTop: number; viewBottom: number }> =>
+    page.evaluate(() => {
+      const box = document.querySelector('[data-testid="approval-input-box"]')!
+      const sc = box.closest('.overflow-y-auto') as HTMLElement
+      const b = box.getBoundingClientRect()
+      const v = sc.getBoundingClientRect()
+      return { scrollTop: sc.scrollTop, boxTop: b.top, boxBottom: b.bottom, viewTop: v.top, viewBottom: v.bottom }
+    })
 
   const questions = ['Tại sao phải sửa?', 'Có ảnh hưởng gì khác không?', 'Có cách nào khác không?']
   for (let i = 0; i < questions.length; i++) {
+    const before = await layout()
     await askOnCard(code, questions[i], i + 1)
-    // Thẻ đứng yên: đầu thẻ không nhảy sau mỗi câu hỏi / trả lời.
-    expect(await top()).toBe(startTop)
+    // Trả lời xong: ô nhập được focus và nằm trọn trong tầm nhìn.
+    await expect(code.getByTestId('approval-input')).toBeFocused()
+    const after = await layout()
+    expect(after.boxTop).toBeGreaterThanOrEqual(after.viewTop - 1)
+    expect(after.boxBottom).toBeLessThanOrEqual(after.viewBottom + 1)
+    // Cuộn VỪA ĐỦ: nếu khung chat có cuộn thì ô nhập vừa chạm mép dưới (không kéo thẻ lên đầu).
+    if (after.scrollTop !== before.scrollTop) expect(after.viewBottom - after.boxBottom).toBeLessThan(8)
   }
   await expect(code.getByTestId('approval-question')).toHaveText(questions)
   const answers = code.getByTestId('approval-answer')
@@ -160,13 +172,17 @@ test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ
     await expect(answers.nth(i)).toContainText(`#${i + 1}`)
     await expect(answers.nth(i)).toContainText(questions[i])
   }
+  // Thứ tự như khung chat: diff → hỏi đáp → ô nhập → Hỏi / Yêu cầu sửa → Từ chối / Đồng ý.
+  const y = async (testId: string): Promise<number> => (await code.getByTestId(testId).first().boundingBox())!.y
+  const order = [await y('approval-diff'), await y('approval-qa'), await y('approval-input'), await y('approval-ask-send'), await y('approval-accept')]
+  expect([...order].sort((a, b) => a - b)).toEqual(order)
   expect(await code.getAttribute('data-probe')).toBe('goc')
   expect(await page.evaluate(() => (window as unknown as { __removed: number }).__removed)).toBe(0)
 
   // Ảnh thẻ có 3 câu hỏi đáp (sáng / tối) trong test-results/.
-  // Chỉ để chụp trọn thẻ: cửa sổ cao hơn + cuộn tới câu trả lời cuối (thanh dưới không che).
+  // Chỉ để chụp trọn thẻ: cửa sổ cao hơn + cuộn tới nút duyệt (thanh dưới không che).
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 1150))
-  await answers.nth(2).scrollIntoViewIfNeeded()
+  await code.getByTestId('approval-accept').scrollIntoViewIfNeeded()
   for (const theme of ['light', 'dark'] as const) {
     if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
       await page.getByTestId('theme-toggle').click()
@@ -175,8 +191,51 @@ test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ
   }
   await page.getByTestId('theme-toggle').click()
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820))
+
+  // Hỏi đáp dài → khung hỏi đáp có chiều cao giới hạn + cuộn riêng, câu mới nhất vẫn thấy, nút duyệt không bị đẩy xa.
+  const long = 'Giải thích kỹ giúp mình từng dòng thay đổi này ảnh hưởng thế nào tới phần còn lại của dự án? '.repeat(4).trim()
+  await askOnCard(code, long, 4)
+  await askOnCard(code, `${long} (lần 2)`, 5)
+  const qaBox = await code.getByTestId('approval-qa').evaluate((el) => ({
+    client: el.clientHeight,
+    scroll: el.scrollHeight,
+    atBottom: el.scrollHeight - el.scrollTop - el.clientHeight < 24
+  }))
+  expect(qaBox.client).toBeLessThanOrEqual(320)
+  expect(qaBox.scroll).toBeGreaterThan(qaBox.client)
+  expect(qaBox.atBottom).toBe(true)
+  const qaRect = (await code.getByTestId('approval-qa').boundingBox())!
+  const acceptRect = (await code.getByTestId('approval-accept').boundingBox())!
+  expect(acceptRect.y - (qaRect.y + qaRect.height)).toBeLessThan(200)
   expect(await page.evaluate(() => (window as unknown as { __removed: number }).__removed)).toBe(0)
 
+  await code.getByTestId('approval-reject').click()
+  await expect(code).toHaveCount(0, { timeout: 1_000 })
+  await expect(box()).toBeVisible({ timeout: 20_000 })
+})
+
+test('trợ lý thấy câu hỏi thực chất là yêu cầu sửa → nút "Gửi câu này như Yêu cầu sửa" (bấm mới gửi)', async () => {
+  await send('FAKE_EDIT:s.txt')
+  const code = card('code')
+  await expect(code).toContainText('phiên bản 1', { timeout: 20_000 })
+  // Câu hỏi thường → không có nút.
+  await askOnCard(code, 'Tại sao tạo file này?', 1)
+  await expect(code.getByTestId('approval-suggest-revise')).toHaveCount(0)
+  // Câu thực chất là yêu cầu sửa → có nút, câu trả lời không lộ dấu nội bộ, CHƯA tự gửi.
+  await askOnCard(code, 'Đổi nội dung thành lời chào', 2)
+  const suggest = code.getByTestId('approval-suggest-revise')
+  await expect(suggest).toHaveCount(1)
+  await expect(suggest).toHaveText('Gửi câu này như Yêu cầu sửa')
+  await expect(code.getByTestId('approval-answer').nth(1)).not.toContainText('[[')
+  await page.waitForTimeout(300)
+  await expect(code.getByTestId('approval-version')).toHaveCount(0)
+  // Bấm → gửi đúng câu đó như Yêu cầu sửa → Bản 2.
+  await suggest.click()
+  await expect(code.getByTestId('approval-version')).toHaveText('Bản 2', { timeout: 10_000 })
+  await expect(code.getByTestId('approval-revision')).toHaveText('Yêu cầu sửa: Đổi nội dung thành lời chào')
+  await expect(code.getByTestId('approval-current').getByTestId('approval-diff')).toContainText('phiên bản 2: Đổi nội dung thành lời chào')
+  // Bản cũ chỉ để xem: nút gợi ý không còn ở đó.
+  await expect(code.getByTestId('approval-past-version').getByTestId('approval-suggest-revise')).toHaveCount(0)
   await code.getByTestId('approval-reject').click()
   await expect(code).toHaveCount(0, { timeout: 1_000 })
   await expect(box()).toBeVisible({ timeout: 20_000 })

@@ -21,6 +21,24 @@ export type ApprovalQa = {
   /** Câu trả lời (đang stream thì là phần đã nhận); lỗi thì là mã lỗi. */
   answer: string
   status: 'answering' | 'done' | 'error'
+  /** Trợ lý thấy câu này thực chất là yêu cầu sửa → giao diện hiện nút "Gửi câu này như Yêu cầu sửa" (người dùng tự bấm). */
+  suggestRevision?: boolean
+}
+
+/** Dòng trợ lý thêm cuối câu trả lời khi câu hỏi thực chất là yêu cầu sửa (app gỡ đi trước khi hiện). */
+export const REVISION_HINT_MARKER = '[[yeu-cau-sua]]'
+
+/**
+ * Gỡ dấu `[[yeu-cau-sua]]` khỏi câu trả lời (kể cả phần dấu còn dở dang ở cuối khi đang stream).
+ * `suggest` = câu trả lời có dấu.
+ */
+export function splitRevisionHint(text: string): { text: string; suggest: boolean } {
+  const suggest = text.includes(REVISION_HINT_MARKER)
+  let out = text.split(REVISION_HINT_MARKER).join('')
+  // Đang stream: "…[[yeu-c" ở cuối — ẩn phần có thể là đầu của dấu.
+  const tail = /\[(\[[a-z-]*)?$/.exec(out)
+  if (tail && REVISION_HINT_MARKER.startsWith(tail[0])) out = out.slice(0, tail.index)
+  return { text: out.trimEnd(), suggest }
 }
 
 export type ApprovalRequest = CodeApprovalRequest | FolderAccessRequest | DraftApprovalRequest

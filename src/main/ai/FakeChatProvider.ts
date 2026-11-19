@@ -5,6 +5,7 @@ import type { AIProvider, ChatRequest } from './AIProvider'
 import type { ToolResult } from '../tools/registry'
 import { FAKE_ARTIFACTS } from './fakeArtifacts'
 import { ORGANIZE_MARKER } from '../chat/organize'
+import { REVISION_HINT_MARKER } from '@shared/approvals'
 import { EXPLAIN_MARKER } from '../approvals/explain'
 
 /** Hỏi người dùng duyệt một lần sửa file (= CodeApprovals.decide), như CLI gọi qua permission-mcp. */
@@ -77,7 +78,9 @@ export class FakeChatProvider implements AIProvider {
       const pastVersions = (/<cac-ban-truoc>([\s\S]*?)<\/cac-ban-truoc>/.exec(req.prompt)?.[1]?.match(/^Bản \d+:$/gm) ?? []).length
       const lastRevision = [...req.prompt.matchAll(/^Người dùng yêu cầu sửa: (.*)$/gm)].at(-1)?.[1]
       const seen = pastVersions ? ` [đã thấy ${pastVersions} bản trước, yêu cầu: "${lastRevision}"]` : ''
-      for (const part of `Giải thích (giả lập) #${index} [${card}]${seen}: ${question}`.match(/.{1,12}/gsu) ?? []) {
+      // Câu là yêu cầu sửa ("Đổi…", "Sửa…", "Viết lại…", "Hãy…") → thêm dấu như trợ lý thật (stream cắt nhỏ cả dấu).
+      const hint = /^(đổi|sửa|viết lại|hãy)\b/iu.test(question) ? `\n${REVISION_HINT_MARKER}` : ''
+      for (const part of `Giải thích (giả lập) #${index} [${card}]${seen}: ${question}${hint}`.match(/.{1,12}/gsu) ?? []) {
         if (signal.aborted) return
         yield { type: 'text', delta: part }
         await new Promise((r) => setTimeout(r, 15))

@@ -347,3 +347,33 @@ describe('ApprovalHub — thẻ không biến mất trong lúc chờ bản tiế
     expect(hub.list()).toEqual([])
   })
 })
+
+describe('Hỏi → trợ lý nhận ra câu là yêu cầu sửa', () => {
+  it('dấu [[yeu-cau-sua]] bị gỡ khỏi câu trả lời (cả khi đang stream dở), câu hỏi được đánh dấu gợi ý', async () => {
+    const shown: string[] = []
+    const hub = new ApprovalHub({
+      changed: () => {},
+      delta: (d) => shown.push(d.answer),
+      answer: async (_c, _q, onText) => {
+        let text = ''
+        for (const part of ['Mình sẽ đổi khi bạn', ' gửi yêu cầu sửa.\n[[yeu-c', 'au-sua]]']) onText((text += part))
+        return {}
+      },
+      log: { warn: vi.fn() }
+    })
+    hub.add({ id: 'a1', conversationId: 'c1', kind: 'code', request: codeRequest }, () => true)
+    hub.ask('a1', 'đổi tên biến thành speed')
+    await vi.waitFor(() => expect(hub.get('a1')!.qa[0].status).toBe('done'))
+    expect(hub.get('a1')!.qa[0]).toMatchObject({ answer: 'Mình sẽ đổi khi bạn gửi yêu cầu sửa.', suggestRevision: true })
+    expect(shown.some((s) => s.includes('[['))).toBe(false)
+  })
+
+  it('câu hỏi thường → không gợi ý', async () => {
+    const hub = new ApprovalHub({ changed: () => {}, delta: () => {}, answer: async (_c, _q, onText) => (onText('Vì [a] cần.'), {}), log: { warn: vi.fn() } })
+    hub.add({ id: 'a1', conversationId: 'c1', kind: 'code', request: codeRequest }, () => true)
+    hub.ask('a1', 'tại sao?')
+    await vi.waitFor(() => expect(hub.get('a1')!.qa[0].status).toBe('done'))
+    expect(hub.get('a1')!.qa[0]).toMatchObject({ answer: 'Vì [a] cần.' })
+    expect(hub.get('a1')!.qa[0].suggestRevision).toBeUndefined()
+  })
+})

@@ -391,6 +391,7 @@
     "revisionLabel": "Requested changes:",
     "latestVersion": "Version {{n}} · latest",
     "waitingVersion": "Waiting for the assistant to make version {{n}}…",
-    "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line"
+    "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line",
+    "sendAsRevision": "Send this as a change request"
   }
 }

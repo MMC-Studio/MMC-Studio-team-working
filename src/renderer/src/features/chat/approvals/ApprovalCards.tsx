@@ -11,9 +11,10 @@ import {
   MessageCircle,
   MessageCircleQuestion,
   PencilLine,
+  Send,
   X
 } from 'lucide-react'
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   APPROVAL_MAX_QUESTIONS,
@@ -140,7 +141,7 @@ function PastVersion({
   )
 }
 
-/** Bản mới nhất: nội dung mở sẵn, ô nhập (Hỏi / Yêu cầu sửa), hỏi đáp, Từ chối / Đồng ý. */
+/** Bản mới nhất: nội dung mở sẵn → hỏi đáp → ô nhập (Hỏi / Yêu cầu sửa) → Từ chối / Đồng ý. */
 function CurrentVersion({ card }: { card: ApprovalCard }) {
   const { t } = useTranslation('chat')
   const { t: tc } = useTranslation('connectors')
@@ -182,6 +183,18 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
       setHint(status === 'pending' ? t('folderAccess.pickAgain') : null)
     }
   }
+
+  // Trả lời xong (hoặc lỗi) → focus ô nhập và cuộn VỪA ĐỦ để thấy ô nhập + nút (không kéo cả thẻ lên đầu).
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const inputBox = useRef<HTMLDivElement>(null)
+  const wasAnswering = useRef(answering)
+  useEffect(() => {
+    if (wasAnswering.current && !answering) {
+      inputRef.current?.focus({ preventScroll: true })
+      inputBox.current?.scrollIntoView({ block: 'nearest' })
+    }
+    wasAnswering.current = answering
+  }, [answering])
 
   const canAsk = !!text && !answering && !limitReached && !busy
   const askQuestion = async (): Promise<void> => {
@@ -228,8 +241,25 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         <RequestView kind="code" request={card.request} />
       )}
 
-      <div className="space-y-2" data-testid="approval-input-box">
+      {/* Như một khung chat nhỏ: hỏi đáp (cuộn riêng khi dài) → ô nhập luôn nằm dưới câu trả lời mới nhất. */}
+      {card.qa.length > 0 && (
+        <QaThread
+          qa={card.qa}
+          onSuggest={busy ? undefined : (question) => void revise(card.id, question, () => respondReject(question))}
+        />
+      )}
+      {askError && (
+        <p className="text-xs text-destructive" data-testid="approval-ask-error">
+          {t(`approvals.errors.${askError}`, {
+            max: APPROVAL_MAX_QUESTIONS,
+            defaultValue: t('approvals.errors.generic', { code: askError })
+          })}
+        </p>
+      )}
+
+      <div className="space-y-2" data-testid="approval-input-box" ref={inputBox}>
         <Textarea
+          ref={inputRef}
           rows={2}
           value={input}
           maxLength={2000}
@@ -265,16 +295,6 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           </Button>
         </div>
       </div>
-
-      {card.qa.length > 0 && <QaThread qa={card.qa} />}
-      {askError && (
-        <p className="text-xs text-destructive" data-testid="approval-ask-error">
-          {t(`approvals.errors.${askError}`, {
-            max: APPROVAL_MAX_QUESTIONS,
-            defaultValue: t('approvals.errors.generic', { code: askError })
-          })}
-        </p>
-      )}
 
       <div className="flex justify-end gap-2 border-t pt-3">
         <Button
@@ -374,17 +394,36 @@ function DraftView({ request, body, onBody }: { request: DraftApprovalRequest; b
   )
 }
 
-function QaThread({ qa }: { qa: ApprovalQa[] }) {
+/**
+ * Đoạn hỏi đáp: dài quá thì cuộn riêng trong thẻ (nút duyệt không bị đẩy xa). Đang ở đáy → câu mới / chữ đang
+ * stream giữ ở đáy; người dùng cuộn lên đọc câu cũ thì không kéo xuống.
+ * `onSuggest` (chỉ bản mới nhất): nút "Gửi câu này như Yêu cầu sửa" dưới câu trả lời trợ lý đánh dấu.
+ */
+function QaThread({ qa, onSuggest }: { qa: ApprovalQa[]; onSuggest?: (question: string) => void }) {
+  const box = useRef<HTMLDivElement>(null)
+  const atBottom = useRef(true)
+  const last = qa.at(-1)
+  useLayoutEffect(() => {
+    if (atBottom.current && box.current) box.current.scrollTop = box.current.scrollHeight
+  }, [qa.length, last?.answer.length, last?.status])
   return (
-    <div className="space-y-2 border-t pt-3" data-testid="approval-qa">
+    <div
+      ref={box}
+      className="max-h-80 space-y-2 overflow-y-auto border-t pt-3 pr-1"
+      onScroll={(e) => {
+        const el = e.currentTarget
+        atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+      }}
+      data-testid="approval-qa"
+    >
       {qa.map((item, i) => (
-        <QaItem key={i} qa={item} />
+        <QaItem key={i} qa={item} onSuggest={onSuggest} />
       ))}
     </div>
   )
 }
 
-function QaItem({ qa }: { qa: ApprovalQa }) {
+function QaItem({ qa, onSuggest }: { qa: ApprovalQa; onSuggest?: (question: string) => void }) {
   const { t } = useTranslation('chat')
   const name = usePreferences((s) => s.assistant.name)
   return (
@@ -403,6 +442,18 @@ function QaItem({ qa }: { qa: ApprovalQa }) {
             <Loader2 className="size-3.5 animate-spin" />
             {t('approvals.answering')}
           </p>
+        )}
+        {qa.status === 'done' && qa.suggestRevision && onSuggest && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-1.5"
+            onClick={() => onSuggest(qa.question)}
+            data-testid="approval-suggest-revise"
+          >
+            <Send />
+            {t('approvals.sendAsRevision')}
+          </Button>
         )}
       </div>
     </div>

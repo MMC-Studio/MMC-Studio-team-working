@@ -4,7 +4,8 @@ import {
   type ApprovalCard,
   type ApprovalDelta,
   type ApprovalPastVersion,
-  questionCount
+  questionCount,
+  splitRevisionHint
 } from '@shared/approvals'
 
 /** Gọi Claude để trả lời một câu hỏi về thẻ (không tool). Trả `{ error }` khi lỗi. */
@@ -153,14 +154,16 @@ export class ApprovalHub {
 
   private async run(entry: Entry, snapshot: ApprovalCard, index: number, question: string, abort: AbortController): Promise<void> {
     const qa = entry.card.qa[index]
+    let fullText = ''
     let result: { error?: string }
     try {
       result = await this.deps.answer(
         snapshot,
         question,
-        (answer) => {
-          qa.answer = answer
-          this.deps.delta({ id: entry.card.id, index, answer })
+        (raw) => {
+          qa.answer = splitRevisionHint(raw).text
+          fullText = raw
+          this.deps.delta({ id: entry.card.id, index, answer: qa.answer })
         },
         abort.signal
       )
@@ -176,7 +179,9 @@ export class ApprovalHub {
       qa.answer = result.error
     } else {
       qa.status = 'done'
-      qa.answer = qa.answer.trim()
+      const { text, suggest } = splitRevisionHint(fullText)
+      qa.answer = text.trim()
+      if (suggest) qa.suggestRevision = true
     }
     // Mỗi câu trả lời tính lại hạn chờ (tối đa 30 phút kể từ lúc tạo thẻ).
     entry.touch()
