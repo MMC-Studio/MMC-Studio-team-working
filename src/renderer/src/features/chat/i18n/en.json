@@ -390,6 +390,7 @@
     "hideVersion": "Hide",
     "revisionLabel": "Requested changes:",
     "latestVersion": "Version {{n}} · latest",
-    "waitingVersion": "Waiting for the assistant to make version {{n}}…"
+    "waitingVersion": "Waiting for the assistant to make version {{n}}…",
+    "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line"
   }
 }

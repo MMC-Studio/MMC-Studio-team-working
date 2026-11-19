@@ -390,6 +390,7 @@
     "hideVersion": "Thu gọn",
     "revisionLabel": "Yêu cầu sửa:",
     "latestVersion": "Bản {{n}} · mới nhất",
-    "waitingVersion": "Đang chờ trợ lý làm Bản {{n}}…"
+    "waitingVersion": "Đang chờ trợ lý làm Bản {{n}}…",
+    "keyHint": "Enter để hỏi · Ctrl+Enter để yêu cầu sửa · Shift+Enter xuống dòng"
   }
 }

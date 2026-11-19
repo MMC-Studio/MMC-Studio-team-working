@@ -255,6 +255,62 @@ test('"Yêu cầu sửa" → các bản nằm chung một thẻ: Bản 2 vẫn t
   expect(readFileSync(join(project, 'b.txt'), 'utf8')).toBe('phiên bản 3: thêm dòng cuối\n')
 })
 
+test('phím trên ô nhập của thẻ: Enter = Hỏi, Shift+Enter xuống dòng, Ctrl+Enter = Yêu cầu sửa; ô trống / đang ghép chữ thì không gửi', async () => {
+  await send('FAKE_EDIT:k.txt')
+  const code = card('code')
+  await expect(code).toContainText('phiên bản 1', { timeout: 20_000 })
+  const input = code.getByTestId('approval-input')
+  const questions = code.getByTestId('approval-question')
+  await expect(code.getByTestId('approval-key-hint')).toHaveText('Enter để hỏi · Ctrl+Enter để yêu cầu sửa · Shift+Enter xuống dòng')
+
+  // Ô trống: Enter không làm gì.
+  await input.focus()
+  await input.press('Enter')
+  await page.waitForTimeout(300)
+  await expect(questions).toHaveCount(0)
+  await expect(input).toHaveValue('')
+
+  // Shift+Enter xuống dòng, chưa gửi.
+  await input.pressSequentially('Dòng một')
+  await input.press('Shift+Enter')
+  await input.pressSequentially('dòng hai')
+  await expect(input).toHaveValue('Dòng một\ndòng hai')
+  await expect(questions).toHaveCount(0)
+
+  // Bộ gõ đang ghép chữ (Unikey / EVKey / IME): Enter để chốt chữ, không gửi.
+  await input.evaluate((el) => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true, bubbles: true, cancelable: true }))
+  })
+  await page.waitForTimeout(300)
+  await expect(questions).toHaveCount(0)
+
+  // Enter = Hỏi: gửi luôn, ô nhập trống lại.
+  await input.press('Enter')
+  await expect(questions).toHaveText(['Dòng một\ndòng hai'], { timeout: 1_000 })
+  await expect(input).toHaveValue('')
+  await expect(code.getByTestId('approval-answer')).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+
+  // Ô chat bên dưới giữ cách cũ: Shift+Enter xuống dòng, Enter gửi.
+  await askBox().fill('Câu ở ô chat')
+  await askBox().press('Shift+Enter')
+  await expect(askBox()).toHaveValue('Câu ở ô chat\n')
+  await expect(questions).toHaveCount(1)
+  await askBox().press('Enter')
+  await expect(questions).toHaveCount(2, { timeout: 1_000 })
+  await expect(code.getByTestId('approval-answer').nth(1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+
+  // Ctrl+Enter = Yêu cầu sửa → Bản 2.
+  await input.fill('làm bằng phím tắt')
+  await input.press('Control+Enter')
+  await expect(code.getByTestId('approval-version')).toHaveText('Bản 2', { timeout: 10_000 })
+  await expect(code.getByTestId('approval-revision')).toHaveText('Yêu cầu sửa: làm bằng phím tắt')
+  await expect(code.getByTestId('approval-current').getByTestId('approval-diff')).toContainText('phiên bản 2: làm bằng phím tắt')
+
+  await code.getByTestId('approval-reject').click()
+  await expect(code).toHaveCount(0, { timeout: 1_000 })
+  await expect(box()).toBeVisible({ timeout: 20_000 })
+})
+
 test('Từ chối thường → không sửa file', async () => {
   await send('FAKE_EDIT:c.txt')
   const code = card('code')

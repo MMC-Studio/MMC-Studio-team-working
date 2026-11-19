@@ -13,7 +13,7 @@ import {
   PencilLine,
   X
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   APPROVAL_MAX_QUESTIONS,
@@ -183,8 +183,21 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
     }
   }
 
+  const canAsk = !!text && !answering && !limitReached && !busy
   const askQuestion = async (): Promise<void> => {
-    if (text && (await ask(card.id, text))) setInput('')
+    if (canAsk && (await ask(card.id, text))) setInput('')
+  }
+  const requestRevision = (): void => {
+    if (text && !busy) void revise(card.id, text, () => respondReject(text))
+  }
+
+  // Enter = Hỏi, Ctrl+Enter = Yêu cầu sửa, Shift+Enter = xuống dòng. Bộ gõ (Unikey / EVKey / IME) đang ghép chữ
+  // thì không gửi — Enter lúc đó là để chốt chữ.
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
+    e.preventDefault()
+    if (e.ctrlKey || e.metaKey) requestRevision()
+    else void askQuestion()
   }
 
   const accentLabel =
@@ -223,13 +236,17 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           placeholder={t('approvals.inputPlaceholder')}
           aria-label={t('approvals.inputPlaceholder')}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
           data-testid="approval-input"
         />
+        <p className="text-[11px] text-muted-foreground" data-testid="approval-key-hint">
+          {t('approvals.keyHint')}
+        </p>
         <div className="flex justify-end gap-2">
           <Button
             size="sm"
             variant="outline"
-            disabled={!text || answering || limitReached || busy}
+            disabled={!canAsk}
             onClick={() => void askQuestion()}
             data-testid="approval-ask-send"
           >
@@ -240,7 +257,7 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
             size="sm"
             variant="outline"
             disabled={!text || busy}
-            onClick={() => void revise(card.id, text, () => respondReject(text))}
+            onClick={requestRevision}
             data-testid="approval-revise"
           >
             <PencilLine />
