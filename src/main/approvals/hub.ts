@@ -32,17 +32,43 @@ type Entry = { card: ApprovalCard; touch(): boolean; abort: AbortController | nu
  */
 export class ApprovalHub {
   private entries = new Map<string, Entry>()
+  /** `<cuộc>:<loại>` → bản tiếp theo + yêu cầu sửa, chờ đề xuất mới của trợ lý trong cùng lượt. */
+  private revisions = new Map<string, { version: number; note: string }>()
 
   constructor(private readonly deps: ApprovalHubDeps) {}
 
   /** `touch` gia hạn chờ của thẻ ở nơi giữ nó; trả false nếu thẻ không còn. */
-  add(card: Omit<ApprovalCard, 'qa' | 'createdAt'>, touch: () => boolean): void {
+  add(card: Omit<ApprovalCard, 'qa' | 'createdAt' | 'version' | 'revisionNote'>, touch: () => boolean): void {
+    const key = `${card.conversationId}:${card.kind}`
+    const revision = this.revisions.get(key)
+    this.revisions.delete(key)
     this.entries.set(card.id, {
-      card: { ...card, qa: [], createdAt: Date.now() } as ApprovalCard,
+      card: {
+        ...card,
+        qa: [],
+        createdAt: Date.now(),
+        version: revision?.version ?? 1,
+        revisionNote: revision?.note ?? null
+      } as ApprovalCard,
       touch,
       abort: null
     })
     this.deps.changed()
+  }
+
+  /**
+   * Người dùng bấm "Yêu cầu sửa" (bên trong là từ chối kèm góp ý): đề xuất cùng loại tiếp theo của cuộc này
+   * là bản kế tiếp. Gọi TRƯỚC khi trả lời lượt đang chờ (trợ lý có thể đề xuất lại ngay).
+   */
+  markRevised(id: string, note: string): void {
+    const card = this.entries.get(id)?.card
+    if (!card) return
+    this.revisions.set(`${card.conversationId}:${card.kind}`, { version: card.version + 1, note })
+  }
+
+  /** Hết lượt chat → bỏ ghi nhận "Yêu cầu sửa" chưa có đề xuất mới (lượt sau bắt đầu lại từ bản 1). */
+  endRun(conversationId: string): void {
+    for (const key of this.revisions.keys()) if (key.startsWith(`${conversationId}:`)) this.revisions.delete(key)
   }
 
   remove(id: string): void {

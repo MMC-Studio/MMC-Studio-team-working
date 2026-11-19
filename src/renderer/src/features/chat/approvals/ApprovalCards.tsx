@@ -8,7 +8,7 @@ import {
   Mail,
   MessageCircle,
   MessageCircleQuestion,
-  MessageSquareX,
+  PencilLine,
   X
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -25,8 +25,9 @@ import { useApprovals } from './store'
 
 /**
  * Thẻ chờ duyệt nằm ngay trong khung chat (dưới tin trợ lý đang trả lời): sửa file (diff), xin quyền thư mục,
- * nháp Gmail / Telegram. Người dùng có thể "Hỏi lại" (trợ lý chỉ giải thích, không tool) hoặc "Từ chối kèm góp ý"
- * (trợ lý đề xuất lại trong cùng lượt). Quyền chỉ được cấp khi người dùng bấm nút đồng ý.
+ * nháp Gmail / Telegram. Ô nhập trên thẻ có 2 nút do người dùng chọn: "Hỏi" (trợ lý chỉ giải thích, không tool,
+ * thẻ vẫn chờ) và "Yêu cầu sửa" (bên trong là từ chối kèm góp ý → trợ lý đề xuất bản mới trong cùng lượt, "Bản 2"…).
+ * Quyền chỉ được cấp khi người dùng bấm nút đồng ý.
  */
 export function ApprovalCards({ cards }: { cards: ApprovalCard[] }) {
   if (cards.length === 0) return null
@@ -43,12 +44,10 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
   const { t } = useTranslation('chat')
   const { t: tc } = useTranslation('connectors')
   const decide = useApprovals((s) => s.decide)
-  const focusAsk = useApprovals((s) => s.focusAsk)
-  const askTarget = useApprovals((s) => s.askTarget)
+  const ask = useApprovals((s) => s.ask)
   const askError = useApprovals((s) => (s.askError?.id === card.id ? s.askError.code : null))
   const respondFolder = useChat((s) => s.respondFolderAccess)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [feedback, setFeedback] = useState('')
+  const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [hint, setHint] = useState<string | null>(null)
   // Thẻ thư mục: cho phép sửa hay không (mặc định theo điều trợ lý xin). Thẻ nháp: nội dung người dùng sửa.
@@ -87,6 +86,12 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
     card.kind === 'code' ? t('code.accept') : card.kind === 'folder' ? t('folderAccess.choose') : tc(`draft.approve.${card.request.service}`)
   const rejectLabel = card.kind === 'folder' ? t('folderAccess.deny') : t('code.reject')
   const limitReached = card.qa.length >= APPROVAL_MAX_QUESTIONS
+  const text = input.trim()
+
+  const askQuestion = async (): Promise<void> => {
+    if (!text) return
+    if (await ask(card.id, text)) setInput('')
+  }
 
   return (
     <div
@@ -101,7 +106,17 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
         <div className="flex items-center gap-2 font-medium">
           {header.icon}
           <span>{header.title}</span>
+          {card.version > 1 && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground" data-testid="approval-version">
+              {t('approvals.version', { n: card.version })}
+            </span>
+          )}
         </div>
+        {card.revisionNote && (
+          <p className="text-xs text-muted-foreground" data-testid="approval-revision-note">
+            {t('approvals.revisionNote', { note: card.revisionNote })}
+          </p>
+        )}
 
         {card.kind === 'code' && (
           <>
@@ -166,6 +181,40 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
           </>
         )}
 
+        <div className="space-y-2" data-testid="approval-input-box">
+          <Textarea
+            rows={2}
+            value={input}
+            maxLength={2000}
+            placeholder={t('approvals.inputPlaceholder')}
+            aria-label={t('approvals.inputPlaceholder')}
+            onChange={(e) => setInput(e.target.value)}
+            data-testid="approval-input"
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!text || answering || limitReached || busy}
+              onClick={() => void askQuestion()}
+              data-testid="approval-ask-send"
+            >
+              <MessageCircleQuestion />
+              {t('approvals.askButton')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!text || busy}
+              onClick={() => reject(text)}
+              data-testid="approval-revise"
+            >
+              <PencilLine />
+              {t('approvals.revise')}
+            </Button>
+          </div>
+        </div>
+
         {card.qa.length > 0 && (
           <div className="space-y-2 border-t pt-3" data-testid="approval-qa">
             {card.qa.map((qa, i) => (
@@ -182,71 +231,26 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
           </p>
         )}
 
-        {feedbackOpen && (
-          <div className="space-y-2 rounded-md border p-2">
-            <Textarea
-              autoFocus
-              rows={3}
-              value={feedback}
-              placeholder={t('approvals.feedbackPlaceholder')}
-              onChange={(e) => setFeedback(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setFeedbackOpen(false)
-              }}
-              data-testid="approval-feedback-input"
-            />
-            <div className="flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setFeedbackOpen(false)}>
-                {t('approvals.cancel')}
-              </Button>
-              <Button size="sm" disabled={!feedback.trim() || busy} onClick={() => reject(feedback)} data-testid="approval-feedback-send">
-                <MessageSquareX />
-                {t('approvals.sendFeedback')}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex justify-end gap-2 border-t pt-3">
           <Button
             size="sm"
-            variant="ghost"
-            disabled={answering || limitReached}
-            title={t('approvals.askHint')}
-            onClick={() => focusAsk(card.id)}
-            data-testid="approval-ask"
-            className={askTarget === card.id ? 'bg-muted' : undefined}
+            variant="outline"
+            disabled={busy}
+            onClick={() => reject()}
+            data-testid={card.kind === 'draft' ? 'draft-reject' : 'approval-reject'}
           >
-            <MessageCircleQuestion />
-            {t('approvals.ask')}
+            <X />
+            {rejectLabel}
           </Button>
-          {!feedbackOpen && (
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setFeedbackOpen(true)} data-testid="approval-feedback-toggle">
-              <MessageSquareX />
-              {t('approvals.rejectWithFeedback')}
-            </Button>
-          )}
-          <div className="ml-auto flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => reject()}
-              data-testid={card.kind === 'draft' ? 'draft-reject' : 'approval-reject'}
-            >
-              <X />
-              {rejectLabel}
-            </Button>
-            <Button
-              size="sm"
-              disabled={busy || (card.kind === 'draft' && !body.trim())}
-              onClick={() => void accept()}
-              data-testid={card.kind === 'folder' ? 'folder-access-choose' : card.kind === 'draft' ? 'draft-approve' : 'approval-accept'}
-            >
-              {card.kind === 'folder' ? <FolderOpen /> : <Check />}
-              {accentLabel}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            disabled={busy || (card.kind === 'draft' && !body.trim())}
+            onClick={() => void accept()}
+            data-testid={card.kind === 'folder' ? 'folder-access-choose' : card.kind === 'draft' ? 'draft-approve' : 'approval-accept'}
+          >
+            {card.kind === 'folder' ? <FolderOpen /> : <Check />}
+            {accentLabel}
+          </Button>
         </div>
       </div>
     </div>

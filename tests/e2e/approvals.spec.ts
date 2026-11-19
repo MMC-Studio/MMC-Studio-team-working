@@ -33,7 +33,7 @@ test.afterAll(async () => {
 })
 
 const box = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Nhắn cho/ })
-const askBox = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Hỏi về đề xuất/ })
+const askBox = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Hỏi về đề xuất đang chờ duyệt/ })
 const sendButton = (): ReturnType<Page['getByRole']> => page.getByRole('button', { name: 'Gửi' })
 const lastReply = (): ReturnType<Page['getByTestId']> => page.getByTestId('message-assistant').last()
 const card = (kind: string): ReturnType<Page['locator']> => page.locator(`[data-testid="approval-card"][data-kind="${kind}"]`)
@@ -54,17 +54,43 @@ async function askAbout(target: ReturnType<Page['locator']>, question: string, n
   await expect(target.getByTestId('approval-answer').nth(nth - 1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
 }
 
-test('thẻ xin quyền thư mục nằm trong khung chat, hỏi lại được, rồi cấp quyền sửa', async () => {
+/** Gõ vào ô nhập TRÊN thẻ rồi bấm "Hỏi" → câu trả lời hiện dưới thẻ, thẻ vẫn chờ. */
+async function askOnCard(target: ReturnType<Page['locator']>, question: string, nth: number): Promise<void> {
+  await target.getByTestId('approval-input').fill(question)
+  await target.getByTestId('approval-ask-send').click()
+  await expect(target.getByTestId('approval-question')).toHaveCount(nth, { timeout: 1_000 })
+  await expect(target.getByTestId('approval-input')).toHaveValue('')
+  await expect(target.getByTestId('approval-answer').nth(nth - 1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+}
+
+/** Gõ vào ô nhập trên thẻ rồi bấm "Yêu cầu sửa". */
+async function revise(target: ReturnType<Page['locator']>, request: string): Promise<void> {
+  await target.getByTestId('approval-input').fill(request)
+  await target.getByTestId('approval-revise').click()
+}
+
+test('thẻ thư mục: "Yêu cầu sửa" → trợ lý nhận yêu cầu (không hiện chữ "từ chối" trên thẻ)', async () => {
+  await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Xem cấu hình', write: true })}`)
+  const folder = card('folder')
+  await expect(folder).toBeVisible({ timeout: 20_000 })
+  // Thẻ nằm trong vùng tin nhắn, không phải hộp thoại nổi; không còn nút "Từ chối kèm góp ý".
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(folder).not.toContainText('kèm góp ý')
+  // Chưa gõ gì → hai nút không bấm được (không tự đoán câu hỏi / yêu cầu).
+  await expect(folder.getByTestId('approval-ask-send')).toBeDisabled()
+  await expect(folder.getByTestId('approval-revise')).toBeDisabled()
+  await revise(folder, 'chỉ cần quyền đọc thôi')
+  await expect(folder).toHaveCount(0, { timeout: 1_000 })
+  await expect(lastReply()).toContainText('góp ý: "chỉ cần quyền đọc thôi"', { timeout: 20_000 })
+  await expect(sendButton()).toBeVisible({ timeout: 20_000 })
+})
+
+test('thẻ thư mục: hỏi trên thẻ, rồi cấp quyền sửa', async () => {
   await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Sửa file cấu hình', write: true })}`)
   const folder = card('folder')
   await expect(folder).toBeVisible({ timeout: 20_000 })
-  // Thẻ nằm trong vùng tin nhắn, không phải hộp thoại nổi.
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-
-  // Bấm "Hỏi lại" → ô chat chuyển sang hỏi về thẻ và được focus.
-  await folder.getByTestId('approval-ask').click()
-  await expect(askBox()).toBeFocused({ timeout: 1_000 })
-  await askAbout(folder, 'Thư mục này để làm gì?', 1)
+  await expect(folder.getByTestId('approval-version')).toHaveCount(0)
+  await askOnCard(folder, 'Thư mục này để làm gì?', 1)
   await expect(folder.getByTestId('approval-answer').first()).toContainText('Giải thích (giả lập) #1')
   await expect(folder.getByTestId('approval-answer').first()).toContainText('đọc + sửa')
 
@@ -93,21 +119,6 @@ test('sửa file: hỏi 2 câu liên tiếp rồi Đồng ý → file được s
   // Hỏi đáp không tự duyệt: file chưa có.
   expect(existsSync(join(project, 'a.txt'))).toBe(false)
 
-  // Ảnh để xem tay giao diện thẻ (sáng / tối, 900 / 1280px) trong test-results/.
-  const setWidth = (width: number): Promise<void> =>
-    app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 820), width)
-  for (const theme of ['light', 'dark'] as const) {
-    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
-      await page.getByTestId('theme-toggle').click()
-    }
-    for (const width of [900, 1280]) {
-      await setWidth(width)
-      await code.getByTestId('approval-qa').scrollIntoViewIfNeeded()
-      await page.screenshot({ path: `test-results/approval-card-${theme}-${width}.png` })
-    }
-  }
-  await page.getByTestId('theme-toggle').click()
-
   await code.getByTestId('approval-accept').click()
   await expect(code).toHaveCount(0, { timeout: 1_000 })
   await expect(lastReply()).toContainText('Đã sửa a.txt (phiên bản 1)', { timeout: 20_000 })
@@ -115,21 +126,48 @@ test('sửa file: hỏi 2 câu liên tiếp rồi Đồng ý → file được s
   await expect(box()).toBeVisible({ timeout: 20_000 })
 })
 
-test('Từ chối kèm góp ý → trợ lý đề xuất bản mới theo góp ý (lại qua thẻ duyệt)', async () => {
+test('"Yêu cầu sửa" → thẻ mới thay thẻ cũ, ghi Bản 2, Bản 3; Đồng ý ghi đúng bản cuối', async () => {
   await send('FAKE_EDIT:b.txt')
   const code = card('code')
   await expect(code).toContainText('phiên bản 1', { timeout: 20_000 })
-  await code.getByTestId('approval-feedback-toggle').click()
-  await code.getByTestId('approval-feedback-input').fill('ghi rõ là bản sửa theo góp ý')
-  await code.getByTestId('approval-feedback-send').click()
+  await expect(code.getByTestId('approval-version')).toHaveCount(0)
+  await revise(code, 'ghi rõ là bản sửa theo yêu cầu')
 
-  // Thẻ cũ đóng, thẻ mới có nội dung theo góp ý.
-  await expect(code).toContainText('phiên bản 2: ghi rõ là bản sửa theo góp ý', { timeout: 10_000 })
+  // Thẻ cũ đóng, thẻ mới (Bản 2) có nội dung theo yêu cầu.
+  await expect(code.getByTestId('approval-version')).toHaveText('Bản 2', { timeout: 10_000 })
   await expect(code).toHaveCount(1)
+  await expect(code).toContainText('phiên bản 2: ghi rõ là bản sửa theo yêu cầu')
+  await expect(code.getByTestId('approval-revision-note')).toContainText('ghi rõ là bản sửa theo yêu cầu')
+  await expect(code.getByTestId('approval-revision-note')).not.toContainText('chối')
+  await askOnCard(code, 'Bản này khác bản trước chỗ nào?', 1)
+  // Ô chat bên dưới vẫn hỏi được.
+  await askBox().fill('Có cần sửa file khác không?')
+  await askBox().press('Enter')
+  await expect(code.getByTestId('approval-answer').nth(1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+
+  // Ảnh để xem tay giao diện thẻ (sáng / tối, 900 / 1280px) trong test-results/.
+  const setWidth = (width: number): Promise<void> =>
+    app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 820), width)
+  await code.getByTestId('approval-input').fill('đổi tên file thành config.txt')
+  for (const theme of ['light', 'dark'] as const) {
+    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
+      await page.getByTestId('theme-toggle').click()
+    }
+    for (const width of [900, 1280]) {
+      await setWidth(width)
+      await code.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: `test-results/approval-card-${theme}-${width}.png`, fullPage: true })
+    }
+  }
+  await page.getByTestId('theme-toggle').click()
+
+  await revise(code, 'thêm dòng cuối')
+  await expect(code.getByTestId('approval-version')).toHaveText('Bản 3', { timeout: 10_000 })
+  await expect(code).toContainText('phiên bản 3: thêm dòng cuối')
   expect(existsSync(join(project, 'b.txt'))).toBe(false)
   await code.getByTestId('approval-accept').click()
-  await expect(lastReply()).toContainText('Đã sửa b.txt (phiên bản 2)', { timeout: 20_000 })
-  expect(readFileSync(join(project, 'b.txt'), 'utf8')).toBe('phiên bản 2: ghi rõ là bản sửa theo góp ý\n')
+  await expect(lastReply()).toContainText('Đã sửa b.txt (phiên bản 3)', { timeout: 20_000 })
+  expect(readFileSync(join(project, 'b.txt'), 'utf8')).toBe('phiên bản 3: thêm dòng cuối\n')
 })
 
 test('Từ chối thường → không sửa file', async () => {

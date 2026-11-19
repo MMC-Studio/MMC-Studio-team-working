@@ -24,6 +24,10 @@ export type ApprovalCard = {
   conversationId: string
   createdAt: number
   qa: ApprovalQa[]
+  /** 1 = đề xuất đầu; người dùng bấm "Yêu cầu sửa" → đề xuất mới cùng loại trong lượt đó là bản 2, 3… */
+  version: number
+  /** Yêu cầu sửa của người dùng mà bản này làm theo (null với bản 1). */
+  revisionNote: string | null
 } & (
   | { kind: 'code'; request: CodeApprovalRequest }
   | { kind: 'folder'; request: FolderAccessRequest }

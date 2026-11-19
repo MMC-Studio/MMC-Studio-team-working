@@ -370,14 +370,8 @@
     "sticker": "[Sticker]"
   },
   "approvals": {
-    "ask": "Hỏi lại",
-    "askHint": "Gõ câu hỏi vào ô chat bên dưới — trợ lý chỉ giải thích, không tự thay đổi gì.",
     "askPlaceholder": "Hỏi về đề xuất đang chờ duyệt… (vd: Tại sao phải sửa chỗ này?)",
     "askSend": "Hỏi",
-    "rejectWithFeedback": "Từ chối kèm góp ý",
-    "feedbackPlaceholder": "Bạn muốn làm khác thế nào? Trợ lý sẽ đề xuất lại theo góp ý.",
-    "sendFeedback": "Từ chối & gửi góp ý",
-    "cancel": "Huỷ",
     "answering": "Đang trả lời…",
     "answerError": "Không trả lời được ({{code}}). Bạn thử hỏi lại nhé.",
     "errors": {
@@ -387,6 +381,11 @@
       "generic": "Không gửi được câu hỏi ({{code}})."
     },
     "banner": "{{name}} đang chờ bạn duyệt ({{count}})",
-    "open": "Xem"
+    "open": "Xem",
+    "inputPlaceholder": "Hỏi về đề xuất này, hoặc ghi cách bạn muốn sửa…",
+    "askButton": "Hỏi",
+    "revise": "Yêu cầu sửa",
+    "version": "Bản {{n}}",
+    "revisionNote": "Làm theo yêu cầu: {{note}}"
   }
 }

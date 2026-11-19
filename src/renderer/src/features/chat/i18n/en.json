@@ -370,14 +370,8 @@
     "sticker": "[Sticker]"
   },
   "approvals": {
-    "ask": "Ask",
-    "askHint": "Type your question in the chat box below — the assistant only explains, it changes nothing.",
     "askPlaceholder": "Ask about the pending proposal… (e.g. Why change this?)",
     "askSend": "Ask",
-    "rejectWithFeedback": "Reject with feedback",
-    "feedbackPlaceholder": "What would you like instead? The assistant will propose again.",
-    "sendFeedback": "Reject & send feedback",
-    "cancel": "Cancel",
     "answering": "Answering…",
     "answerError": "Could not answer ({{code}}). Please ask again.",
     "errors": {
@@ -387,6 +381,11 @@
       "generic": "Could not send the question ({{code}})."
     },
     "banner": "{{name}} is waiting for your approval ({{count}})",
-    "open": "View"
+    "open": "View",
+    "inputPlaceholder": "Ask about this proposal, or describe how you want it changed…",
+    "askButton": "Ask",
+    "revise": "Request changes",
+    "version": "Version {{n}}",
+    "revisionNote": "Following your request: {{note}}"
   }
 }

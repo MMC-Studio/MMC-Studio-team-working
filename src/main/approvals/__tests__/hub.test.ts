@@ -178,6 +178,8 @@ describe('prompt giải thích', () => {
       id: 'a1',
       conversationId: 'c1',
       createdAt: 0,
+      version: 1,
+      revisionNote: null,
       kind: 'code',
       request: { ...codeRequest, change: { ...codeRequest.change, patch: 'x'.repeat(30_000) } },
       qa: [
@@ -200,18 +202,49 @@ describe('prompt giải thích', () => {
 
   it('mô tả thẻ thư mục và nháp', () => {
     const folder = explainPrompt(
-      { id: 'f', conversationId: 'c1', createdAt: 0, qa: [], kind: 'folder', request: { id: 'f', conversationId: 'c1', suggestedPath: 'D:\\game', write: true, reason: 'xem code' } },
+      { id: 'f', conversationId: 'c1', createdAt: 0, version: 1, revisionNote: null, qa: [], kind: 'folder', request: { id: 'f', conversationId: 'c1', suggestedPath: 'D:\\game', write: true, reason: 'xem code' } },
       [],
       'q'
     )
     expect(folder).toContain('đọc + sửa')
     expect(folder).toContain('D:\\game')
     const draft = explainPrompt(
-      { id: 'd', conversationId: 'c1', createdAt: 0, qa: [], kind: 'draft', request: { id: 'd', service: 'telegram', target: 'Nhóm A', subject: null, body: 'chào', replyTo: null } },
+      { id: 'd', conversationId: 'c1', createdAt: 0, version: 1, revisionNote: null, qa: [], kind: 'draft', request: { id: 'd', service: 'telegram', target: 'Nhóm A', subject: null, body: 'chào', replyTo: null } },
       [],
       'q'
     )
     expect(draft).toContain('Telegram')
     expect(draft).not.toContain('Tiêu đề:')
+  })
+})
+
+describe('ApprovalHub — Yêu cầu sửa (Bản 2, Bản 3…)', () => {
+  const answer: ApprovalAnswerer = async () => ({})
+  const add = (hub: ApprovalHub, id: string, conversationId = 'c1'): void =>
+    hub.add({ id, conversationId, kind: 'code', request: { ...codeRequest, id, conversationId } }, () => true)
+
+  it('thẻ cùng loại tiếp theo trong lượt là bản kế tiếp, kèm yêu cầu; hết lượt thì về bản 1', () => {
+    const hub = new ApprovalHub({ changed: () => {}, delta: () => {}, answer, log: { warn: vi.fn() } })
+    add(hub, 'b1')
+    expect(hub.get('b1')).toMatchObject({ version: 1, revisionNote: null })
+    hub.markRevised('b1', 'đổi tên biến')
+    hub.remove('b1')
+    add(hub, 'b2')
+    expect(hub.get('b2')).toMatchObject({ version: 2, revisionNote: 'đổi tên biến' })
+    hub.markRevised('b2', 'thêm chú thích')
+    hub.remove('b2')
+    // Cuộc khác / loại khác không bị ảnh hưởng.
+    add(hub, 'x1', 'c2')
+    expect(hub.get('x1')!.version).toBe(1)
+    add(hub, 'b3')
+    expect(hub.get('b3')).toMatchObject({ version: 3, revisionNote: 'thêm chú thích' })
+    hub.markRevised('b3', 'bỏ qua')
+    hub.endRun('c1')
+    add(hub, 'b4')
+    expect(hub.get('b4')!.version).toBe(1)
+    // Thẻ không còn → không ghi nhận.
+    hub.markRevised('khong-co', 'x')
+    add(hub, 'b5')
+    expect(hub.get('b5')!.version).toBe(1)
   })
 })

@@ -6,8 +6,8 @@
 
 ### Tóm tắt
 - **Thẻ duyệt nằm ngay trong khung chat** (thay cho hộp thoại nổi): trợ lý xin sửa file, xin quyền thư mục, đề xuất nháp Gmail / Telegram đều hiện dưới câu trả lời của nó. Đang ở trang khác thì góc dưới có thanh nhắc "… đang chờ bạn duyệt" — bấm **Xem** để quay lại.
-- **Hỏi lại trước khi duyệt**: khi có thẻ chờ, gõ vào ô chat (vd "Tại sao phải sửa chỗ này?") để trợ lý giải thích ngay dưới thẻ. Trợ lý chỉ giải thích, không tự sửa hay tự đồng ý; tối đa 10 câu mỗi thẻ. Thẻ chờ tối đa 30 phút.
-- **Từ chối kèm góp ý**: ghi cách bạn muốn sửa → trợ lý đề xuất lại bản mới theo góp ý (lại qua thẻ duyệt).
+- **Hỏi trước khi duyệt**: gõ vào ô ngay trên thẻ rồi bấm **Hỏi** (hoặc gõ vào ô chat bên dưới), vd "Tại sao phải sửa chỗ này?" — trợ lý giải thích ngay dưới thẻ, thẻ vẫn chờ. Trợ lý chỉ giải thích, không tự sửa hay tự đồng ý; tối đa 10 câu mỗi thẻ. Thẻ chờ tối đa 30 phút.
+- **Yêu cầu sửa**: ghi cách bạn muốn sửa rồi bấm **Yêu cầu sửa** → trợ lý làm lại, thẻ mới thay thẻ cũ và ghi "Bản 2", "Bản 3"…
 
 ## [0.5.0] - 2026-11-08
 

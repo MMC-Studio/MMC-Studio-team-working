@@ -5,10 +5,6 @@ import { coalesce, onSync, optimistic } from '@renderer/lib/sync'
 
 type ApprovalsState = {
   cards: ApprovalCard[]
-  /** Thẻ mà ô nhập chat đang hỏi (bấm "Hỏi lại" trên thẻ); null = thẻ đầu tiên của cuộc đang mở. */
-  askTarget: string | null
-  /** Tăng mỗi lần bấm "Hỏi lại" → ô nhập tự focus. */
-  focusKey: number
   /** Lỗi của lần hỏi gần nhất (hiện trên thẻ). */
   askError: { id: string; code: string } | null
   refresh(): Promise<void>
@@ -16,18 +12,15 @@ type ApprovalsState = {
   ask(id: string, question: string): Promise<boolean>
   /** Đóng thẻ ngay trên giao diện; `save` lỗi → hiện lại. */
   decide(id: string, save: () => Promise<unknown>): Promise<boolean>
-  focusAsk(id: string): void
 }
 
 export const useApprovals = create<ApprovalsState>((set, get) => ({
   cards: [],
-  askTarget: null,
-  focusKey: 0,
   askError: null,
 
   async refresh() {
     const cards = await api.approvals.list()
-    set((s) => ({ cards, askTarget: cards.some((c) => c.id === s.askTarget) ? s.askTarget : null }))
+    set({ cards })
   },
 
   applyDelta({ id, index, answer }) {
@@ -72,10 +65,6 @@ export const useApprovals = create<ApprovalsState>((set, get) => ({
       }
     })
     return result !== null
-  },
-
-  focusAsk(id) {
-    set((s) => ({ askTarget: id, focusKey: s.focusKey + 1 }))
   }
 }))
 

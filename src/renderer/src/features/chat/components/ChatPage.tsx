@@ -44,13 +44,11 @@ export function ChatPage() {
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)
   const addFiles = useDraft((s) => s.addFiles)
-  // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô nhập chuyển sang hỏi về thẻ.
+  // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô chat bên dưới hỏi về thẻ đầu tiên.
   const allCards = useApprovals((s) => s.cards)
-  const askTarget = useApprovals((s) => s.askTarget)
-  const focusKey = useApprovals((s) => s.focusKey)
   const askCard = useApprovals((s) => s.ask)
   const cards = cardsFor(allCards, activeId)
-  const target = cards.find((c) => c.id === askTarget) ?? cards[0]
+  const target = cards[0]
   const cardsKey = cards.map((c) => `${c.id}:${c.qa.length}:${c.qa.at(-1)?.answer.length ?? 0}`).join('|')
 
   useEffect(() => {
@@ -168,7 +166,6 @@ export function ChatPage() {
               target
                 ? {
                     onAsk: (q) => void askCard(target.id, q),
-                    focusKey,
                     disabled: target.qa.some((q) => q.status === 'answering')
                   }
                 : undefined

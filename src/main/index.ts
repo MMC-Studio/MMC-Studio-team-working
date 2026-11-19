@@ -717,6 +717,7 @@ async function bootstrap(): Promise<void> {
       mcpApprovals.cancelConversation(conversationId)
       draftApprovals.cancelConversation(conversationId)
       folderAccess.cancelConversation(conversationId)
+      approvalHub.endRun(conversationId)
     },
     appToolsFor: (conversationId) =>
       combineToolSets([folderAccess.toolsFor(conversationId), computer.toolsFor(), gmail.toolsFor(), telegram.toolsFor()]),
@@ -913,7 +914,7 @@ async function bootstrap(): Promise<void> {
       voiceClient.stop()
     }
   })
-  registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals })
+  registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals, hub: approvalHub })
   registerWorkIpc({
     handle,
     conversations,

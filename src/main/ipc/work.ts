@@ -105,7 +105,10 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
   handle(
     IPC.folderAccessRespond,
     z.object({ id: idSchema, grant: z.boolean(), write: z.boolean(), feedback: feedbackSchema }),
-    ({ id, grant, write, feedback }) => deps.folderAccess.respond(id, grant, write, feedback),
+    ({ id, grant, write, feedback }) => {
+      if (!grant && feedback) deps.hub.markRevised(id, feedback)
+      return deps.folderAccess.respond(id, grant, write, feedback)
+    },
     { changes: ['conversations', 'approvals'] }
   )
   handle(IPC.codeSetWrite, z.object({ conversationId: idSchema, enabled: z.boolean() }), ({ conversationId, enabled }) => {
@@ -118,6 +121,8 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     IPC.codeRespond,
     z.object({ id: idSchema, allow: z.boolean(), feedback: feedbackSchema }),
     ({ id, allow, feedback }) => {
+      // "Yêu cầu sửa" = từ chối kèm góp ý → đề xuất tiếp theo của trợ lý là bản kế tiếp.
+      if (!allow && feedback) deps.hub.markRevised(id, feedback)
       deps.approvals.respond(id, allow, feedback)
     },
     { changes: 'approvals' }

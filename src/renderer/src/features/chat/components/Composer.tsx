@@ -28,11 +28,8 @@ type Props = {
   /** Gửi ngay GIF / sticker đã chọn. */
   onSendMedia(media: MediaItem): void
   onStop(): void
-  /**
-   * Có thẻ chờ duyệt trong cuộc này → chữ gõ vào là câu hỏi về thẻ ("Hỏi lại"), gửi được cả khi trợ lý đang chờ.
-   * focusKey đổi (bấm "Hỏi lại" trên thẻ) → focus ô nhập.
-   */
-  ask?: { onAsk(text: string): void; focusKey: number; disabled: boolean }
+  /** Có thẻ chờ duyệt trong cuộc này → chữ gõ vào là câu hỏi về thẻ, gửi được cả khi trợ lý đang chờ. */
+  ask?: { onAsk(text: string): void; disabled: boolean }
 }
 
 export function Composer({
@@ -84,11 +81,6 @@ export function Composer({
 
   const canSend = !streaming && !disabled && !busy && (text.trim().length > 0 || items.length > 0)
   const canAsk = !!ask && !ask.disabled && !disabled && text.trim().length > 0
-
-  const focusKey = ask?.focusKey ?? 0
-  useEffect(() => {
-    if (focusKey) box.current?.focus()
-  }, [focusKey])
 
   const submit = (): void => {
     if (ask) {
