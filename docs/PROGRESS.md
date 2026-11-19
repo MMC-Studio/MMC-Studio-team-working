@@ -1,4 +1,4 @@
-# Tiến độ nâng cấp trợ lý cá nhân (cập nhật 2026-11-06)
+# Tiến độ nâng cấp trợ lý cá nhân (cập nhật 2026-11-19)
 
 ## Đã xong (đã merge vào main)
 | PR | Nội dung |
@@ -16,8 +16,13 @@
 | #15 | Gmail nhiều tài khoản (một OAuth client, token riêng từng tài khoản, tên gọi, nháp đúng tài khoản) |
 | #16 | Đồng bộ trạng thái toàn app (`sync:changed` + `useSync` + `optimistic`) |
 | #17 | Sắp xếp cuộc trò chuyện (ghim, nhóm, gợi ý nhóm, nhánh, tiêu đề tự động, tìm kiếm) — phát hành 0.4.0-beta.1 |
+| #18 | Thanh trên khung chat, tab Gần đây trong bộ chọn emoji, đề xuất trí nhớ dạng danh sách gọn — 0.4.0 |
+| #19 | Quyền thư mục ở mọi chế độ + trợ lý tự xin quyền + hồ sơ dự án |
+| #20 | Trả lời một tin, ghim tin, thu hồi, sửa & gửi lại |
+| #21 | Sửa menu ⋮ trên tin bị trong suốt — phát hành 0.5.0 |
+| #22 | Đợt "giống Claude" PR 1: gộp lời gọi công cụ thành một dòng + gom "Những điều đã ghi nhớ" theo loại |
 
-## PR đang mở
+## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
   1. **Thanh trên khung chat:** nút Artifacts bỏ định vị tuyệt đối, vào chung thanh flex với tiêu đề + Gợi ý ghi nhớ; khung hẹp (container query, < 42rem) chỉ còn biểu tượng + tooltip; tiêu đề dài cắt bằng …. E2E `chat-header.spec.ts` đo khung ở 900 / 1100 / 1280px và khi mở panel Artifacts (ảnh `test-results/chat-header-*.png`).
   2. **Tab 🕘 Gần đây trong bộ chọn emoji:** tối đa 40 emoji, mới dùng xếp đầu; đầy thì loại mục có điểm thấp nhất (số lần dùng × ½ mỗi 7 ngày không dùng) → emoji hay dùng giữ lâu hơn. Mở bộ chọn: có gần đây → tab Gần đây, chưa có → mặt cười (chỉ chọn lúc mở, chọn emoji không làm tab nhảy). Bỏ dòng "Dùng gần đây" ở tab mặt cười. Tính: chọn trong bộ chọn (ngay), gõ thẳng trong tin (lúc gửi, trừ cái đã chọn để không tính trùng), thả cảm xúc (main). GIF / sticker: dải "Gần đây" riêng (18 mục mỗi loại), main ghi khi gửi. "Xoá gần đây" bấm hai lần (4 giây). Lưu settings `expressiveRecent` trên máy, sync mục `expressiveRecent`; emoji cũ trong localStorage chuyển sang một lần.
@@ -57,11 +62,13 @@ Quyết định đã duyệt (2026-11-19):
 - Trạng thái thu gọn (nhóm trí nhớ, danh sách công cụ) chỉ là cách xem → localStorage / state cục bộ, không vào DB.
 
 Tiến độ:
-- **PR 1 `feat/collapse-tools-memory`** (đang mở):
+- **PR 1 — #22 `feat/collapse-tools-memory`** (đã merge 2026-11-19, CI xanh):
   - **Công cụ:** `ToolEvents.tsx` gộp mọi lời gọi công cụ của một tin thành một dòng, mặc định thu gọn ("Đã dùng 9 công cụ · Read ×5, Grep ×4", tối đa 3 loại rồi "…"; một công cụ vẫn là "Đã dùng công cụ X"). Bấm → danh sách từng lần kèm file / từ khoá / lệnh (`toolSummary.ts`). Đang chạy (đang stream và chữ chưa dài thêm từ lúc nhận công cụ cuối) → "Đang đọc file…" + file đang đọc. MCP ngoài hiện "server · tool". Thẻ duyệt là hộp thoại riêng nên không bị gộp.
   - **Trí nhớ:** gom theo loại (Sở thích trả lời, Dự án, Mục tiêu, Kỹ năng, Deadline, Khác), tiêu đề + số, bấm thu / mở (localStorage `mmc.memory.collapsed.group.<loại>`); 5 mục + "Xem thêm N"; mục dài một dòng + "Xem thêm" / "Thu gọn" (chỉ hiện khi bị cắt thật). Đang tìm: nhóm có kết quả tự mở, thu gọn chỉ tạm thời; xoá ô tìm → về trạng thái đã lưu. Bỏ nhãn loại trên từng dòng (đã có tiêu đề nhóm).
   - Test: `toolSummary.test.ts`, `groupMemories.test.ts`; e2e `collapse.spec.ts` (FakeChat `FAKE_TOOLS:<n>`, ảnh sáng / tối 900 / 1280px trong `test-results/`).
   - Chưa thử với Claude thật: dòng "Đang …" khi CLI gọi công cụ xen giữa đoạn chữ.
+- **Tiếp theo: PR 1b** — thẻ duyệt vào khung chat + Hỏi lại + Từ chối kèm góp ý.
+- **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
