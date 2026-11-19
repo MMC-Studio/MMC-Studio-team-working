@@ -78,6 +78,7 @@ const api: TeamWorkingApi = {
   },
   artifacts: {
     list: (conversationId) => ipcRenderer.invoke(IPC.artifactsList, conversationId),
+    listAll: () => ipcRenderer.invoke(IPC.artifactsListAll),
     versions: (id) => ipcRenderer.invoke(IPC.artifactsVersions, id),
     content: (id, version) => ipcRenderer.invoke(IPC.artifactsContent, { id, version }),
     saveVersion: (id, content) => ipcRenderer.invoke(IPC.artifactsSave, { id, content }),

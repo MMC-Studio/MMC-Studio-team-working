@@ -223,3 +223,38 @@ describe('ArtifactService + protocol', () => {
     )
   })
 })
+
+describe('ArtifactService.listAll — trang Artifacts', () => {
+  it('mọi artifact của tài khoản hiện tại (mới sửa trước), kèm tên cuộc trò chuyện; không lẫn tài khoản khác', () => {
+    const { db } = openDatabase(':memory:', join(__dirname, '..', '..', 'db', 'migrations'))
+    let owner = 'an'
+    const convs = new ConversationRepository(db, () => owner)
+    let now = 1000
+    const service = new ArtifactService({
+      db,
+      ownsConversation: (id) => !!convs.get(id),
+      ownedConversations: () => convs.list().map((c) => ({ id: c.id, title: c.title })),
+      now: () => now
+    })
+    const c1 = convs.create('free').id
+    convs.update({ id: c1, title: 'Game Unity' })
+    const c2 = convs.create('free').id
+    convs.update({ id: c2, title: 'Báo cáo' })
+    service.applyReply(c1, '<artifact type="doc" title="GDD">a</artifact>')
+    now = 2000
+    service.applyReply(c2, '<artifact type="sheet" title="Bảng điểm">a,b</artifact>')
+    now = 3000
+    service.applyReply(c1, '<artifact-edit title="GDD"><find>a</find><replace>b</replace></artifact-edit>')
+    owner = 'binh'
+    const other = convs.create('free').id
+    service.applyReply(other, '<artifact type="doc" title="Của Bình">x</artifact>')
+
+    expect(service.listAll().map((a) => [a.title, a.conversationTitle])).toEqual([['Của Bình', '']])
+    owner = 'an'
+    expect(service.listAll().map((a) => [a.title, a.type, a.conversationTitle, a.version])).toEqual([
+      ['GDD', 'doc', 'Game Unity', 2],
+      ['Bảng điểm', 'sheet', 'Báo cáo', 1]
+    ])
+    expect(new ArtifactService({ db, ownsConversation: () => true }).listAll()).toEqual([])
+  })
+})

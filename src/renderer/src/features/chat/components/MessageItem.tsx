@@ -90,13 +90,18 @@ export const MessageItem = memo(function MessageItem({ message }: { message: Mes
           </div>
         )}
         {message.media && <MediaView item={message.media} className={mediaSize(message.media)} />}
-        <div className="flex max-w-[80%] items-center gap-2">
-          <MessageMenu message={message} onEdit={() => setEditing(true)} />
-          <ForkButton message={message} />
-          <PinMark message={message} />
-          <ReactionBar message={message} align="end" />
+        {/* Khung chat rộng: nút thao tác bên trái bong bóng. Khung hẹp (vd mở panel artifact): nút xuống dưới bong bóng
+            để không ép bong bóng (thanh thả cảm xúc rộng ~225px). */}
+        <div className="flex max-w-[90%] flex-col-reverse items-end gap-1 @lg/msgs:max-w-[80%] @lg/msgs:flex-row @lg/msgs:items-center @lg/msgs:gap-2">
+          <div className="flex shrink-0 items-center gap-2" data-testid="message-user-actions">
+            <MessageMenu message={message} onEdit={() => setEditing(true)} />
+            <ForkButton message={message} />
+            <PinMark message={message} />
+            <ReactionBar message={message} align="end" />
+          </div>
           {message.content && (
-            <div className="rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm whitespace-pre-wrap text-primary-foreground">
+            // min-w-0 + overflow-wrap:anywhere: chuỗi dài không dấu cách (URL, JSON) tự xuống dòng, khung chat không cuộn ngang.
+            <div className="min-w-0 rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]">
               {message.content}
             </div>
           )}
@@ -151,7 +156,8 @@ export const MessageItem = memo(function MessageItem({ message }: { message: Mes
             })}
           </div>
         )}
-        <div className="flex items-center gap-2">
+        {/* flex-wrap: khung chat hẹp thì thanh thả cảm xúc xuống dòng, không kéo ngang. */}
+        <div className="flex flex-wrap items-center gap-2">
           <SpeakButton message={message} />
           <PinMark message={message} />
           <ForkButton message={message} />

@@ -308,7 +308,8 @@
       "not_found": "Không sửa được \"{{title}}\": đoạn cần sửa không còn khớp.",
       "ambiguous": "Không sửa được \"{{title}}\": đoạn cần sửa khớp nhiều chỗ.",
       "no_artifact": "Không có artifact \"{{title}}\" để sửa."
-    }
+    },
+    "resize": "Kéo để đổi độ rộng panel · nhấp đúp để về mặc định"
   },
   "organize": {
     "newGroup": "Nhóm mới",
@@ -393,5 +394,19 @@
     "waitingVersion": "Đang chờ trợ lý làm Bản {{n}}…",
     "keyHint": "Enter để hỏi · Ctrl+Enter để yêu cầu sửa · Shift+Enter xuống dòng",
     "sendAsRevision": "Gửi câu này như Yêu cầu sửa"
+  },
+  "sidebar": {
+    "navLabel": "Điều hướng chat",
+    "listLabel": "Danh sách cuộc trò chuyện",
+    "search": "Tìm kiếm",
+    "closeSearch": "Đóng tìm kiếm",
+    "projects": "Dự án",
+    "artifacts": "Artifacts",
+    "scheduled": "Lịch hẹn",
+    "plugins": "Plugin",
+    "hide": "Ẩn thanh bên (Ctrl+B)",
+    "show": "Hiện thanh bên (Ctrl+B)",
+    "localAccount": "Dùng trên máy này",
+    "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định"
   }
 }

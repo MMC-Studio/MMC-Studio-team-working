@@ -6,6 +6,7 @@ import type { Conversation } from '@shared/types'
 import { Button } from '@renderer/components/ui/button'
 import { api } from '@renderer/lib/api'
 import { useArtifacts } from '../artifacts/store'
+import { SidebarToggle } from '../layout/ChatLayout'
 import { errorCode } from '../store'
 
 type Status = { kind: 'idle' } | { kind: 'running' } | { kind: 'done'; added: number } | { kind: 'error'; code: string }
@@ -44,6 +45,7 @@ export function ChatHeader({
   return (
     <header className="@container/header border-b" data-testid="chat-header">
       <div className="flex min-h-11 items-center gap-2 px-4 py-1.5">
+        <SidebarToggle when="hidden" />
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium" data-testid="chat-title" title={conversation?.title}>
           {conversation ? conversation.title || t('untitled') : ''}
         </h2>

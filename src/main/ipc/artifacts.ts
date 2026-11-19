@@ -82,6 +82,7 @@ export function registerArtifactsIpc({
   })
   const id = z.uuid()
   handle(IPC.artifactsList, id, (conversationId) => service.list(conversationId))
+  handle(IPC.artifactsListAll, z.undefined(), () => service.listAll())
   handle(IPC.artifactsVersions, id, (artifactId) => service.versions(artifactId))
   handle(
     IPC.artifactsContent,

@@ -613,6 +613,7 @@ async function bootstrap(): Promise<void> {
   const artifacts = new ArtifactService({
     db,
     ownsConversation: (id) => !!conversations.get(id),
+    ownedConversations: () => conversations.list().map((c) => ({ id: c.id, title: c.title })),
     onChange: () => sync.changed('artifacts')
   })
   const themesDir = join(userData, 'artifact-themes')

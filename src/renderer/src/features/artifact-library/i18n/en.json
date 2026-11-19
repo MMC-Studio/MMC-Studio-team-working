@@ -1,0 +1,15 @@
+{
+  "title": "Artifacts",
+  "filter": "Filter by artifact or conversation name…",
+  "empty": "No artifacts yet. Ask the assistant for a document, slides, a sheet, a chart or a diagram in the chat.",
+  "noMatch": "No matching artifacts.",
+  "untitled": "Untitled conversation",
+  "types": {
+    "doc": "Document",
+    "slides": "Slides",
+    "sheet": "Spreadsheet",
+    "chart": "Chart",
+    "mermaid": "Diagram",
+    "html": "HTML"
+  }
+}

@@ -308,7 +308,8 @@
       "not_found": "Could not edit \"{{title}}\": the text to replace no longer matches.",
       "ambiguous": "Could not edit \"{{title}}\": the text to replace matches several places.",
       "no_artifact": "There is no artifact \"{{title}}\" to edit."
-    }
+    },
+    "resize": "Drag to resize the panel · double-click to reset"
   },
   "organize": {
     "newGroup": "New group",
@@ -393,5 +394,19 @@
     "waitingVersion": "Waiting for the assistant to make version {{n}}…",
     "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line",
     "sendAsRevision": "Send this as a change request"
+  },
+  "sidebar": {
+    "navLabel": "Chat navigation",
+    "listLabel": "Conversations",
+    "search": "Search",
+    "closeSearch": "Close search",
+    "projects": "Projects",
+    "artifacts": "Artifacts",
+    "scheduled": "Scheduled",
+    "plugins": "Plugins",
+    "hide": "Hide sidebar (Ctrl+B)",
+    "show": "Show sidebar (Ctrl+B)",
+    "localAccount": "On this computer",
+    "resize": "Drag to resize the sidebar · double-click to reset"
   }
 }

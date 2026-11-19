@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import {
   EditError,
   applyEdits,
   parseArtifactBlocks,
   type Artifact,
+  type ArtifactSummary,
   type ArtifactType,
   type ArtifactVersion,
   type MessageArtifact
@@ -18,6 +19,8 @@ export type ArtifactServiceDeps = {
   db: AppDatabase
   /** Hội thoại thuộc tài khoản hiện tại? (chặn đọc artifact của tài khoản khác) */
   ownsConversation(id: string): boolean
+  /** Các cuộc trò chuyện của tài khoản hiện tại (id + tiêu đề) — cho trang Artifacts. */
+  ownedConversations?(): { id: string; title: string }[]
   now?: () => number
   /** Có artifact mới / phiên bản mới (trợ lý hoặc người dùng) → báo đồng bộ cho panel. */
   onChange?(conversationId: string): void
@@ -43,6 +46,29 @@ export class ArtifactService {
       .where(eq(artifacts.conversationId, conversationId))
       .orderBy(desc(artifacts.updatedAt))
       .all()
+  }
+
+  /** Trang Artifacts: mọi artifact của tài khoản hiện tại (mới sửa trước), kèm tên cuộc trò chuyện. */
+  listAll(limit = 500): ArtifactSummary[] {
+    const owned = this.deps.ownedConversations?.() ?? []
+    if (owned.length === 0) return []
+    const titles = new Map(owned.map((c) => [c.id, c.title]))
+    const rows: Artifact[] = []
+    // SQLite giới hạn số tham số mỗi câu → chia lô.
+    const ids = [...titles.keys()]
+    for (let i = 0; i < ids.length; i += 500) {
+      rows.push(
+        ...this.deps.db
+          .select()
+          .from(artifacts)
+          .where(inArray(artifacts.conversationId, ids.slice(i, i + 500)))
+          .all()
+      )
+    }
+    return rows
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, limit)
+      .map((a) => ({ ...a, conversationTitle: titles.get(a.conversationId) ?? '' }))
   }
 
   get(id: string): Artifact | null {

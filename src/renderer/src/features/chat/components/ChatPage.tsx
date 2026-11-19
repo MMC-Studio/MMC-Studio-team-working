@@ -13,7 +13,8 @@ import { ChatHeader } from './ChatHeader'
 import { CodeBar } from './CodeBar'
 import { Composer } from './Composer'
 import { ArtifactPanel } from '../artifacts/ArtifactPanel'
-import { ConversationSidebar } from './ConversationSidebar'
+import { useArtifacts } from '../artifacts/store'
+import { ChatLayout } from '../layout/ChatLayout'
 import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
@@ -44,6 +45,8 @@ export function ChatPage() {
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)
   const addFiles = useDraft((s) => s.addFiles)
+  // Panel artifact mở → bố cục chừa chỗ cho khung chat (thanh bên tự ẩn nếu cửa sổ hẹp).
+  const artifactsOpen = useArtifacts((s) => s.open)
   // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô chat bên dưới hỏi về thẻ đầu tiên.
   const allCards = useApprovals((s) => s.cards)
   const askCard = useApprovals((s) => s.ask)
@@ -88,8 +91,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      <ConversationSidebar />
+    <ChatLayout panel={<ArtifactPanel conversationId={active?.id ?? null} />} panelOpen={artifactsOpen}>
       <section
         className="relative flex min-w-0 flex-1 flex-col"
         onDragOver={onDragOver}
@@ -112,8 +114,8 @@ export function ChatPage() {
           busy={isStreaming}
         />
         <PinnedBar messages={messages} />
-        <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-6 px-6 py-6">
+        <div className="thin-scroll flex-1 overflow-y-auto">
+          <div className="@container/msgs mx-auto max-w-3xl space-y-6 px-6 py-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center gap-3 pt-24 text-center">
                 <AssistantAvatar avatar={assistant.avatar} className="size-14 text-3xl" />
@@ -178,7 +180,6 @@ export function ChatPage() {
           <p className="text-center text-[11px] text-muted-foreground">{t('usageNote')}</p>
         </div>
       </section>
-      <ArtifactPanel conversationId={active?.id ?? null} />
-    </div>
+    </ChatLayout>
   )
 }

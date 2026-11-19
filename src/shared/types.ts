@@ -1,6 +1,6 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
-import type { Artifact, ArtifactVersion, MessageArtifact } from './artifacts'
+import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
 import type {
@@ -339,6 +339,8 @@ export interface TeamWorkingApi {
   }
   artifacts: {
     list(conversationId: string): Promise<Artifact[]>
+    /** Trang Artifacts: mọi artifact của tài khoản hiện tại, kèm tên cuộc trò chuyện. */
+    listAll(): Promise<ArtifactSummary[]>
     versions(id: string): Promise<Omit<ArtifactVersion, 'content'>[]>
     content(id: string, version?: number): Promise<{ artifact: Artifact; version: ArtifactVersion } | null>
     /** Người dùng sửa (vd ô trong bảng) → phiên bản mới. */
