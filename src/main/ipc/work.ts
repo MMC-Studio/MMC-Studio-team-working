@@ -21,8 +21,9 @@ import {
   type TextResult
 } from '@shared/schemas'
 import { toCsv } from '@shared/timesheet'
-import type { CodeApprovalRequest } from '@shared/types'
+import { approvalAskSchema, feedbackSchema } from '@shared/approvals'
 import { completeText, type AIProvider } from '../ai/AIProvider'
+import type { ApprovalHub } from '../approvals/hub'
 import {
   buildDayPlanPrompt,
   buildGradePrompt,
@@ -49,6 +50,7 @@ export type WorkIpcDeps = {
   time: TimeRepository
   approvals: CodeApprovals
   folderAccess: FolderAccessRequests
+  hub: ApprovalHub
   memory: MemoryService
   getProvider(): AIProvider
   loadSkill(name: string): Promise<string | undefined>
@@ -102,9 +104,9 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
   )
   handle(
     IPC.folderAccessRespond,
-    z.object({ id: idSchema, grant: z.boolean(), write: z.boolean() }),
-    ({ id, grant, write }) => deps.folderAccess.respond(id, grant, write),
-    { changes: 'conversations' }
+    z.object({ id: idSchema, grant: z.boolean(), write: z.boolean(), feedback: feedbackSchema }),
+    ({ id, grant, write, feedback }) => deps.folderAccess.respond(id, grant, write, feedback),
+    { changes: ['conversations', 'approvals'] }
   )
   handle(IPC.codeSetWrite, z.object({ conversationId: idSchema, enabled: z.boolean() }), ({ conversationId, enabled }) => {
     const conv = deps.conversations.get(conversationId)
@@ -112,9 +114,19 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     if (!enabled) deps.approvals.cancelConversation(conversationId)
     return deps.conversations.setCodeWrite(conversationId, enabled)
   })
-  handle(IPC.codeRespond, z.object({ id: idSchema, allow: z.boolean() }), ({ id, allow }) => {
-    deps.approvals.respond(id, allow)
-  })
+  handle(
+    IPC.codeRespond,
+    z.object({ id: idSchema, allow: z.boolean(), feedback: feedbackSchema }),
+    ({ id, allow, feedback }) => {
+      deps.approvals.respond(id, allow, feedback)
+    },
+    { changes: 'approvals' }
+  )
+
+  // ---- Thẻ chờ duyệt trong khung chat + "Hỏi lại" ----
+  handle(IPC.approvalsList, none, () => deps.hub.list())
+  // Hỏi lại chỉ gọi Claude để giải thích (không tool) — không bao giờ tự đồng ý / từ chối thay người dùng.
+  handle(IPC.approvalsAsk, approvalAskSchema, ({ id, question }) => deps.hub.ask(id, question), { changes: 'approvals' })
 
   // ---- Chấm công ----
   handle(IPC.timeCurrent, none, () => deps.time.current())
@@ -201,10 +213,4 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     const res = await ask('time-manager', buildReportPrompt(req))
     return 'error' in res ? res : { text: cleanText(res.text) }
   })
-}
-
-export function emitApproval(win: BrowserWindow | null, request: CodeApprovalRequest): void {
-  win?.webContents.send(IPC.codeApproval, request)
-  // Đang ở cửa sổ khác → đưa app lên để người dùng duyệt.
-  if (win && !win.isFocused()) win.flashFrame(true)
 }

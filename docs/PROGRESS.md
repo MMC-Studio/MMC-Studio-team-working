@@ -67,7 +67,17 @@ Tiến độ:
   - **Trí nhớ:** gom theo loại (Sở thích trả lời, Dự án, Mục tiêu, Kỹ năng, Deadline, Khác), tiêu đề + số, bấm thu / mở (localStorage `mmc.memory.collapsed.group.<loại>`); 5 mục + "Xem thêm N"; mục dài một dòng + "Xem thêm" / "Thu gọn" (chỉ hiện khi bị cắt thật). Đang tìm: nhóm có kết quả tự mở, thu gọn chỉ tạm thời; xoá ô tìm → về trạng thái đã lưu. Bỏ nhãn loại trên từng dòng (đã có tiêu đề nhóm).
   - Test: `toolSummary.test.ts`, `groupMemories.test.ts`; e2e `collapse.spec.ts` (FakeChat `FAKE_TOOLS:<n>`, ảnh sáng / tối 900 / 1280px trong `test-results/`).
   - Chưa thử với Claude thật: dòng "Đang …" khi CLI gọi công cụ xen giữa đoạn chữ.
-- **Tiếp theo: PR 1b** — thẻ duyệt vào khung chat + Hỏi lại + Từ chối kèm góp ý.
+- **PR 1b — `feat/approval-ask-feedback`** (mở PR, chờ duyệt):
+  - **Thẻ duyệt trong khung chat** (bỏ 3 hộp thoại `CodeApprovalOverlay` / `FolderAccessOverlay` / `DraftOverlay`): sửa file (diff), xin quyền thư mục, nháp Gmail / Telegram nằm dưới tin trợ lý đang trả lời. Ở trang / cuộc khác → thanh nhắc góc dưới "… đang chờ bạn duyệt (n)" + "Xem". Duyệt tool MCP và kết nối agent vẫn là hộp thoại (ngoài phạm vi).
+  - **`ApprovalHub`** (`src/main/approvals/`): danh sách thẻ + đoạn hỏi đáp trong RAM (không migration); `approvals:list` + sync mục `approvals` (tải lại renderer vẫn còn thẻ); câu trả lời stream qua `approvals:delta`. Hub không quyết định thay người dùng — đồng ý / từ chối vẫn qua `respond` của từng loại.
+  - **Hỏi lại:** có thẻ chờ → ô chat thành "Hỏi về đề xuất…" (nút "Hỏi lại" trên thẻ focus ô chat). Gọi Claude một lần riêng (cùng model, không tool, không resume, `ephemeral`), kèm mô tả thẻ (diff ≤20k ký tự) + 10 tin gần nhất (bỏ tin thu hồi) + các câu đã hỏi; nội dung trong `<de-xuat>` / `<hoi-thoai>` là dữ liệu. Một câu một lúc, tối đa 10 câu / thẻ; đóng thẻ → huỷ câu đang trả lời.
+  - **Hạn chờ** (`ApprovalTimer`): 10 phút không có gì → từ chối; mỗi câu trả lời tính lại 10 phút; tối đa 30 phút kể từ lúc tạo thẻ, kể cả đang hỏi.
+  - **Từ chối kèm góp ý:** sửa file → `{ allow: false, message: "…góp ý: …" }` (Claude đề xuất lại trong cùng lượt); thư mục / nháp → lý do từ chối kèm góp ý.
+  - **Giới hạn phía Claude CLI** (đọc mã CLI 2.1.328): hạn cứng mỗi lần gọi tool MCP mặc định 1e8 ms (~27 giờ), nhưng server stdio còn hạn "không tiến triển" mặc định 30 phút (`CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`) = đúng hạn tối đa của thẻ → dễ bị CLI huỷ trước. Sửa: `timeout: 40 phút` cho server `twperm` / `mmc` trong `--mcp-config` (CLI lấy giá trị lớn hơn); script `permission-mcp.cjs` / `app-tools-mcp.cjs` nâng hạn socket 15 → 40 phút.
+  - Test: `approvals/__tests__/hub.test.ts` (hỏi đáp, gia hạn, trần 30 phút, góp ý, prompt), `folderAccess.test.ts`; e2e `approvals.spec.ts` (FakeChat `FAKE_EDIT:<file>`; hỏi 2 câu rồi Đồng ý → file đúng; góp ý → đề xuất mới; thanh nhắc; tải lại vẫn còn thẻ; ảnh sáng / tối 900 / 1280px), `connectors.spec.ts` (hỏi + góp ý trên thẻ nháp).
+  - Thấy khi chụp ảnh (lỗi có sẵn, chưa sửa): bong bóng tin người dùng có chuỗi dài không dấu cách (URL, JSON) làm khung chat cuộn ngang ở 900px.
+  - Chưa thử với Claude thật: chất lượng câu giải thích; Claude có đề xuất lại đúng góp ý trong cùng lượt.
+- **Tiếp theo: PR 2** — thanh bên mới.
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo

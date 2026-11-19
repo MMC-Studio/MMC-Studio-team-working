@@ -17,6 +17,8 @@ import { ConversationSidebar } from './ConversationSidebar'
 import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
+import { ApprovalCards } from '../approvals/ApprovalCards'
+import { cardsFor, useApprovals } from '../approvals/store'
 
 const EMPTY: never[] = []
 
@@ -42,6 +44,14 @@ export function ChatPage() {
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)
   const addFiles = useDraft((s) => s.addFiles)
+  // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô nhập chuyển sang hỏi về thẻ.
+  const allCards = useApprovals((s) => s.cards)
+  const askTarget = useApprovals((s) => s.askTarget)
+  const focusKey = useApprovals((s) => s.focusKey)
+  const askCard = useApprovals((s) => s.ask)
+  const cards = cardsFor(allCards, activeId)
+  const target = cards.find((c) => c.id === askTarget) ?? cards[0]
+  const cardsKey = cards.map((c) => `${c.id}:${c.qa.length}:${c.qa.at(-1)?.answer.length ?? 0}`).join('|')
 
   useEffect(() => {
     void loadConversations()
@@ -50,7 +60,7 @@ export function ChatPage() {
   const lastContent = messages.at(-1)?.content
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [activeId, messages.length, lastContent])
+  }, [activeId, messages.length, lastContent, cardsKey])
 
   const onModeChange = (m: ChatMode): void => {
     if (active) void setMode(active.id, m)
@@ -111,6 +121,7 @@ export function ChatPage() {
             ) : (
               messages.map((m) => <MessageItem key={m.id} message={m} />)
             )}
+            <ApprovalCards cards={cards} />
             <div ref={bottomRef} />
           </div>
         </div>
@@ -153,6 +164,15 @@ export function ChatPage() {
               void send('', mode, [], { kind: m.kind, source: m.source, id: m.id })
             }
             onStop={() => void stop()}
+            ask={
+              target
+                ? {
+                    onAsk: (q) => void askCard(target.id, q),
+                    focusKey,
+                    disabled: target.qa.some((q) => q.status === 'answering')
+                  }
+                : undefined
+            }
           />
           <p className="text-center text-[11px] text-muted-foreground">{t('usageNote')}</p>
         </div>

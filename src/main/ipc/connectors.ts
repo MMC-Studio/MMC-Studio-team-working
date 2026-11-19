@@ -82,5 +82,5 @@ export function registerConnectorsIpc({
   handle(IPC.telegramChats, z.boolean().optional(), (force) => safe(() => telegram.chats(force ?? false)), T)
   handle(IPC.telegramSetLists, telegramListsSchema, (lists) => safe(() => telegram.setLists(lists)), T)
 
-  handle(IPC.draftRespond, draftDecisionSchema, (d) => approvals.respond(d))
+  handle(IPC.draftRespond, draftDecisionSchema, (d) => approvals.respond(d), { changes: 'approvals' })
 }

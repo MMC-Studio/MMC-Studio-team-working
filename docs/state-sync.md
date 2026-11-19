@@ -35,6 +35,7 @@ Mục tiêu: mọi trang cập nhật giao diện ngay, không phải bật/tắ
 | Emoji / GIF / sticker gần đây (beta.2) | localStorage, chỉ emoji chọn trong bộ chọn | Thả cảm xúc / gửi GIF / gõ emoji không tính | Settings `expressiveRecent` → mục `expressiveRecent`; store nạp lúc mở app + `onSync`; chọn / xoá lạc quan |
 | Đề xuất ghi nhớ (beta.2) | Sự kiện `memory:event` + tải lại sau khi duyệt | Duyệt chờ IPC xong mới mất dòng | IPC trí nhớ khai báo `memory`; `onSync('memory')`; duyệt (kể cả hàng loạt) lạc quan |
 | Panel Artifacts | Tải lại khi số tin có artifact đổi | Khôi phục / sửa phiên bản từ nơi khác không hiện; trợ lý sửa artifact cũ không đổi số tin | `useSync('artifacts')`, main báo khi tạo / thêm phiên bản |
+| Thẻ chờ duyệt (PR 1b) | Hộp thoại nhận sự kiện đẩy, hàng đợi chỉ ở renderer | Tải lại renderer mất thẻ; không hiện trong khung chat | Main giữ danh sách (`ApprovalHub`), `approvals:list` + `onSync('approvals')`; câu trả lời "Hỏi lại" stream qua `approvals:delta`; duyệt / hỏi lạc quan |
 
 ## Thêm tính năng mới
 

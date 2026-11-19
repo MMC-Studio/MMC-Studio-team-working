@@ -1,3 +1,4 @@
+import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
 import type { Artifact, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
@@ -27,7 +28,6 @@ import type {
 import type { ComputerStatus, ScreenPreview } from './computer'
 import type { SidecarState } from './sidecar'
 import type {
-  DraftApprovalRequest,
   DraftDecision,
   GmailAccountUpdate,
   GmailPreviewItem,
@@ -246,6 +246,12 @@ export interface TeamWorkingApi {
   /** Đồng bộ trạng thái: main báo các mục vừa đổi → trang đang mở tự hỏi lại (xem lib/sync.ts). */
   sync: {
     onChanged(listener: (topics: SyncTopic[]) => void): () => void
+  }
+  /** Thẻ đang chờ duyệt trong khung chat (sửa file, quyền thư mục, nháp) + "Hỏi lại". */
+  approvals: {
+    list(): Promise<ApprovalCard[]>
+    ask(id: string, question: string): Promise<ApprovalAskResult>
+    onDelta(listener: (delta: ApprovalDelta) => void): () => void
   }
   cli: {
     check(): Promise<CliStatus>
@@ -507,7 +513,6 @@ export interface TeamWorkingApi {
   }
   /** Bản nháp trợ lý đề xuất (Gmail / Telegram) chờ người dùng duyệt. */
   drafts: {
-    onApproval(listener: (req: DraftApprovalRequest | { id: string; closed: true }) => void): () => void
     respond(decision: DraftDecision): Promise<boolean>
   }
   ideas: {
@@ -539,13 +544,12 @@ export interface TeamWorkingApi {
     /** Mở hộp thoại chọn thư mục dự án cho hội thoại (đổi thư mục → tắt quyền sửa). */
     chooseFolder(conversationId: string): Promise<Conversation | null>
     setWrite(conversationId: string, enabled: boolean): Promise<Conversation>
-    respond(id: string, allow: boolean): Promise<void>
-    onApproval(listener: (request: CodeApprovalRequest) => void): () => void
+    /** Từ chối có thể kèm góp ý → Claude đề xuất bản sửa mới trong cùng lượt. */
+    respond(id: string, allow: boolean, feedback?: string): Promise<void>
     /** Gỡ thư mục khỏi hội thoại = thu hồi quyền đọc/sửa. */
     clearFolder(conversationId: string): Promise<Conversation | null>
     /** Trả lời thẻ trợ lý xin quyền thư mục (grant = mở hộp chọn thư mục). */
-    respondFolderAccess(id: string, grant: boolean, write: boolean): Promise<FolderAccessResult>
-    onFolderAccess(listener: (event: FolderAccessRequest | FolderAccessClosed) => void): () => void
+    respondFolderAccess(id: string, grant: boolean, write: boolean, feedback?: string): Promise<FolderAccessResult>
   }
   time: {
     current(): Promise<TimeEntry | null>

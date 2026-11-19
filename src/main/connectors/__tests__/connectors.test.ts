@@ -247,7 +247,7 @@ describe('DraftApprovals', () => {
     vi.useFakeTimers()
     try {
       const events: unknown[] = []
-      const a = new DraftApprovals({ emit: (e) => events.push(e), log, timeoutMs: 1000 })
+      const a = new DraftApprovals({ emit: (e) => events.push(e), log, timer: { idleMs: 1000 } })
       const draft = {
         service: 'gmail' as const,
         target: 'x',

@@ -368,5 +368,25 @@
     "more": "Thêm",
     "gif": "[GIF]",
     "sticker": "[Sticker]"
+  },
+  "approvals": {
+    "ask": "Hỏi lại",
+    "askHint": "Gõ câu hỏi vào ô chat bên dưới — trợ lý chỉ giải thích, không tự thay đổi gì.",
+    "askPlaceholder": "Hỏi về đề xuất đang chờ duyệt… (vd: Tại sao phải sửa chỗ này?)",
+    "askSend": "Hỏi",
+    "rejectWithFeedback": "Từ chối kèm góp ý",
+    "feedbackPlaceholder": "Bạn muốn làm khác thế nào? Trợ lý sẽ đề xuất lại theo góp ý.",
+    "sendFeedback": "Từ chối & gửi góp ý",
+    "cancel": "Huỷ",
+    "answering": "Đang trả lời…",
+    "answerError": "Không trả lời được ({{code}}). Bạn thử hỏi lại nhé.",
+    "errors": {
+      "expired": "Đề xuất này đã hết hạn hoặc đã được xử lý.",
+      "busy": "Đợi trợ lý trả lời xong câu trước nhé.",
+      "limit": "Đã hỏi đủ {{max}} câu cho đề xuất này — hãy Đồng ý, Từ chối hoặc Từ chối kèm góp ý.",
+      "generic": "Không gửi được câu hỏi ({{code}})."
+    },
+    "banner": "{{name}} đang chờ bạn duyệt ({{count}})",
+    "open": "Xem"
   }
 }

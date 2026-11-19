@@ -9,7 +9,8 @@ const http = require('node:http')
 const URL_BASE = process.env.MMC_TOOLS_URL
 const TOKEN = process.env.MMC_TOOLS_TOKEN
 const CONVERSATION = process.env.MMC_CONVERSATION
-const TIMEOUT_MS = 15 * 60 * 1000
+// Lâu hơn hạn tối đa của thẻ duyệt trong app (30 phút) — app luôn trả lời trước, script không tự từ chối sớm.
+const TIMEOUT_MS = 40 * 60 * 1000
 
 function send(msg) {
   process.stdout.write(JSON.stringify(msg) + '\n')

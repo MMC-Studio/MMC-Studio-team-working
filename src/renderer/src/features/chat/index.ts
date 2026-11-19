@@ -7,6 +7,7 @@ import { ChatOverlays } from './components/ChatOverlays'
 import { useChat } from './store'
 import { setupVoice } from './voice/store'
 import { setupRecent } from './expressive/recentStore'
+import { setupApprovals } from './approvals/store'
 import en from './i18n/en.json'
 import vi from './i18n/vi.json'
 
@@ -29,12 +30,15 @@ export const chatFeature: FeatureDefinition = {
     const offVoice = setupVoice()
     // Emoji / GIF / sticker gần đây: nạp sẵn để bộ chọn mở đúng tab ngay lần đầu.
     const offRecent = setupRecent()
+    // Thẻ chờ duyệt (sửa file, quyền thư mục, nháp) + câu trả lời "Hỏi lại" đang stream.
+    const offApprovals = setupApprovals()
     return () => {
       offChat()
       offSidebar()
       offMessages()
       offVoice()
       offRecent()
+      offApprovals()
     }
   },
   overlay: ChatOverlays

@@ -1,0 +1,164 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { goTo, waitForStartup } from './helpers'
+
+// Thẻ duyệt trong khung chat + "Hỏi lại" + "Từ chối kèm góp ý" — chạy được khi KHÔNG có Claude CLI:
+// MMC_FAKE_CHAT ("FAKE_EDIT:<file>" xin sửa file qua thẻ duyệt diff như CLI; câu hỏi trên thẻ trả lời giả lập),
+// MMC_FAKE_FOLDER (hộp chọn thư mục giả).
+test.describe.configure({ mode: 'serial' })
+
+const ROOT = join(__dirname, '..', '..')
+let app: ElectronApplication
+let page: Page
+let userData: string
+let project: string
+
+test.beforeAll(async () => {
+  userData = mkdtempSync(join(tmpdir(), 'mmc-approvals-e2e-'))
+  project = join(userData, 'DuAn')
+  mkdirSync(project, { recursive: true })
+  app = await electron.launch({
+    args: [ROOT],
+    env: { ...process.env, TEAM_WORKING_USER_DATA: userData, MMC_FAKE_CHAT: '1', MMC_FAKE_FOLDER: project }
+  })
+  page = await app.firstWindow()
+  await waitForStartup(page)
+})
+
+test.afterAll(async () => {
+  await app?.close()
+  rmSync(userData, { recursive: true, force: true })
+})
+
+const box = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Nhắn cho/ })
+const askBox = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Hỏi về đề xuất/ })
+const sendButton = (): ReturnType<Page['getByRole']> => page.getByRole('button', { name: 'Gửi' })
+const lastReply = (): ReturnType<Page['getByTestId']> => page.getByTestId('message-assistant').last()
+const card = (kind: string): ReturnType<Page['locator']> => page.locator(`[data-testid="approval-card"][data-kind="${kind}"]`)
+
+async function send(text: string): Promise<void> {
+  await goTo(page, '#/', box())
+  await expect(sendButton()).toBeVisible({ timeout: 20_000 })
+  await box().fill(text)
+  await box().press('Enter')
+}
+
+/** Gõ câu hỏi vào ô chat (đang ở chế độ hỏi về thẻ) → câu hỏi hiện trên thẻ trong 1 giây. */
+async function askAbout(target: ReturnType<Page['locator']>, question: string, nth: number): Promise<void> {
+  await askBox().fill(question)
+  await askBox().press('Enter')
+  await expect(target.getByTestId('approval-question')).toHaveCount(nth, { timeout: 1_000 })
+  await expect(target.getByTestId('approval-question').nth(nth - 1)).toHaveText(question)
+  await expect(target.getByTestId('approval-answer').nth(nth - 1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+}
+
+test('thẻ xin quyền thư mục nằm trong khung chat, hỏi lại được, rồi cấp quyền sửa', async () => {
+  await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Sửa file cấu hình', write: true })}`)
+  const folder = card('folder')
+  await expect(folder).toBeVisible({ timeout: 20_000 })
+  // Thẻ nằm trong vùng tin nhắn, không phải hộp thoại nổi.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  // Bấm "Hỏi lại" → ô chat chuyển sang hỏi về thẻ và được focus.
+  await folder.getByTestId('approval-ask').click()
+  await expect(askBox()).toBeFocused({ timeout: 1_000 })
+  await askAbout(folder, 'Thư mục này để làm gì?', 1)
+  await expect(folder.getByTestId('approval-answer').first()).toContainText('Giải thích (giả lập) #1')
+  await expect(folder.getByTestId('approval-answer').first()).toContainText('đọc + sửa')
+
+  await folder.getByTestId('folder-access-choose').click()
+  await expect(folder).toHaveCount(0, { timeout: 1_000 })
+  await expect(page.getByTestId('code-bar')).toContainText('DuAn', { timeout: 1_000 })
+  // App tự gửi lượt "tiếp tục" — chờ xong để lượt sau có quyền sửa.
+  await expect(page.getByTestId('message-user').last()).toContainText('đã cấp quyền thư mục', { timeout: 20_000 })
+  await expect(sendButton()).toBeVisible({ timeout: 20_000 })
+})
+
+test('sửa file: hỏi 2 câu liên tiếp rồi Đồng ý → file được sửa đúng', async () => {
+  await send('FAKE_EDIT:a.txt')
+  const code = card('code')
+  await expect(code).toBeVisible({ timeout: 20_000 })
+  await expect(code).toContainText('a.txt')
+  await expect(code).toContainText('phiên bản 1')
+  // Đang chờ duyệt: ô chat là ô hỏi về thẻ, không phải ô nhắn tin.
+  await expect(box()).toHaveCount(0)
+
+  await askAbout(code, 'Tại sao phải sửa chỗ này?', 1)
+  await askAbout(code, 'Sửa vậy có ảnh hưởng gì khác không?', 2)
+  await expect(code.getByTestId('approval-answer').nth(0)).toContainText('#1')
+  await expect(code.getByTestId('approval-answer').nth(1)).toContainText('#2')
+  await expect(code.getByTestId('approval-answer').nth(1)).toContainText('Sửa vậy có ảnh hưởng gì khác không?')
+  // Hỏi đáp không tự duyệt: file chưa có.
+  expect(existsSync(join(project, 'a.txt'))).toBe(false)
+
+  // Ảnh để xem tay giao diện thẻ (sáng / tối, 900 / 1280px) trong test-results/.
+  const setWidth = (width: number): Promise<void> =>
+    app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 820), width)
+  for (const theme of ['light', 'dark'] as const) {
+    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
+      await page.getByTestId('theme-toggle').click()
+    }
+    for (const width of [900, 1280]) {
+      await setWidth(width)
+      await code.getByTestId('approval-qa').scrollIntoViewIfNeeded()
+      await page.screenshot({ path: `test-results/approval-card-${theme}-${width}.png` })
+    }
+  }
+  await page.getByTestId('theme-toggle').click()
+
+  await code.getByTestId('approval-accept').click()
+  await expect(code).toHaveCount(0, { timeout: 1_000 })
+  await expect(lastReply()).toContainText('Đã sửa a.txt (phiên bản 1)', { timeout: 20_000 })
+  expect(readFileSync(join(project, 'a.txt'), 'utf8')).toBe('phiên bản 1\n')
+  await expect(box()).toBeVisible({ timeout: 20_000 })
+})
+
+test('Từ chối kèm góp ý → trợ lý đề xuất bản mới theo góp ý (lại qua thẻ duyệt)', async () => {
+  await send('FAKE_EDIT:b.txt')
+  const code = card('code')
+  await expect(code).toContainText('phiên bản 1', { timeout: 20_000 })
+  await code.getByTestId('approval-feedback-toggle').click()
+  await code.getByTestId('approval-feedback-input').fill('ghi rõ là bản sửa theo góp ý')
+  await code.getByTestId('approval-feedback-send').click()
+
+  // Thẻ cũ đóng, thẻ mới có nội dung theo góp ý.
+  await expect(code).toContainText('phiên bản 2: ghi rõ là bản sửa theo góp ý', { timeout: 10_000 })
+  await expect(code).toHaveCount(1)
+  expect(existsSync(join(project, 'b.txt'))).toBe(false)
+  await code.getByTestId('approval-accept').click()
+  await expect(lastReply()).toContainText('Đã sửa b.txt (phiên bản 2)', { timeout: 20_000 })
+  expect(readFileSync(join(project, 'b.txt'), 'utf8')).toBe('phiên bản 2: ghi rõ là bản sửa theo góp ý\n')
+})
+
+test('Từ chối thường → không sửa file', async () => {
+  await send('FAKE_EDIT:c.txt')
+  const code = card('code')
+  await expect(code).toBeVisible({ timeout: 20_000 })
+  await code.getByTestId('approval-reject').click()
+  await expect(code).toHaveCount(0, { timeout: 1_000 })
+  await expect(lastReply()).toContainText('Không sửa c.txt', { timeout: 20_000 })
+  expect(existsSync(join(project, 'c.txt'))).toBe(false)
+})
+
+test('đang ở trang khác → thanh nhắc chờ duyệt, bấm Xem về đúng thẻ; mở lại trang vẫn còn thẻ', async () => {
+  await send('FAKE_EDIT:d.txt')
+  await expect(card('code')).toBeVisible({ timeout: 20_000 })
+  await goTo(page, '#/claude', page.getByTestId('cli-status'))
+  const banner = page.getByTestId('approval-banner')
+  await expect(banner).toBeVisible({ timeout: 1_000 })
+  await expect(banner).toContainText('(1)')
+  await page.getByTestId('approval-banner-open').click()
+  await expect(card('code')).toBeVisible({ timeout: 1_000 })
+  await expect(banner).toHaveCount(0)
+
+  // Tải lại giao diện (renderer) → thẻ lấy lại từ main, không mất.
+  await page.reload()
+  await waitForStartup(page)
+  await expect(banner).toBeVisible({ timeout: 5_000 })
+  await page.getByTestId('approval-banner-open').click()
+  await expect(card('code')).toContainText('d.txt', { timeout: 5_000 })
+  await card('code').getByTestId('approval-reject').click()
+  await expect(card('code')).toHaveCount(0, { timeout: 1_000 })
+})

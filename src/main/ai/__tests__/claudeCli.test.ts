@@ -123,6 +123,8 @@ describe('buildCliArgs', () => {
     expect(config.mcpServers.mmc).toEqual({
       command: 'C:\\app\\MMC studio.exe',
       args: ['C:\\r\\app-tools-mcp.cjs'],
+      // Lâu hơn hạn 30 phút của thẻ duyệt — CLI không tự huỷ lời gọi đang chờ người dùng.
+      timeout: 40 * 60 * 1000,
       env: { ELECTRON_RUN_AS_NODE: '1', MMC_TOOLS_URL: 'http://127.0.0.1:2', MMC_TOOLS_TOKEN: 'b', MMC_CONVERSATION: 'c1' }
     })
     expect(config.mcpServers.twperm.env.TW_PERM_TOKEN).toBe('a')

@@ -58,7 +58,9 @@ type ChatState = {
     request: { id: string; conversationId: string },
     grant: boolean,
     write: boolean,
-    continueText: string
+    continueText: string,
+    /** Từ chối kèm góp ý. */
+    feedback?: string
   ): Promise<'granted' | 'pending' | 'denied' | 'expired'>
   remove(id: string): Promise<void>
   send(
@@ -305,9 +307,9 @@ export const useChat = create<ChatState>((set, get) => {
       }
     },
 
-    async respondFolderAccess(request, grant, write, continueText) {
+    async respondFolderAccess(request, grant, write, continueText, feedback) {
       try {
-        const res = await api.code.respondFolderAccess(request.id, grant, write)
+        const res = await api.code.respondFolderAccess(request.id, grant, write, feedback)
         if (res.status !== 'granted') return res.status
         replaceConversation(res.conversation)
         const { conversationId } = request

@@ -157,9 +157,18 @@ test('Gmail: nháp trả lời lưu đúng tài khoản chứa thư gốc, phả
   await ask('FAKE_TOOL:gmail_draft {"to":["a@b.com"],"subject":"x","body":"y","account":"Cá nhân"}')
   await expect(dialog).toBeVisible({ timeout: 20_000 })
   await expect(page.getByTestId('draft-account')).toContainText('ban@example.com')
-  await page.getByTestId('draft-reject').click()
+  // Hỏi lại trên thẻ nháp (gõ vào ô chat), rồi Từ chối kèm góp ý → trợ lý nhận góp ý.
+  const askBox = page.getByRole('textbox', { name: /Hỏi về đề xuất/ })
+  await askBox.fill('Sao lại gửi cho a@b.com?')
+  await askBox.press('Enter')
+  await expect(dialog.getByTestId('approval-answer')).toContainText('Giải thích (giả lập) #1', { timeout: 10_000 })
+  await expect(dialog.getByTestId('approval-answer')).toContainText('Gmail')
+  await dialog.getByTestId('approval-feedback-toggle').click()
+  await dialog.getByTestId('approval-feedback-input').fill('đổi tiêu đề thành Hỏi lịch')
+  await dialog.getByTestId('approval-feedback-send').click()
+  await expect(dialog).toBeHidden({ timeout: 1_000 })
   await expect(lastReply()).toContainText('LỖI TOOL', { timeout: 20_000 })
-  await expect(lastReply()).toContainText('từ chối')
+  await expect(lastReply()).toContainText('góp ý: "đổi tiêu đề thành Hỏi lịch"')
 })
 
 test('Gmail: tắt cho trợ lý đọc một tài khoản → tài khoản đó không còn trong kết quả', async () => {

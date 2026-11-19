@@ -3,22 +3,32 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { APP_NAME } from '@shared/appConfig'
 import type { CodeApprovalRequest } from '@shared/types'
+import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
 import { describeChange } from './change'
 
 export type ApprovalDeps = {
   /** Thư mục dự án của hội thoại nếu chế độ Code đang BẬT quyền sửa; null = không được phép. */
   writableRoot(conversationId: string): string | null
   emit(request: CodeApprovalRequest): void
+  /** Thẻ đóng (đã trả lời, hết hạn, dừng lượt…). */
+  closed?(id: string): void
   /** Duyệt lần gọi tool của MCP server người dùng thêm (mcp__<server>__<tool>). */
   mcpApproval?(conversationId: string, toolName: string, input: unknown): Promise<Decision>
   log: { warn(msg: string): void }
+  timer?: ApprovalTimerOptions
 }
 
-type Decision = { allow: boolean; message?: string }
-type Pending = { conversationId: string; resolve(d: Decision): void; timer: ReturnType<typeof setTimeout> }
+export type Decision = { allow: boolean; message?: string }
+type Pending = { conversationId: string; resolve(d: Decision): void; timer: ApprovalTimer }
 
-const DECISION_TIMEOUT_MS = 10 * 60 * 1000
 const MAX_BODY = 5 * 1024 * 1024
+
+/** Lời từ chối gửi lại cho Claude; có góp ý → Claude đề xuất bản sửa mới trong cùng lượt. */
+export function rejectMessage(feedback?: string): string {
+  const text = feedback?.trim()
+  if (!text) return 'Người dùng đã từ chối thay đổi này.'
+  return `Người dùng đã từ chối thay đổi này và góp ý: "${text}". Hãy sửa lại theo góp ý rồi đề xuất thay đổi mới (người dùng sẽ duyệt lại).`
+}
 
 /**
  * Cầu nối duyệt quyền: MCP script (permission-mcp.cjs) gửi yêu cầu Edit/Write về đây,
@@ -51,7 +61,7 @@ export class CodeApprovals {
         })
       })
     })
-    // Không giới hạn thời gian chờ: người dùng có thể cần vài phút để đọc diff.
+    // Không giới hạn thời gian chờ: người dùng có thể cần vài phút để đọc diff / hỏi lại.
     this.server.requestTimeout = 0
     await new Promise<void>((resolve) => this.server!.listen(0, '127.0.0.1', resolve))
     this.url = `http://127.0.0.1:${(this.server.address() as AddressInfo).port}`
@@ -72,14 +82,19 @@ export class CodeApprovals {
     if (!this.tokenOk(body.token)) return { allow: false, message: 'invalid_token' }
     const conversationId = typeof body.conversationId === 'string' ? body.conversationId : ''
     const toolName = typeof body.toolName === 'string' ? body.toolName : ''
+    return this.decide(conversationId, toolName, body.input)
+  }
+
+  /** Một lần dùng tool cần quyền → chờ người dùng quyết định (Claude giả trong e2e cũng gọi thẳng vào đây). */
+  async decide(conversationId: string, toolName: string, input: unknown): Promise<Decision> {
     // Tool của MCP server người dùng thêm → hộp thoại duyệt riêng (không phải diff sửa file).
     if (toolName.startsWith('mcp__')) {
-      return this.deps.mcpApproval ? this.deps.mcpApproval(conversationId, toolName, body.input) : { allow: false, message: 'Không duyệt được tool này.' }
+      return this.deps.mcpApproval ? this.deps.mcpApproval(conversationId, toolName, input) : { allow: false, message: 'Không duyệt được tool này.' }
     }
     const root = this.deps.writableRoot(conversationId)
     if (!root) return { allow: false, message: 'Chế độ sửa file đang tắt.' }
 
-    const change = await describeChange(root, toolName, body.input)
+    const change = await describeChange(root, toolName, input)
     if ('error' in change) {
       this.deps.log.warn(`Từ chối tự động ${toolName}: ${change.error}`)
       if (change.error === 'protected_path') return { allow: false, message: `Không được sửa file này. ${change.reason}` }
@@ -94,7 +109,7 @@ export class CodeApprovals {
 
     const id = randomUUID()
     return new Promise<Decision>((resolve) => {
-      const timer = setTimeout(() => this.settle(id, { allow: false, message: 'Hết thời gian chờ người dùng duyệt.' }), DECISION_TIMEOUT_MS)
+      const timer = new ApprovalTimer(() => this.settle(id, { allow: false, message: 'Hết thời gian chờ người dùng duyệt.' }), this.deps.timer)
       this.pending.set(id, { conversationId, resolve, timer })
       this.deps.emit({ id, conversationId, toolName, change })
     })
@@ -103,15 +118,23 @@ export class CodeApprovals {
   private settle(id: string, decision: Decision): boolean {
     const p = this.pending.get(id)
     if (!p) return false
-    clearTimeout(p.timer)
+    p.timer.clear()
     this.pending.delete(id)
+    this.deps.closed?.(id)
     p.resolve(decision)
     return true
   }
 
-  /** Người dùng bấm Đồng ý / Từ chối. */
-  respond(id: string, allow: boolean): boolean {
-    return this.settle(id, allow ? { allow: true } : { allow: false, message: 'Người dùng đã từ chối thay đổi này.' })
+  /** "Hỏi lại" vừa trả lời → tính lại hạn chờ (không quá 30 phút kể từ lúc tạo thẻ). */
+  touch(id: string): boolean {
+    const p = this.pending.get(id)
+    p?.timer.touch()
+    return !!p
+  }
+
+  /** Người dùng bấm Đồng ý / Từ chối (có thể kèm góp ý). */
+  respond(id: string, allow: boolean, feedback?: string): boolean {
+    return this.settle(id, allow ? { allow: true } : { allow: false, message: rejectMessage(feedback) })
   }
 
   /** Dừng phản hồi / tắt quyền sửa → từ chối mọi yêu cầu đang chờ của hội thoại. */

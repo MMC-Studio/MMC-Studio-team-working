@@ -1,4 +1,4 @@
-import { Loader2, Paperclip, Send, Square } from 'lucide-react'
+import { Loader2, MessageCircleQuestion, Paperclip, Send, Square } from 'lucide-react'
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CHAT_MODES, type ChatMode } from '@shared/ai'
@@ -28,6 +28,11 @@ type Props = {
   /** Gửi ngay GIF / sticker đã chọn. */
   onSendMedia(media: MediaItem): void
   onStop(): void
+  /**
+   * Có thẻ chờ duyệt trong cuộc này → chữ gõ vào là câu hỏi về thẻ ("Hỏi lại"), gửi được cả khi trợ lý đang chờ.
+   * focusKey đổi (bấm "Hỏi lại" trên thẻ) → focus ô nhập.
+   */
+  ask?: { onAsk(text: string): void; focusKey: number; disabled: boolean }
 }
 
 export function Composer({
@@ -37,7 +42,8 @@ export function Composer({
   disabled,
   onSend,
   onSendMedia,
-  onStop
+  onStop,
+  ask
 }: Props) {
   const { t } = useTranslation('chat')
   const name = usePreferences((s) => s.assistant.name)
@@ -77,8 +83,20 @@ export function Composer({
   const { items, problems, busy, addFiles, addFromClipboard, pick, remove, clear } = useDraft()
 
   const canSend = !streaming && !disabled && !busy && (text.trim().length > 0 || items.length > 0)
+  const canAsk = !!ask && !ask.disabled && !disabled && text.trim().length > 0
+
+  const focusKey = ask?.focusKey ?? 0
+  useEffect(() => {
+    if (focusKey) box.current?.focus()
+  }, [focusKey])
 
   const submit = (): void => {
+    if (ask) {
+      if (!canAsk) return
+      ask.onAsk(text.trim())
+      setText('')
+      return
+    }
     if (!canSend) return
     // Có file đính kèm thì gửi như tin thường (tin giọng nói chỉ gồm chữ).
     const voice = items.length === 0 ? (pendingVoice.current ?? undefined) : undefined
@@ -160,9 +178,10 @@ export function Composer({
       <VoiceError />
       <Textarea
         ref={box}
-        aria-label={t('placeholder', { name })}
+        aria-label={ask ? t('approvals.askPlaceholder') : t('placeholder', { name })}
         className="max-h-48 min-h-14 border-0 focus-visible:ring-0"
-        placeholder={t('placeholder', { name })}
+        placeholder={ask ? t('approvals.askPlaceholder') : t('placeholder', { name })}
+        data-ask-mode={ask ? 'true' : undefined}
         value={text}
         rows={2}
         onChange={(e) => setText(e.target.value)}
@@ -203,7 +222,20 @@ export function Composer({
           {/* Quyền xem màn hình không phụ thuộc việc gửi tin được hay không — luôn phải tắt được. */}
           <ScreenAccessToggle />
         </div>
-        {streaming ? (
+        {ask ? (
+          <div className="flex items-center gap-2">
+            {streaming && (
+              <Button size="sm" variant="outline" onClick={onStop}>
+                <Square />
+                {t('stop')}
+              </Button>
+            )}
+            <Button size="sm" onClick={submit} disabled={!canAsk} data-testid="composer-ask">
+              <MessageCircleQuestion />
+              {t('approvals.askSend')}
+            </Button>
+          </div>
+        ) : streaming ? (
           <Button size="sm" variant="outline" onClick={onStop}>
             <Square />
             {t('stop')}

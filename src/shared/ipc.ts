@@ -99,9 +99,7 @@ export const IPC = {
   codeChooseFolder: 'code:chooseFolder',
   codeSetWrite: 'code:setWrite',
   codeRespond: 'code:respond',
-  codeApproval: 'code:approval',
   codeClearFolder: 'code:clearFolder',
-  folderAccessEvent: 'folderAccess:event',
   folderAccessRespond: 'folderAccess:respond',
   timeCurrent: 'time:current',
   timeStart: 'time:start',
@@ -190,8 +188,12 @@ export const IPC = {
   telegramLogout: 'telegram:logout',
   telegramChats: 'telegram:chats',
   telegramSetLists: 'telegram:setLists',
-  draftApprovalEvent: 'draft:approvalEvent',
   draftRespond: 'draft:respond',
   /** main → renderer: các mục trạng thái vừa đổi (SyncTopic[]). */
-  syncChanged: 'sync:changed'
+  syncChanged: 'sync:changed',
+  /** Thẻ đang chờ duyệt (sửa file, quyền thư mục, nháp) + "Hỏi lại". */
+  approvalsList: 'approvals:list',
+  approvalsAsk: 'approvals:ask',
+  /** main → renderer: câu trả lời "Hỏi lại" đang stream. */
+  approvalsDelta: 'approvals:delta'
 } as const

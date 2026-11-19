@@ -368,5 +368,25 @@
     "more": "More",
     "gif": "[GIF]",
     "sticker": "[Sticker]"
+  },
+  "approvals": {
+    "ask": "Ask",
+    "askHint": "Type your question in the chat box below — the assistant only explains, it changes nothing.",
+    "askPlaceholder": "Ask about the pending proposal… (e.g. Why change this?)",
+    "askSend": "Ask",
+    "rejectWithFeedback": "Reject with feedback",
+    "feedbackPlaceholder": "What would you like instead? The assistant will propose again.",
+    "sendFeedback": "Reject & send feedback",
+    "cancel": "Cancel",
+    "answering": "Answering…",
+    "answerError": "Could not answer ({{code}}). Please ask again.",
+    "errors": {
+      "expired": "This proposal has expired or was already handled.",
+      "busy": "Wait for the assistant to finish the previous answer.",
+      "limit": "You have asked {{max}} questions about this proposal — please Accept, Reject or Reject with feedback.",
+      "generic": "Could not send the question ({{code}})."
+    },
+    "banner": "{{name}} is waiting for your approval ({{count}})",
+    "open": "View"
   }
 }

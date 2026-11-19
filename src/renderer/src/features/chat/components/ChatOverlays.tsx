@@ -1,12 +1,6 @@
-import { CodeApprovalOverlay } from './CodeApprovalOverlay'
-import { FolderAccessOverlay } from './FolderAccessOverlay'
+import { ApprovalBanner } from '../approvals/ApprovalBanner'
 
-/** Hộp duyệt luôn gắn trong app (không lỡ khi đang ở trang khác): sửa file (diff) và trợ lý xin quyền thư mục. */
+/** Luôn gắn trong app: nhắc thẻ chờ duyệt (sửa file, quyền thư mục, nháp) khi người dùng đang ở trang / cuộc khác. */
 export function ChatOverlays() {
-  return (
-    <>
-      <CodeApprovalOverlay />
-      <FolderAccessOverlay />
-    </>
-  )
+  return <ApprovalBanner />
 }
