@@ -96,7 +96,8 @@ export const MessageItem = memo(function MessageItem({ message }: { message: Mes
           <PinMark message={message} />
           <ReactionBar message={message} align="end" />
           {message.content && (
-            <div className="rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm whitespace-pre-wrap text-primary-foreground">
+            // min-w-0 + overflow-wrap:anywhere: chuỗi dài không dấu cách (URL, JSON) tự xuống dòng, khung chat không cuộn ngang.
+            <div className="min-w-0 rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]">
               {message.content}
             </div>
           )}

@@ -96,3 +96,9 @@
 .markdown table { border-collapse: collapse; display: block; overflow-x: auto; }
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 0.35em 0.7em; }
 .markdown th { background: var(--muted); font-weight: 600; }
+
+/* Thanh cuộn mảnh, theo màu theme (sáng + tối) — thanh bên chat như ảnh mẫu. */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+}

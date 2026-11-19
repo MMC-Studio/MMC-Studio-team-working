@@ -8,6 +8,7 @@ import { useChat } from './store'
 import { setupVoice } from './voice/store'
 import { setupRecent } from './expressive/recentStore'
 import { setupApprovals } from './approvals/store'
+import { setupSidebarShortcut } from './layout/sidebarStore'
 import en from './i18n/en.json'
 import vi from './i18n/vi.json'
 
@@ -32,6 +33,8 @@ export const chatFeature: FeatureDefinition = {
     const offRecent = setupRecent()
     // Thẻ chờ duyệt (sửa file, quyền thư mục, nháp) + câu trả lời "Hỏi lại" đang stream.
     const offApprovals = setupApprovals()
+    // Ctrl+B: ẩn / hiện thanh bên chat.
+    const offSidebarKey = setupSidebarShortcut()
     return () => {
       offChat()
       offSidebar()
@@ -39,6 +42,7 @@ export const chatFeature: FeatureDefinition = {
       offVoice()
       offRecent()
       offApprovals()
+      offSidebarKey()
     }
   },
   overlay: ChatOverlays

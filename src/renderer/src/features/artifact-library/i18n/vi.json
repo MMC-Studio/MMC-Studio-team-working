@@ -1,0 +1,15 @@
+{
+  "title": "Artifacts",
+  "filter": "Lọc theo tên artifact hoặc cuộc trò chuyện…",
+  "empty": "Chưa có artifact nào. Nhờ trợ lý tạo tài liệu, slide, bảng, biểu đồ hoặc sơ đồ trong khung chat.",
+  "noMatch": "Không có artifact khớp.",
+  "untitled": "Cuộc trò chuyện chưa đặt tên",
+  "types": {
+    "doc": "Tài liệu",
+    "slides": "Slide",
+    "sheet": "Bảng tính",
+    "chart": "Biểu đồ",
+    "mermaid": "Sơ đồ",
+    "html": "HTML"
+  }
+}

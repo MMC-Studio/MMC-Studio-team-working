@@ -393,5 +393,18 @@
     "waitingVersion": "Waiting for the assistant to make version {{n}}…",
     "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line",
     "sendAsRevision": "Send this as a change request"
+  },
+  "sidebar": {
+    "navLabel": "Chat navigation",
+    "listLabel": "Conversations",
+    "search": "Search",
+    "closeSearch": "Close search",
+    "projects": "Projects",
+    "artifacts": "Artifacts",
+    "scheduled": "Scheduled",
+    "plugins": "Plugins",
+    "hide": "Hide sidebar (Ctrl+B)",
+    "show": "Show sidebar (Ctrl+B)",
+    "localAccount": "On this computer"
   }
 }

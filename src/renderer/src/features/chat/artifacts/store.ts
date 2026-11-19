@@ -11,6 +11,8 @@ type ArtifactsState = {
   load(conversationId: string | null): Promise<void>
   /** Mở artifact (mặc định bản mới nhất). */
   show(id: string, version?: number): Promise<void>
+  /** Mở artifact của một cuộc trò chuyện bất kỳ (trang Artifacts): nạp danh sách của cuộc đó rồi mở panel. */
+  openIn(conversationId: string, id: string): Promise<void>
 }
 
 export const useArtifacts = create<ArtifactsState>((set, get) => ({
@@ -38,5 +40,10 @@ export const useArtifacts = create<ArtifactsState>((set, get) => ({
     if (conversationId) await get().load(conversationId)
     const a = get().list.find((x) => x.id === id)
     if (a) set({ open: true, selected: { id, version: version ?? a.version } })
+  },
+  async openIn(conversationId, id) {
+    await get().load(conversationId)
+    const a = get().list.find((x) => x.id === id)
+    if (a) set({ open: true, selected: { id, version: a.version } })
   }
 }))

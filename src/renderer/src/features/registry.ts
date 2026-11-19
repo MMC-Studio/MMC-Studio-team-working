@@ -1,6 +1,8 @@
 import { agentsFeature } from './agents'
+import { artifactLibraryFeature } from './artifact-library'
 import { chatFeature } from './chat'
 import { claudeCheckFeature } from './claude-check'
+import { comingSoonFeature } from './coming-soon'
 import { computerFeature } from './computer'
 import { connectorsFeature } from './connectors'
 import { dashboardFeature } from './dashboard'
@@ -22,6 +24,9 @@ import { workFeature } from './work'
  */
 export const features: FeatureDefinition[] = [
   chatFeature,
+  // Trang mở từ thanh bên chat (không có trên thanh biểu tượng).
+  artifactLibraryFeature,
+  comingSoonFeature,
   todayFeature,
   memoryFeature,
   workFeature,

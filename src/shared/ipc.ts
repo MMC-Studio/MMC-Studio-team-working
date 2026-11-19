@@ -20,6 +20,7 @@ export const IPC = {
   chatRecall: 'chat:recall',
   chatEditResend: 'chat:editResend',
   artifactsList: 'artifacts:list',
+  artifactsListAll: 'artifacts:listAll',
   artifactsVersions: 'artifacts:versions',
   artifactsContent: 'artifacts:content',
   artifactsSave: 'artifacts:save',

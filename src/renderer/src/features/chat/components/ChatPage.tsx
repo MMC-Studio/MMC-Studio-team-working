@@ -13,7 +13,7 @@ import { ChatHeader } from './ChatHeader'
 import { CodeBar } from './CodeBar'
 import { Composer } from './Composer'
 import { ArtifactPanel } from '../artifacts/ArtifactPanel'
-import { ConversationSidebar } from './ConversationSidebar'
+import { ChatLayout } from '../layout/ChatLayout'
 import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
@@ -88,8 +88,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      <ConversationSidebar />
+    <ChatLayout>
       <section
         className="relative flex min-w-0 flex-1 flex-col"
         onDragOver={onDragOver}
@@ -179,6 +178,6 @@ export function ChatPage() {
         </div>
       </section>
       <ArtifactPanel conversationId={active?.id ?? null} />
-    </div>
+    </ChatLayout>
   )
 }

@@ -83,7 +83,17 @@ Tiến độ:
   - Test: `approvals/__tests__/hub.test.ts` (hỏi đáp, gia hạn, trần 30 phút, góp ý, prompt), `folderAccess.test.ts`; e2e `approvals.spec.ts` (FakeChat `FAKE_EDIT:<file>`; hỏi 2 câu rồi Đồng ý → file đúng; góp ý → đề xuất mới; thanh nhắc; tải lại vẫn còn thẻ; ảnh sáng / tối 900 / 1280px), `connectors.spec.ts` (hỏi + góp ý trên thẻ nháp).
   - Thấy khi chụp ảnh (lỗi có sẵn, chưa sửa): bong bóng tin người dùng có chuỗi dài không dấu cách (URL, JSON) làm khung chat cuộn ngang ở 900px.
   - Đã test tay với Claude thật (2026-11-19): hỏi đáp, Yêu cầu sửa → Bản 2 trong cùng thẻ, phím tắt (cả Unikey), bố cục khung chat.
-- **Tiếp theo: PR 2** — thanh bên mới (Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin, Đã ghim, nhóm, Gần đây, avatar + cài đặt ở đáy) + trang Artifacts + trang "Sắp có".
+- **PR 2 — `feat/new-sidebar`** (mở PR, chờ duyệt):
+  - **Thanh bên chat mới** (chỉ thuộc trang Chat + các trang mở từ nó, `ChatLayout`): trên cùng luôn hiện Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin (mục đang mở tô nền, `aria-current`); danh sách cuộn riêng (thanh cuộn mảnh theo theme): Đã ghim / các nhóm / Gần đây (Chưa xếp nhóm), đều thu gọn được — Đã ghim / Gần đây lưu localStorage `mmc.sidebar.section.<mục>`, nhóm vẫn lưu DB như #17; giữ kéo thả, nhánh, gợi ý nhóm. Đáy: tên trợ lý + tài khoản (chỉ hiện; Cài đặt / đổi tài khoản vẫn ở thanh biểu tượng — quyết định 2026-11-19).
+  - **Ẩn / hiện thanh bên:** ẩn hẳn, nút mở lại ở đầu khung nội dung; Ctrl+B (⌘B) ở mọi trang (`e.code === 'KeyB'`, không trùng phím nào khác của app); lưu `mmc.sidebar.hidden`.
+  - **Tìm kiếm (tạm):** bấm → ô tìm trên đầu danh sách (dùng lại FTS + trích đoạn), Esc / X đóng và xoá. PR 3 thay bằng cửa sổ nổi Ctrl+K.
+  - **Trang Artifacts** (module `artifact-library`, `/artifacts`): mọi artifact của tài khoản (IPC `artifacts:listAll`, chỉ cuộc trò chuyện của tài khoản hiện tại, mới sửa trước, kèm tên cuộc), lọc không dấu; bấm → chọn cuộc + `useArtifacts.openIn` → về trang Chat, panel mở đúng artifact. Đồng bộ `artifacts` + `conversations`.
+  - **Trang "Sắp có"** (module `coming-soon`, `/soon/:section`): Dự án / Lịch hẹn / Plugin — PR 5 / 7 / 6 thay. "Dự án được ghim trong Đã ghim" để PR 5.
+  - Trang Công việc đổi chữ thành **"Dự án team"** (route `/projects` giữ nguyên).
+  - **Sửa lỗi cuộn ngang:** bong bóng tin người dùng là phần tử flex thiếu `min-w-0` → chuỗi dài không dấu cách (URL, JSON) đẩy khung chat rộng ra. Thêm `min-w-0` + `overflow-wrap:anywhere` (Markdown của trợ lý đã có sẵn).
+  - Thấy khi test (chưa sửa): cửa sổ 900px mà mở cả thanh bên + panel artifact (≥520px) thì khung chat chỉ còn ~50px.
+  - Test: `artifacts.test.ts` (listAll đúng tài khoản / thứ tự), `artifact-library/__tests__/filter.test.ts`, `coming-soon/__tests__/sections.test.ts`; e2e `sidebar.spec.ts` (điều hướng, Ctrl+B + tải lại, tìm kiếm, thu gọn mục + tải lại, trang Artifacts + đổi tên đồng bộ, trang Sắp có, chuỗi dài 900px — test này fail trên code cũ: 2593px so với 589px; ảnh sáng / tối 900 / 1280px), `conversations.spec.ts` mở ô tìm qua mục "Tìm kiếm".
+- **Tiếp theo: PR 3** — ô tìm kiếm dạng cửa sổ nổi (Ctrl+K).
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo

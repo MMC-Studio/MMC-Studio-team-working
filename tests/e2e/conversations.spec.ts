@@ -149,8 +149,16 @@ test('tách nhánh từ một tin → cuộc mới có sẵn ngữ cảnh, thụ
   await expect(page.getByTestId('message-assistant')).toHaveCount(2, { timeout: 20_000 })
 })
 
-test('tìm kiếm: theo tiêu đề và theo tên nhóm', async () => {
+/** Ô tìm chỉ hiện khi bấm mục "Tìm kiếm" trên thanh bên (PR 3 thay bằng cửa sổ nổi). */
+async function openSearch(): Promise<ReturnType<Page['getByRole']>> {
   const search = page.getByRole('textbox', { name: 'Tìm cuộc trò chuyện' })
+  if (!(await search.isVisible())) await page.getByTestId('nav-search').click()
+  await expect(search).toBeVisible(FAST)
+  return search
+}
+
+test('tìm kiếm: theo tiêu đề và theo tên nhóm', async () => {
+  const search = await openSearch()
   await search.fill('unity')
   await expect(page.getByTestId('conversation-item')).toHaveCount(2)
   // Nhóm không có kết quả bị ẩn khi tìm.
@@ -164,7 +172,7 @@ test('tìm kiếm: theo tiêu đề và theo tên nhóm', async () => {
 })
 
 test('đang tìm: nhóm có kết quả tự mở, vẫn thu gọn được, hiện số kết quả; xoá ô tìm → về trạng thái cũ', async () => {
-  const search = page.getByRole('textbox', { name: 'Tìm cuộc trò chuyện' })
+  const search = await openSearch()
   const unity = groupSection('Unity')
   const toggle = unity.getByTestId('group-toggle')
   // Trước khi tìm: Unity đang thu gọn (đã lưu).
@@ -198,7 +206,7 @@ test('đang tìm: nhóm có kết quả tự mở, vẫn thu gọn được, hi�
 })
 
 test('khớp nội dung tin nhắn (không phải tiêu đề) → dòng trích đoạn, chữ khớp tô đậm', async () => {
-  const search = page.getByRole('textbox', { name: 'Tìm cuộc trò chuyện' })
+  const search = await openSearch()
   // Tiêu đề "Chủ đề: tối nay nghe" không có "chill" — chỉ tin nhắn có.
   await search.fill('chill')
   const row = item(/Chủ đề: tối nay nghe/)

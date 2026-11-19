@@ -13,6 +13,9 @@ export type Artifact = {
   version: number
   updatedAt: number
 }
+/** Một dòng trong trang Artifacts (mọi cuộc trò chuyện): kèm tên cuộc trò chuyện chứa nó. */
+export type ArtifactSummary = Artifact & { conversationTitle: string }
+
 export type ArtifactVersion = {
   id: string
   artifactId: string
