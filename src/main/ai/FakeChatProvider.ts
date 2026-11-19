@@ -1,8 +1,15 @@
+import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { ChatEvent } from '@shared/ai'
 import type { AIProvider, ChatRequest } from './AIProvider'
 import type { ToolResult } from '../tools/registry'
 import { FAKE_ARTIFACTS } from './fakeArtifacts'
 import { ORGANIZE_MARKER } from '../chat/organize'
+import { REVISION_HINT_MARKER } from '@shared/approvals'
+import { EXPLAIN_MARKER } from '../approvals/explain'
+
+/** Hỏi người dùng duyệt một lần sửa file (= CodeApprovals.decide), như CLI gọi qua permission-mcp. */
+export type FakeEditDecider = (conversationId: string, toolName: string, input: unknown) => Promise<{ allow: boolean; message?: string }>
 
 export type FakeToolCaller = (name: string, input: unknown, conversationId: string) => Promise<ToolResult>
 
@@ -15,7 +22,10 @@ export class FakeChatProvider implements AIProvider {
   readonly stateful = false
 
   /** Gọi tool của app như CLI thật (qua registry) — để e2e đi được luồng duyệt nháp Gmail / Telegram. */
-  constructor(private readonly callTool?: FakeToolCaller) {}
+  constructor(
+    private readonly callTool?: FakeToolCaller,
+    private readonly decideEdit?: FakeEditDecider
+  ) {}
 
   async isAvailable(): Promise<{ ok: boolean }> {
     return { ok: true }
@@ -56,6 +66,50 @@ export class FakeChatProvider implements AIProvider {
       const group = names[index - 1] ?? null
       const words = user.replace(/FAKE_\w+:\S+/g, '').trim().split(/\s+/).slice(0, 3).join(' ')
       yield { type: 'text', delta: JSON.stringify({ title: `Chủ đề: ${words}`, group }) }
+      yield { type: 'done' }
+      return
+    }
+    // "Hỏi lại" trên thẻ duyệt: trả lời giả kèm số thứ tự câu (đếm các câu đã hỏi trước trong prompt).
+    if (req.systemPrompt.startsWith(EXPLAIN_MARKER)) {
+      const question = /Câu hỏi mới của người dùng: ([\s\S]*)$/.exec(req.prompt)?.[1]?.trim() ?? ''
+      const index = (req.prompt.match(/^Người dùng hỏi: /gm) ?? []).length + 1
+      const card = /^Loại: (.*)$/m.exec(req.prompt)?.[1] ?? ''
+      // Có lịch sử các bản trước → nêu số bản + yêu cầu sửa gần nhất (e2e kiểm tra prompt gửi kèm lịch sử).
+      const pastVersions = (/<cac-ban-truoc>([\s\S]*?)<\/cac-ban-truoc>/.exec(req.prompt)?.[1]?.match(/^Bản \d+:$/gm) ?? []).length
+      const lastRevision = [...req.prompt.matchAll(/^Người dùng yêu cầu sửa: (.*)$/gm)].at(-1)?.[1]
+      const seen = pastVersions ? ` [đã thấy ${pastVersions} bản trước, yêu cầu: "${lastRevision}"]` : ''
+      // Câu là yêu cầu sửa ("Đổi…", "Sửa…", "Viết lại…", "Hãy…") → thêm dấu như trợ lý thật (stream cắt nhỏ cả dấu).
+      const hint = /^(đổi|sửa|viết lại|hãy)\b/iu.test(question) ? `\n${REVISION_HINT_MARKER}` : ''
+      for (const part of `Giải thích (giả lập) #${index} [${card}]${seen}: ${question}${hint}`.match(/.{1,12}/gsu) ?? []) {
+        if (signal.aborted) return
+        yield { type: 'text', delta: part }
+        await new Promise((r) => setTimeout(r, 15))
+      }
+      yield { type: 'done' }
+      return
+    }
+    // FAKE_EDIT:<file>: xin sửa file trong thư mục dự án qua thẻ duyệt diff (như CLI). Từ chối kèm góp ý → đề xuất
+    // lại nội dung mới có chứa góp ý (tối đa 3 lần); đồng ý → ghi file.
+    const edit = /FAKE_EDIT:(\S+)/.exec(req.prompt)
+    if (edit && this.decideEdit && req.approval) {
+      const file = join(req.cwd, edit[1])
+      let content = 'phiên bản 1\n'
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const input = { file_path: file, content }
+        yield { type: 'tool', name: 'Write', input }
+        const decision = await this.decideEdit(req.approval.conversationId, 'Write', input)
+        if (signal.aborted) return
+        if (decision.allow) {
+          await writeFile(file, content, 'utf8')
+          yield { type: 'text', delta: `Đã sửa ${edit[1]} (phiên bản ${attempt}).` }
+          yield { type: 'done' }
+          return
+        }
+        const feedback = /góp ý: "([^"]*)"/.exec(decision.message ?? '')?.[1]
+        if (!feedback) break
+        content = `phiên bản ${attempt + 1}: ${feedback}\n`
+      }
+      yield { type: 'text', delta: `Không sửa ${edit[1]}.` }
       yield { type: 'done' }
       return
     }

@@ -98,6 +98,13 @@ export const appToolName = (name: string): string => `mcp__${APP_TOOLS_SERVER}__
 type McpScript = { script: string; url: string; token: string; conversationId: string }
 
 /**
+ * Hạn mỗi lần gọi tool của server app. Claude CLI (2.1.x) mặc định cắt lời gọi tool của server stdio sau
+ * 30 phút không có tiến triển (`CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`) — trùng hạn tối đa của thẻ duyệt.
+ * Đặt `timeout` riêng cho server (lấy giá trị lớn hơn của hai hạn) để CLI không tự huỷ trước khi app trả lời.
+ */
+export const APP_MCP_TOOL_TIMEOUT_MS = 40 * 60 * 1000
+
+/**
  * Cấu hình MCP: các server là script của app chạy bằng chính Electron (ELECTRON_RUN_AS_NODE),
  * gọi về app qua HTTP 127.0.0.1 + token. `twperm` = duyệt sửa file; `mmc` = tool của app.
  */
@@ -105,6 +112,7 @@ export function mcpConfig(opts: { electronPath: string; permission?: McpScript; 
   const server = (s: McpScript, env: Record<string, string>): object => ({
     command: opts.electronPath,
     args: [s.script],
+    timeout: APP_MCP_TOOL_TIMEOUT_MS,
     env: { ELECTRON_RUN_AS_NODE: '1', ...env }
   })
   // Server người dùng thêm trước; server của app ghi sau nên không bị đè (tên mmc/twperm cũng bị cấm khi thêm).

@@ -22,7 +22,8 @@ export const SYNC_TOPICS = [
   'conversations',
   'expressiveRecent',
   'memory',
-  'messages'
+  'messages',
+  'approvals'
 ] as const
 
 export type SyncTopic = (typeof SYNC_TOPICS)[number]

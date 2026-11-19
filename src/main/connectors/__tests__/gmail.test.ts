@@ -1,3 +1,4 @@
+import type { ApprovalHub } from '../../approvals/hub'
 import { describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_GMAIL_SETTINGS,
@@ -606,7 +607,7 @@ describe('IPC Gmail — luôn báo đồng bộ cho trang cài đặt', () => {
       emit: () => undefined,
       log
     })
-    registerConnectorsIpc({ handle, gmail: g.service, telegram, approvals: g.approvals })
+    registerConnectorsIpc({ handle, gmail: g.service, telegram, approvals: g.approvals, hub: { markRevised: () => {} } as unknown as ApprovalHub })
     const invoke = (channel: string, input?: unknown) => handlers.get(channel)!(input)
     return { ...g, invoke, synced }
   }

@@ -86,7 +86,9 @@ import { StateSync } from './services/stateSync'
 import { createElectronUpdater } from './services/updater'
 import { UpdateController } from './update/controller'
 import { registerTeamIpc } from './ipc/team'
-import { emitApproval, registerWorkIpc } from './ipc/work'
+import { registerWorkIpc } from './ipc/work'
+import { ApprovalHub } from './approvals/hub'
+import { explainPrompt, explainSystemPrompt } from './approvals/explain'
 import { OAuthLoopback } from './services/oauthLoopback'
 import { RateLimiter } from './agents/rateLimiter'
 import { DraftApprovals } from './connectors/approvals'
@@ -254,13 +256,50 @@ async function bootstrap(): Promise<void> {
     log
   })
 
+  // Mọi thẻ chờ duyệt (sửa file, quyền thư mục, nháp) hiện trong khung chat + "Hỏi lại": gọi Claude MỘT lần riêng,
+  // cùng model đang chat, KHÔNG tool, không resume session → lượt CLI đang chờ duyệt không bị đụng.
+  const approvalHub = new ApprovalHub({
+    changed: () => sync.changed('approvals'),
+    delta: (d) => mainWindow?.webContents.send(IPC.approvalsDelta, d),
+    answer: async (card, question, onText, signal) => {
+      const recent = messages
+        .recent(card.conversationId, 10)
+        .filter((m) => !m.recalledAt)
+        .map((m) => ({ role: m.role, content: m.content }))
+      let text = ''
+      for await (const event of getProvider().chat(
+        {
+          prompt: explainPrompt(card, recent, question),
+          systemPrompt: explainSystemPrompt(accountScope.getAssistant().name),
+          mode: 'free',
+          cwd: workspaceDir,
+          ephemeral: true
+        },
+        signal
+      )) {
+        if (event.type === 'text') onText((text += event.delta))
+        else if (event.type === 'error') return { error: event.message }
+      }
+      return text.trim() ? {} : { error: 'empty_answer' }
+    },
+    log
+  })
+  // Có thẻ mới mà app đang ở cửa sổ khác → nháy biểu tượng để người dùng duyệt.
+  const flashForApproval = (): void => {
+    if (mainWindow && !mainWindow.isFocused()) mainWindow.flashFrame(true)
+  }
+
   // Chế độ Code: mỗi lần Claude muốn sửa file, app hiện diff để người dùng duyệt.
   const approvals = new CodeApprovals({
     writableRoot: (id) => {
       const conv = conversations.get(id)
       return conv && conv.codeWrite && conv.cwd ? conv.cwd : null
     },
-    emit: (request) => emitApproval(mainWindow, request),
+    emit: (request) => {
+      approvalHub.add({ id: request.id, conversationId: request.conversationId, kind: 'code', request }, () => approvals.touch(request.id))
+      flashForApproval()
+    },
+    closed: (id) => approvalHub.remove(id),
     mcpApproval: (conversationId, toolName, input) =>
       mcpApprovals.request(conversationId, toolName, input),
     log
@@ -296,8 +335,9 @@ async function bootstrap(): Promise<void> {
       return conv && write ? conversations.setCodeWrite(id, true) : conv
     },
     emit: (event) => {
-      mainWindow?.webContents.send(IPC.folderAccessEvent, event)
-      if (!('closed' in event) && mainWindow && !mainWindow.isFocused()) mainWindow.flashFrame(true)
+      if ('closed' in event) return approvalHub.remove(event.id)
+      approvalHub.add({ id: event.id, conversationId: event.conversationId, kind: 'folder', request: event }, () => folderAccess.touch(event.id))
+      flashForApproval()
     },
     log
   })
@@ -387,7 +427,12 @@ async function bootstrap(): Promise<void> {
   // secret, token, session chỉ nằm trên máy (DPAPI). Bản giả chỉ cho e2e ở bản chưa đóng gói.
   const secretsDir = join(userData, 'secrets')
   const draftApprovals = new DraftApprovals({
-    emit: (req) => mainWindow?.webContents.send(IPC.draftApprovalEvent, req),
+    emit: (event) => {
+      if ('closed' in event) return approvalHub.remove(event.id)
+      const { conversationId, ...request } = event
+      approvalHub.add({ id: request.id, conversationId, kind: 'draft', request }, () => draftApprovals.touch(request.id))
+      flashForApproval()
+    },
     log
   })
   const connectorLimiter = new RateLimiter(() => 60)
@@ -590,7 +635,11 @@ async function bootstrap(): Promise<void> {
 
   // Claude giả chỉ cho test e2e ở bản chưa đóng gói.
   const fakeChat =
-    !app.isPackaged && process.env.MMC_FAKE_CHAT === '1' ? new FakeChatProvider((name, input, conversationId) => tools.call(name, input, { conversationId })) : null
+    !app.isPackaged && process.env.MMC_FAKE_CHAT === '1' ? new FakeChatProvider(
+          (name, input, conversationId) => tools.call(name, input, { conversationId }),
+          (conversationId, toolName, input) => approvals.decide(conversationId, toolName, input)
+        )
+      : null
 
   const providers: Record<AiProviderId, AIProvider> = {
     'claude-cli': new ClaudeCliProvider(
@@ -668,6 +717,7 @@ async function bootstrap(): Promise<void> {
       mcpApprovals.cancelConversation(conversationId)
       draftApprovals.cancelConversation(conversationId)
       folderAccess.cancelConversation(conversationId)
+      approvalHub.endRun(conversationId)
     },
     appToolsFor: (conversationId) =>
       combineToolSets([folderAccess.toolsFor(conversationId), computer.toolsFor(), gmail.toolsFor(), telegram.toolsFor()]),
@@ -864,7 +914,7 @@ async function bootstrap(): Promise<void> {
       voiceClient.stop()
     }
   })
-  registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals })
+  registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals, hub: approvalHub })
   registerWorkIpc({
     handle,
     conversations,
@@ -872,6 +922,7 @@ async function bootstrap(): Promise<void> {
     time: new TimeRepository(db),
     approvals,
     folderAccess,
+    hub: approvalHub,
     memory,
     getProvider,
     loadSkill: (name) => loadSkill(skillsDir, name),

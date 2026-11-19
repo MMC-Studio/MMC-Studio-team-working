@@ -255,6 +255,8 @@ export const draftDecisionSchema = z.object({
   id: z.string().min(1).max(100),
   approve: z.boolean(),
   /** Nội dung người dùng đã sửa. */
-  body: z.string().max(20_000).optional()
+  body: z.string().max(20_000).optional(),
+  /** Từ chối kèm góp ý: trợ lý soạn lại theo góp ý. */
+  feedback: z.string().trim().max(2000).optional()
 })
 export type DraftDecision = z.infer<typeof draftDecisionSchema>

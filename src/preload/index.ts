@@ -2,13 +2,11 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { ComputerStatus } from '@shared/computer'
 import type { SidecarState } from '@shared/sidecar'
-import type { DraftApprovalRequest, GmailStatus, TelegramStatus } from '@shared/connectors'
+import type { GmailStatus, TelegramStatus } from '@shared/connectors'
+import type { ApprovalDelta } from '@shared/approvals'
 import type { AgentNotice, AgentServerStatus, McpApprovalRequest } from '@shared/agents'
 import type {
   ChatStreamPayload,
-  CodeApprovalRequest,
-  FolderAccessClosed,
-  FolderAccessRequest,
   MemoryEventPayload,
   TeamWorkingApi
 } from '@shared/types'
@@ -26,6 +24,11 @@ function subscribe<T>(channel: string, listener: (payload: T) => void): () => vo
 const api: TeamWorkingApi = {
   sync: {
     onChanged: (listener) => subscribe<SyncTopic[]>(IPC.syncChanged, listener)
+  },
+  approvals: {
+    list: () => ipcRenderer.invoke(IPC.approvalsList),
+    ask: (id, question) => ipcRenderer.invoke(IPC.approvalsAsk, { id, question }),
+    onDelta: (listener) => subscribe<ApprovalDelta>(IPC.approvalsDelta, listener)
   },
   cli: {
     check: () => ipcRenderer.invoke(IPC.cliCheck)
@@ -227,8 +230,6 @@ const api: TeamWorkingApi = {
     setLists: (input) => ipcRenderer.invoke(IPC.telegramSetLists, input)
   },
   drafts: {
-    onApproval: (listener) =>
-      subscribe<DraftApprovalRequest | { id: string; closed: true }>(IPC.draftApprovalEvent, listener),
     respond: (decision) => ipcRenderer.invoke(IPC.draftRespond, decision)
   },
   ideas: {
@@ -252,12 +253,10 @@ const api: TeamWorkingApi = {
     chooseFolder: (conversationId) => ipcRenderer.invoke(IPC.codeChooseFolder, conversationId),
     setWrite: (conversationId, enabled) =>
       ipcRenderer.invoke(IPC.codeSetWrite, { conversationId, enabled }),
-    respond: (id, allow) => ipcRenderer.invoke(IPC.codeRespond, { id, allow }),
-    onApproval: (listener) => subscribe<CodeApprovalRequest>(IPC.codeApproval, listener),
+    respond: (id, allow, feedback) => ipcRenderer.invoke(IPC.codeRespond, { id, allow, feedback }),
     clearFolder: (conversationId) => ipcRenderer.invoke(IPC.codeClearFolder, conversationId),
-    respondFolderAccess: (id, grant, write) => ipcRenderer.invoke(IPC.folderAccessRespond, { id, grant, write }),
-    onFolderAccess: (listener) =>
-      subscribe<FolderAccessRequest | FolderAccessClosed>(IPC.folderAccessEvent, listener)
+    respondFolderAccess: (id, grant, write, feedback) =>
+      ipcRenderer.invoke(IPC.folderAccessRespond, { id, grant, write, feedback })
   },
   time: {
     current: () => ipcRenderer.invoke(IPC.timeCurrent),

@@ -1,7 +1,6 @@
 import type { z } from 'zod'
 import { create } from 'zustand'
 import type {
-  DraftApprovalRequest,
   GmailStatus,
   TelegramChatInfo,
   TelegramStatus
@@ -13,10 +12,7 @@ type ConnectorsStore = {
   gmail: GmailStatus | null
   telegram: TelegramStatus | null
   chats: TelegramChatInfo[] | null
-  /** Bản nháp chờ duyệt (hiện lần lượt). */
-  drafts: DraftApprovalRequest[]
   loadChats(force?: boolean): Promise<string | null>
-  respondDraft(id: string, approve: boolean, body?: string): Promise<void>
   /** Hỏi lại main trạng thái Gmail + Telegram (mở trang, quay lại cửa sổ, main báo đồng bộ). */
   refresh(): Promise<void>
   /** Đổi trạng thái Gmail trên giao diện ngay, lưu sau; lỗi → hoàn tác + `onError`. */
@@ -70,16 +66,11 @@ export const useConnectors = create<ConnectorsStore>((set, get) => ({
   gmail: null,
   telegram: null,
   chats: null,
-  drafts: [],
   async loadChats(force) {
     const r = await api.telegram.chats(force)
     if (isError(r)) return r.error
     set({ chats: r })
     return null
-  },
-  async respondDraft(id, approve, body) {
-    set((s) => ({ drafts: s.drafts.filter((d) => d.id !== id) }))
-    await api.drafts.respond({ id, approve, body })
   },
   // Gộp các lần hỏi lại dồn dập (sự kiện + focus) thành một.
   refresh: coalesce(async () => {
@@ -140,13 +131,6 @@ export function setupConnectors(): () => void {
       seen.telegram++
       applyTelegram(telegram)
     }),
-    api.drafts.onApproval((req) =>
-      useConnectors.setState((s) =>
-        'closed' in req
-          ? { drafts: s.drafts.filter((d) => d.id !== req.id) }
-          : { drafts: [...s.drafts.filter((d) => d.id !== req.id), req] }
-      )
-    ),
     // Đổi từ chỗ khác (IPC, trợ lý dùng tool phát hiện token hết hạn…) → hỏi lại.
     onSync(['gmail', 'telegram'], () => useConnectors.getState().refresh())
   ]

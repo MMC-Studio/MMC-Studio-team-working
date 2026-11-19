@@ -1,7 +1,6 @@
 import { Mail } from 'lucide-react'
 import type { FeatureDefinition } from '../types'
 import { ConnectorsPage } from './components/ConnectorsPage'
-import { DraftOverlay } from './components/DraftOverlay'
 import en from './i18n/en.json'
 import vi from './i18n/vi.json'
 import { setupConnectors } from './store'
@@ -16,6 +15,6 @@ export const connectorsFeature: FeatureDefinition = {
   component: ConnectorsPage,
   i18n: { vi, en },
   nav: false,
-  setup: setupConnectors,
-  overlay: DraftOverlay
+  // Thẻ duyệt nháp nằm trong khung chat (features/chat/approvals).
+  setup: setupConnectors
 }

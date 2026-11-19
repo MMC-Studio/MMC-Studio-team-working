@@ -14,6 +14,7 @@ import {
   telegramPhoneSchema
 } from '@shared/connectors'
 import { IPC } from '@shared/ipc'
+import type { ApprovalHub } from '../approvals/hub'
 import type { DraftApprovals } from '../connectors/approvals'
 import type { GmailService } from '../connectors/gmail/service'
 import type { TelegramService } from '../connectors/telegram/service'
@@ -24,6 +25,7 @@ export type ConnectorsIpcDeps = {
   gmail: GmailService
   telegram: TelegramService
   approvals: DraftApprovals
+  hub: ApprovalHub
 }
 
 const none = z.undefined()
@@ -41,7 +43,8 @@ export function registerConnectorsIpc({
   handle,
   gmail,
   telegram,
-  approvals
+  approvals,
+  hub
 }: ConnectorsIpcDeps): void {
   // Thao tác đổi trạng thái: lỗi → { error }; `changes` → luôn báo đồng bộ sau khi xong, kể cả khi lỗi
   // (vd đăng nhập Google bị huỷ / hết giờ: không báo thì trang cài đặt kẹt ở "Đang chờ đăng nhập").
@@ -82,5 +85,13 @@ export function registerConnectorsIpc({
   handle(IPC.telegramChats, z.boolean().optional(), (force) => safe(() => telegram.chats(force ?? false)), T)
   handle(IPC.telegramSetLists, telegramListsSchema, (lists) => safe(() => telegram.setLists(lists)), T)
 
-  handle(IPC.draftRespond, draftDecisionSchema, (d) => approvals.respond(d))
+  handle(
+    IPC.draftRespond,
+    draftDecisionSchema,
+    (d) => {
+      if (!d.approve && d.feedback) hub.markRevised(d.id, d.feedback)
+      return approvals.respond(d)
+    },
+    { changes: 'approvals' }
+  )
 }

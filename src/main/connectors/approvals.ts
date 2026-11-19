@@ -1,41 +1,47 @@
 import { randomUUID } from 'node:crypto'
 import type { DraftApprovalRequest, DraftDecision } from '@shared/connectors'
+import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
 
 export type DraftVerdict = { approve: true; body: string } | { approve: false; reason: string }
 type Pending = DraftApprovalRequest & {
   conversationId: string
   resolve(v: DraftVerdict): void
-  timer: ReturnType<typeof setTimeout>
+  timer: ApprovalTimer
 }
-
-const TIMEOUT_MS = 10 * 60 * 1000
 
 /**
  * Mỗi bản nháp trợ lý muốn tạo (Gmail / Telegram) phải được người dùng xem — có thể sửa nội dung — rồi mới tạo.
- * Không phản hồi trong 10 phút, dừng lượt chat hoặc tắt kết nối → coi như từ chối.
+ * Không phản hồi trong 10 phút (tối đa 30 phút nếu đang hỏi lại), dừng lượt chat hoặc tắt kết nối → coi như từ chối.
  */
 export class DraftApprovals {
   private pending = new Map<string, Pending>()
 
   constructor(
     private readonly deps: {
-      emit(req: DraftApprovalRequest | { id: string; closed: true }): void
+      emit(req: (DraftApprovalRequest & { conversationId: string }) | { id: string; closed: true }): void
       log: { info(msg: string): void }
-      timeoutMs?: number
+      timer?: ApprovalTimerOptions
     }
   ) {}
 
   request(conversationId: string, draft: Omit<DraftApprovalRequest, 'id'>): Promise<DraftVerdict> {
     const id = randomUUID()
     return new Promise<DraftVerdict>((resolve) => {
-      const timer = setTimeout(
+      const timer = new ApprovalTimer(
         () => this.settle(id, { approve: false, reason: 'Hết thời gian chờ người dùng duyệt.' }),
-        this.deps.timeoutMs ?? TIMEOUT_MS
+        this.deps.timer
       )
       const req: DraftApprovalRequest = { id, ...draft }
       this.pending.set(id, { ...req, conversationId, resolve, timer })
-      this.deps.emit(req)
+      this.deps.emit({ ...req, conversationId })
     })
+  }
+
+  /** "Hỏi lại" vừa trả lời → tính lại hạn chờ. */
+  touch(id: string): boolean {
+    const p = this.pending.get(id)
+    p?.timer.touch()
+    return !!p
   }
 
   respond(decision: DraftDecision): boolean {
@@ -43,11 +49,17 @@ export class DraftApprovals {
     if (!p) return false
     this.deps.log.info(`Nháp ${p.service}: ${decision.approve ? 'duyệt' : 'từ chối'}`)
     const body = decision.body?.trim() ? decision.body : p.body
+    const note = decision.feedback?.trim()
     return this.settle(
       decision.id,
       decision.approve
         ? { approve: true, body }
-        : { approve: false, reason: 'Người dùng đã từ chối bản nháp này.' }
+        : {
+            approve: false,
+            reason: note
+              ? `Người dùng đã từ chối bản nháp này và góp ý: "${note}". Hãy soạn lại theo góp ý rồi đề xuất nháp mới (người dùng sẽ duyệt lại).`
+              : 'Người dùng đã từ chối bản nháp này.'
+          }
     )
   }
 
@@ -77,9 +89,9 @@ export class DraftApprovals {
   private settle(id: string, v: DraftVerdict): boolean {
     const p = this.pending.get(id)
     if (!p) return false
-    clearTimeout(p.timer)
+    p.timer.clear()
     this.pending.delete(id)
-    // Đóng hộp thoại ở renderer (hết giờ / dừng chat / đã trả lời).
+    // Đóng thẻ (hết giờ / dừng chat / đã trả lời).
     this.deps.emit({ id, closed: true })
     p.resolve(v)
     return true

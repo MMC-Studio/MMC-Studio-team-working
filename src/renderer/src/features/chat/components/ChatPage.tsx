@@ -17,6 +17,8 @@ import { ConversationSidebar } from './ConversationSidebar'
 import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
+import { ApprovalCards } from '../approvals/ApprovalCards'
+import { cardsFor, useApprovals } from '../approvals/store'
 
 const EMPTY: never[] = []
 
@@ -42,6 +44,16 @@ export function ChatPage() {
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)
   const addFiles = useDraft((s) => s.addFiles)
+  // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô chat bên dưới hỏi về thẻ đầu tiên.
+  const allCards = useApprovals((s) => s.cards)
+  const askCard = useApprovals((s) => s.ask)
+  const cards = cardsFor(allCards, activeId)
+  // Ô chat hỏi về bản mới nhất của thẻ đầu tiên còn duyệt được (thẻ đang chờ bản tiếp theo thì không).
+  const target = cards.find((c) => c.revising === null)
+  // Chỉ cuộn khi có THẺ MỚI. Hỏi đáp trên thẻ (kể cả từng đoạn đang stream) không kéo khung chat — nếu kéo xuống
+  // đáy mỗi lần, phần đầu thẻ / diff / các câu hỏi trước bị đẩy khỏi màn hình, nhìn như thẻ nháy và mất câu cũ.
+  // Theo chuỗi: Bản 2 thay Bản 1 trong cùng thẻ cũng không kéo khung chat.
+  const cardIds = cards.map((c) => c.chainId).join('|')
 
   useEffect(() => {
     void loadConversations()
@@ -50,7 +62,7 @@ export function ChatPage() {
   const lastContent = messages.at(-1)?.content
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [activeId, messages.length, lastContent])
+  }, [activeId, messages.length, lastContent, cardIds])
 
   const onModeChange = (m: ChatMode): void => {
     if (active) void setMode(active.id, m)
@@ -111,6 +123,7 @@ export function ChatPage() {
             ) : (
               messages.map((m) => <MessageItem key={m.id} message={m} />)
             )}
+            <ApprovalCards cards={cards} />
             <div ref={bottomRef} />
           </div>
         </div>
@@ -153,6 +166,14 @@ export function ChatPage() {
               void send('', mode, [], { kind: m.kind, source: m.source, id: m.id })
             }
             onStop={() => void stop()}
+            ask={
+              target
+                ? {
+                    onAsk: (q) => void askCard(target.id, q),
+                    disabled: target.qa.some((q) => q.status === 'answering')
+                  }
+                : undefined
+            }
           />
           <p className="text-center text-[11px] text-muted-foreground">{t('usageNote')}</p>
         </div>

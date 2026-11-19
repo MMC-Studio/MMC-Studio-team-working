@@ -114,7 +114,7 @@ describe('trợ lý xin quyền thư mục', () => {
   })
 
   it('từ chối / dừng lượt / hết giờ → tool trả lời không có quyền, không gắn thư mục', async () => {
-    const { access, registry, deps, events } = setup({ timeoutMs: 20 })
+    const { access, registry, deps, events } = setup({ timer: { idleMs: 20 } })
     const denied = registry.call(FOLDER_TOOL, { reason: 'a' }, { conversationId: 'c1' })
     await vi.waitFor(() => expect(events).toHaveLength(1))
     expect(await access.respond(lastRequest(events).id, false, false)).toEqual({ status: 'denied' })
@@ -129,6 +129,19 @@ describe('trợ lý xin quyền thư mục', () => {
     expect(timedOut.content[0]).toMatchObject({ text: expect.stringContaining('Hết thời gian') })
     expect(deps.grant).not.toHaveBeenCalled()
     expect(deps.pickFolder).not.toHaveBeenCalled()
+  })
+
+  it('từ chối kèm góp ý → trợ lý nhận góp ý (được xin lại theo góp ý); hỏi lại gia hạn được', async () => {
+    const { access, registry, events } = setup()
+    const call = registry.call(FOLDER_TOOL, { reason: 'a', write: true }, { conversationId: 'c1' })
+    await vi.waitFor(() => expect(events).toHaveLength(1))
+    const { id } = lastRequest(events)
+    expect(access.touch(id)).toBe(true)
+    expect(await access.respond(id, false, false, 'chỉ cần quyền đọc thôi')).toEqual({ status: 'denied' })
+    const text = (await call).content[0]
+    expect(text).toMatchObject({ text: expect.stringContaining('góp ý: "chỉ cần quyền đọc thôi"') })
+    expect(text).not.toMatchObject({ text: expect.stringContaining('Đừng hỏi lại') })
+    expect(access.touch(id)).toBe(false)
   })
 
   it('dừng lượt trong lúc hộp chọn thư mục đang mở → không cấp quyền', async () => {

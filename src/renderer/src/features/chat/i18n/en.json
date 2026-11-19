@@ -368,5 +368,30 @@
     "more": "More",
     "gif": "[GIF]",
     "sticker": "[Sticker]"
+  },
+  "approvals": {
+    "askPlaceholder": "Ask about the pending proposal… (e.g. Why change this?)",
+    "askSend": "Ask",
+    "answering": "Answering…",
+    "answerError": "Could not answer ({{code}}). Please ask again.",
+    "errors": {
+      "expired": "This proposal has expired or was already handled.",
+      "busy": "Wait for the assistant to finish the previous answer.",
+      "limit": "You have asked {{max}} questions about this proposal — please Accept, Reject or Reject with feedback.",
+      "generic": "Could not send the question ({{code}})."
+    },
+    "banner": "{{name}} is waiting for your approval ({{count}})",
+    "open": "View",
+    "inputPlaceholder": "Ask about this proposal, or describe how you want it changed…",
+    "askButton": "Ask",
+    "revise": "Request changes",
+    "version": "Version {{n}}",
+    "showVersion": "Show",
+    "hideVersion": "Hide",
+    "revisionLabel": "Requested changes:",
+    "latestVersion": "Version {{n}} · latest",
+    "waitingVersion": "Waiting for the assistant to make version {{n}}…",
+    "keyHint": "Enter to ask · Ctrl+Enter to request changes · Shift+Enter for a new line",
+    "sendAsRevision": "Send this as a change request"
   }
 }

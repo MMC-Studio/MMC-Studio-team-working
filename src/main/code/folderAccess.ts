@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import type { Conversation, FolderAccessClosed, FolderAccessRequest, FolderAccessResult } from '@shared/types'
+import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
 import type { AppToolRegistry, ToolSet } from '../tools/registry'
 
 type Verdict = { granted: true; path: string; write: boolean } | { granted: false; reason: string }
-type Pending = FolderAccessRequest & { resolve(v: Verdict): void; timer: ReturnType<typeof setTimeout> }
+type Pending = FolderAccessRequest & { resolve(v: Verdict): void; timer: ApprovalTimer }
 
 export type FolderAccessDeps = {
   getConversation(id: string): Conversation | null
@@ -14,10 +15,9 @@ export type FolderAccessDeps = {
   grant(conversationId: string, path: string, write: boolean): Conversation | null
   emit(event: FolderAccessRequest | FolderAccessClosed): void
   log: { info(msg: string): void }
-  timeoutMs?: number
+  timer?: ApprovalTimerOptions
 }
 
-const TIMEOUT_MS = 10 * 60 * 1000
 export const FOLDER_TOOL = 'request_folder_access'
 
 const input = z.object({
@@ -84,9 +84,9 @@ export class FolderAccessRequests {
     this.cancelConversation(conversationId)
     const id = randomUUID()
     return new Promise<Verdict>((resolve) => {
-      const timer = setTimeout(
+      const timer = new ApprovalTimer(
         () => this.settle(id, { granted: false, reason: 'Hết thời gian chờ người dùng cấp quyền.' }),
-        this.deps.timeoutMs ?? TIMEOUT_MS
+        this.deps.timer
       )
       const full: FolderAccessRequest = { id, conversationId, ...req }
       this.pending.set(id, { ...full, resolve, timer })
@@ -94,12 +94,27 @@ export class FolderAccessRequests {
     })
   }
 
-  /** Người dùng bấm Từ chối, hoặc Chọn thư mục (mở hộp thoại; huỷ hộp thoại → thẻ vẫn chờ). */
-  async respond(id: string, grant: boolean, write: boolean): Promise<FolderAccessResult> {
+  /** "Hỏi lại" vừa trả lời → tính lại hạn chờ. */
+  touch(id: string): boolean {
+    const p = this.pending.get(id)
+    p?.timer.touch()
+    return !!p
+  }
+
+  /**
+   * Người dùng bấm Từ chối (có thể kèm góp ý), hoặc Chọn thư mục (mở hộp thoại; huỷ hộp thoại → thẻ vẫn chờ).
+   */
+  async respond(id: string, grant: boolean, write: boolean, feedback?: string): Promise<FolderAccessResult> {
     const p = this.pending.get(id)
     if (!p) return { status: 'expired' }
     if (!grant) {
-      this.settle(id, { granted: false, reason: 'Người dùng từ chối cấp quyền thư mục. Đừng hỏi lại trong lượt này.' })
+      const note = feedback?.trim()
+      this.settle(id, {
+        granted: false,
+        reason: note
+          ? `Người dùng từ chối cấp quyền thư mục và góp ý: "${note}". Hãy làm theo góp ý (nếu cần thư mục / mức quyền khác thì xin lại đúng như vậy).`
+          : 'Người dùng từ chối cấp quyền thư mục. Đừng hỏi lại trong lượt này.'
+      })
       return { status: 'denied' }
     }
     const path = await this.deps.pickFolder(p.suggestedPath)
@@ -128,7 +143,7 @@ export class FolderAccessRequests {
   private settle(id: string, v: Verdict): void {
     const p = this.pending.get(id)
     if (!p) return
-    clearTimeout(p.timer)
+    p.timer.clear()
     this.pending.delete(id)
     // Luôn báo đóng thẻ (hết giờ, dừng lượt…) để thẻ không treo; renderer bỏ qua nếu đã đóng.
     this.deps.emit({ id, closed: true })
