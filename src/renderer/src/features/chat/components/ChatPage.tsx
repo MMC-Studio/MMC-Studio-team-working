@@ -48,10 +48,12 @@ export function ChatPage() {
   const allCards = useApprovals((s) => s.cards)
   const askCard = useApprovals((s) => s.ask)
   const cards = cardsFor(allCards, activeId)
-  const target = cards[0]
+  // Ô chat hỏi về bản mới nhất của thẻ đầu tiên còn duyệt được (thẻ đang chờ bản tiếp theo thì không).
+  const target = cards.find((c) => c.revising === null)
   // Chỉ cuộn khi có THẺ MỚI. Hỏi đáp trên thẻ (kể cả từng đoạn đang stream) không kéo khung chat — nếu kéo xuống
   // đáy mỗi lần, phần đầu thẻ / diff / các câu hỏi trước bị đẩy khỏi màn hình, nhìn như thẻ nháy và mất câu cũ.
-  const cardIds = cards.map((c) => c.id).join('|')
+  // Theo chuỗi: Bản 2 thay Bản 1 trong cùng thẻ cũng không kéo khung chat.
+  const cardIds = cards.map((c) => c.chainId).join('|')
 
   useEffect(() => {
     void loadConversations()

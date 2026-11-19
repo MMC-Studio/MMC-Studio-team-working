@@ -9,7 +9,9 @@ const card = (qa: ApprovalQa[]): ApprovalCard => ({
   conversationId: 'c1',
   createdAt: 0,
   version: 1,
-  revisionNote: null,
+  history: [],
+  chainId: 'a1',
+  revising: null,
   qa,
   kind: 'folder',
   request: { id: 'a1', conversationId: 'c1', suggestedPath: null, write: false, reason: 'x' }

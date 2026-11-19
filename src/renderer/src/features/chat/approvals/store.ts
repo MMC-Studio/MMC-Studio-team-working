@@ -12,6 +12,8 @@ type ApprovalsState = {
   ask(id: string, question: string): Promise<boolean>
   /** Đóng thẻ ngay trên giao diện; `save` lỗi → hiện lại. */
   decide(id: string, save: () => Promise<unknown>): Promise<boolean>
+  /** "Yêu cầu sửa": thẻ ở lại, chuyển sang "đang chờ bản tiếp theo" ngay; `save` lỗi → về như cũ. */
+  revise(id: string, note: string, save: () => Promise<unknown>): Promise<boolean>
 }
 
 export const useApprovals = create<ApprovalsState>((set, get) => ({
@@ -47,6 +49,21 @@ export const useApprovals = create<ApprovalsState>((set, get) => ({
       },
       // Báo ngay trên thẻ (hết hạn / đang trả lời câu trước / đã hỏi đủ 10 câu).
       onError: (code) => set({ askError: { id, code } })
+    })
+    return result !== null
+  },
+
+  async revise(id, note, save) {
+    const setRevising = (value: string | null): void =>
+      set((s) => ({ cards: s.cards.map((c) => (c.id === id ? { ...c, revising: value } : c)) }))
+    const result = await optimistic({
+      topic: 'approvals',
+      apply: () => setRevising(note),
+      rollback: () => setRevising(null),
+      save: async () => {
+        await save()
+        return true
+      }
     })
     return result !== null
   },

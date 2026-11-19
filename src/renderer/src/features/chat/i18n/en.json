@@ -386,6 +386,10 @@
     "askButton": "Ask",
     "revise": "Request changes",
     "version": "Version {{n}}",
-    "revisionNote": "Following your request: {{note}}"
+    "showVersion": "Show",
+    "hideVersion": "Hide",
+    "revisionLabel": "Requested changes:",
+    "latestVersion": "Version {{n}} · latest",
+    "waitingVersion": "Waiting for the assistant to make version {{n}}…"
   }
 }

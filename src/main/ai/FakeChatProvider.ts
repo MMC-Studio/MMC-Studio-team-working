@@ -73,7 +73,11 @@ export class FakeChatProvider implements AIProvider {
       const question = /Câu hỏi mới của người dùng: ([\s\S]*)$/.exec(req.prompt)?.[1]?.trim() ?? ''
       const index = (req.prompt.match(/^Người dùng hỏi: /gm) ?? []).length + 1
       const card = /^Loại: (.*)$/m.exec(req.prompt)?.[1] ?? ''
-      for (const part of `Giải thích (giả lập) #${index} [${card}]: ${question}`.match(/.{1,12}/gsu) ?? []) {
+      // Có lịch sử các bản trước → nêu số bản + yêu cầu sửa gần nhất (e2e kiểm tra prompt gửi kèm lịch sử).
+      const pastVersions = (/<cac-ban-truoc>([\s\S]*?)<\/cac-ban-truoc>/.exec(req.prompt)?.[1]?.match(/^Bản \d+:$/gm) ?? []).length
+      const lastRevision = [...req.prompt.matchAll(/^Người dùng yêu cầu sửa: (.*)$/gm)].at(-1)?.[1]
+      const seen = pastVersions ? ` [đã thấy ${pastVersions} bản trước, yêu cầu: "${lastRevision}"]` : ''
+      for (const part of `Giải thích (giả lập) #${index} [${card}]${seen}: ${question}`.match(/.{1,12}/gsu) ?? []) {
         if (signal.aborted) return
         yield { type: 'text', delta: part }
         await new Promise((r) => setTimeout(r, 15))

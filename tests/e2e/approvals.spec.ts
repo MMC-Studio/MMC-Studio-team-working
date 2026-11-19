@@ -182,28 +182,73 @@ test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ
   await expect(box()).toBeVisible({ timeout: 20_000 })
 })
 
-test('"Yêu cầu sửa" → thẻ mới thay thẻ cũ, ghi Bản 2, Bản 3; Đồng ý ghi đúng bản cuối', async () => {
+test('"Yêu cầu sửa" → các bản nằm chung một thẻ: Bản 2 vẫn thấy câu hỏi + yêu cầu của Bản 1', async () => {
   await send('FAKE_EDIT:b.txt')
   const code = card('code')
   await expect(code).toContainText('phiên bản 1', { timeout: 20_000 })
   await expect(code.getByTestId('approval-version')).toHaveCount(0)
+  await page.evaluate(() => {
+    ;(document.querySelector('[data-testid="approval-card"]') as HTMLElement).dataset.probe = 'goc'
+  })
+
+  // Bản 1: hỏi 1 câu rồi Yêu cầu sửa.
+  await askOnCard(code, 'Tại sao ghi phiên bản 1?', 1)
   await revise(code, 'ghi rõ là bản sửa theo yêu cầu')
 
-  // Thẻ cũ đóng, thẻ mới (Bản 2) có nội dung theo yêu cầu.
+  // Cùng một thẻ (không gắn lại), giờ là Bản 2.
   await expect(code.getByTestId('approval-version')).toHaveText('Bản 2', { timeout: 10_000 })
   await expect(code).toHaveCount(1)
-  await expect(code).toContainText('phiên bản 2: ghi rõ là bản sửa theo yêu cầu')
-  await expect(code.getByTestId('approval-revision-note')).toContainText('ghi rõ là bản sửa theo yêu cầu')
-  await expect(code.getByTestId('approval-revision-note')).not.toContainText('chối')
-  await askOnCard(code, 'Bản này khác bản trước chỗ nào?', 1)
-  // Ô chat bên dưới vẫn hỏi được.
+  expect(await code.getAttribute('data-probe')).toBe('goc')
+  const past1 = code.locator('[data-testid="approval-past-version"][data-version="1"]')
+  await expect(past1.getByTestId('approval-question')).toHaveText(['Tại sao ghi phiên bản 1?'])
+  await expect(past1.getByTestId('approval-answer')).toContainText('Giải thích (giả lập) #1')
+  await expect(past1.getByTestId('approval-revision')).toHaveText('Yêu cầu sửa: ghi rõ là bản sửa theo yêu cầu')
+  await expect(past1.getByTestId('approval-revision')).not.toContainText('chối')
+  // Bản cũ: diff thu gọn, bấm "Xem lại" mới hiện; không có nút duyệt / ô nhập.
+  await expect(past1.getByTestId('approval-diff')).toHaveCount(0)
+  await past1.getByTestId('approval-past-toggle').click()
+  await expect(past1.getByTestId('approval-diff')).toContainText('phiên bản 1')
+  await expect(past1.getByRole('button', { name: /Đồng ý|Từ chối/ })).toHaveCount(0)
+  await expect(past1.getByTestId('approval-input')).toHaveCount(0)
+  // Bản mới nhất: diff mở sẵn, chỉ bản này có Đồng ý / Từ chối.
+  const current = code.getByTestId('approval-current')
+  await expect(current).toHaveAttribute('data-version', '2')
+  await expect(current.getByTestId('approval-diff')).toContainText('phiên bản 2: ghi rõ là bản sửa theo yêu cầu')
+  await expect(code.getByTestId('approval-accept')).toHaveCount(1)
+  await expect(code.getByTestId('approval-reject')).toHaveCount(1)
+
+  // Câu hỏi ở Bản 2 gửi kèm lịch sử Bản 1 cho trợ lý (Claude giả nêu lại số bản trước + yêu cầu).
+  await askOnCard(current, 'Bản này khác bản trước chỗ nào?', 1)
+  await expect(current.getByTestId('approval-answer')).toContainText('đã thấy 1 bản trước, yêu cầu: "ghi rõ là bản sửa theo yêu cầu"')
+  // Đánh số câu tiếp tục cả chuỗi (#2) — giới hạn 10 câu tính chung.
+  await expect(current.getByTestId('approval-answer')).toContainText('#2')
+  // Ô chat bên dưới vẫn hỏi được (vào bản mới nhất).
   await askBox().fill('Có cần sửa file khác không?')
   await askBox().press('Enter')
-  await expect(code.getByTestId('approval-answer').nth(1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
+  await expect(current.getByTestId('approval-answer').nth(1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
 
+  // Ảnh thẻ có 2 bản (sáng / tối) trong test-results/.
+  await past1.getByTestId('approval-past-toggle').click()
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 1300))
+  await code.getByTestId('approval-accept').scrollIntoViewIfNeeded()
+  for (const theme of ['light', 'dark'] as const) {
+    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
+      await page.getByTestId('theme-toggle').click()
+    }
+    await code.screenshot({ path: `test-results/approval-versions-${theme}.png` })
+  }
+  await page.getByTestId('theme-toggle').click()
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820))
+
+  // Bản 3: hai bản cũ xếp theo thứ tự; Đồng ý ghi đúng bản cuối.
   await revise(code, 'thêm dòng cuối')
   await expect(code.getByTestId('approval-version')).toHaveText('Bản 3', { timeout: 10_000 })
-  await expect(code).toContainText('phiên bản 3: thêm dòng cuối')
+  await expect(code.getByTestId('approval-past-version')).toHaveCount(2)
+  await expect(code.getByTestId('approval-revision')).toHaveText([
+    'Yêu cầu sửa: ghi rõ là bản sửa theo yêu cầu',
+    'Yêu cầu sửa: thêm dòng cuối'
+  ])
+  expect(await code.getAttribute('data-probe')).toBe('goc')
   expect(existsSync(join(project, 'b.txt'))).toBe(false)
   await code.getByTestId('approval-accept').click()
   await expect(lastReply()).toContainText('Đã sửa b.txt (phiên bản 3)', { timeout: 20_000 })

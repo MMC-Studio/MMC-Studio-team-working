@@ -386,6 +386,10 @@
     "askButton": "Hỏi",
     "revise": "Yêu cầu sửa",
     "version": "Bản {{n}}",
-    "revisionNote": "Làm theo yêu cầu: {{note}}"
+    "showVersion": "Xem lại",
+    "hideVersion": "Thu gọn",
+    "revisionLabel": "Yêu cầu sửa:",
+    "latestVersion": "Bản {{n}} · mới nhất",
+    "waitingVersion": "Đang chờ trợ lý làm Bản {{n}}…"
   }
 }

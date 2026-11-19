@@ -179,7 +179,9 @@ describe('prompt giải thích', () => {
       conversationId: 'c1',
       createdAt: 0,
       version: 1,
-      revisionNote: null,
+      history: [],
+      chainId: 'a1',
+      revising: null,
       kind: 'code',
       request: { ...codeRequest, change: { ...codeRequest.change, patch: 'x'.repeat(30_000) } },
       qa: [
@@ -202,14 +204,14 @@ describe('prompt giải thích', () => {
 
   it('mô tả thẻ thư mục và nháp', () => {
     const folder = explainPrompt(
-      { id: 'f', conversationId: 'c1', createdAt: 0, version: 1, revisionNote: null, qa: [], kind: 'folder', request: { id: 'f', conversationId: 'c1', suggestedPath: 'D:\\game', write: true, reason: 'xem code' } },
+      { id: 'f', conversationId: 'c1', createdAt: 0, version: 1, history: [], chainId: 'x', revising: null, qa: [], kind: 'folder', request: { id: 'f', conversationId: 'c1', suggestedPath: 'D:\\game', write: true, reason: 'xem code' } },
       [],
       'q'
     )
     expect(folder).toContain('đọc + sửa')
     expect(folder).toContain('D:\\game')
     const draft = explainPrompt(
-      { id: 'd', conversationId: 'c1', createdAt: 0, version: 1, revisionNote: null, qa: [], kind: 'draft', request: { id: 'd', service: 'telegram', target: 'Nhóm A', subject: null, body: 'chào', replyTo: null } },
+      { id: 'd', conversationId: 'c1', createdAt: 0, version: 1, history: [], chainId: 'x', revising: null, qa: [], kind: 'draft', request: { id: 'd', service: 'telegram', target: 'Nhóm A', subject: null, body: 'chào', replyTo: null } },
       [],
       'q'
     )
@@ -218,33 +220,130 @@ describe('prompt giải thích', () => {
   })
 })
 
-describe('ApprovalHub — Yêu cầu sửa (Bản 2, Bản 3…)', () => {
-  const answer: ApprovalAnswerer = async () => ({})
+describe('ApprovalHub — Yêu cầu sửa (chuỗi Bản 1 → Bản 2 → Bản 3 trong một thẻ)', () => {
   const add = (hub: ApprovalHub, id: string, conversationId = 'c1'): void =>
     hub.add({ id, conversationId, kind: 'code', request: { ...codeRequest, id, conversationId } }, () => true)
+  const newHub = (answer: ApprovalAnswerer = async (_c, q, onText) => (onText(`đáp ${q}`), {}), maxQuestions?: number): ApprovalHub =>
+    new ApprovalHub({ changed: () => {}, delta: () => {}, answer, log: { warn: vi.fn() }, maxQuestions })
 
-  it('thẻ cùng loại tiếp theo trong lượt là bản kế tiếp, kèm yêu cầu; hết lượt thì về bản 1', () => {
-    const hub = new ApprovalHub({ changed: () => {}, delta: () => {}, answer, log: { warn: vi.fn() } })
+  it('bản mới mang theo các bản cũ (nội dung, hỏi đáp, yêu cầu); hết lượt thì về bản 1', async () => {
+    const hub = newHub()
     add(hub, 'b1')
-    expect(hub.get('b1')).toMatchObject({ version: 1, revisionNote: null })
+    expect(hub.get('b1')).toMatchObject({ version: 1, history: [] })
+    hub.ask('b1', 'tại sao?')
+    await vi.waitFor(() => expect(hub.get('b1')!.qa[0].status).toBe('done'))
     hub.markRevised('b1', 'đổi tên biến')
     hub.remove('b1')
     add(hub, 'b2')
-    expect(hub.get('b2')).toMatchObject({ version: 2, revisionNote: 'đổi tên biến' })
+    expect(hub.get('b2')).toMatchObject({
+      version: 2,
+      chainId: 'b1',
+      revising: null,
+      qa: [],
+      history: [{ version: 1, request: { id: 'b1' }, qa: [{ question: 'tại sao?', answer: 'đáp tại sao?' }], revision: 'đổi tên biến' }]
+    })
     hub.markRevised('b2', 'thêm chú thích')
     hub.remove('b2')
-    // Cuộc khác / loại khác không bị ảnh hưởng.
+    // Cuộc khác không bị ảnh hưởng.
     add(hub, 'x1', 'c2')
-    expect(hub.get('x1')!.version).toBe(1)
+    expect(hub.get('x1')).toMatchObject({ version: 1, history: [] })
     add(hub, 'b3')
-    expect(hub.get('b3')).toMatchObject({ version: 3, revisionNote: 'thêm chú thích' })
+    expect(hub.get('b3')!.version).toBe(3)
+    expect(hub.get('b3')!.history.map((v) => [v.version, v.revision])).toEqual([
+      [1, 'đổi tên biến'],
+      [2, 'thêm chú thích']
+    ])
     hub.markRevised('b3', 'bỏ qua')
     hub.endRun('c1')
     add(hub, 'b4')
-    expect(hub.get('b4')!.version).toBe(1)
+    expect(hub.get('b4')).toMatchObject({ version: 1, history: [] })
     // Thẻ không còn → không ghi nhận.
     hub.markRevised('khong-co', 'x')
     add(hub, 'b5')
     expect(hub.get('b5')!.version).toBe(1)
+  })
+
+  it('câu đang trả lời dở không mang sang bản mới; giới hạn câu hỏi tính cho cả chuỗi', async () => {
+    const pending = newHub(() => new Promise(() => {}))
+    add(pending, 'p1')
+    pending.ask('p1', 'đang hỏi')
+    pending.markRevised('p1', 'sửa đi')
+    pending.remove('p1')
+    add(pending, 'p2')
+    expect(pending.get('p2')!.history[0].qa).toEqual([])
+
+    const hub = newHub(undefined, 2)
+    add(hub, 'b1')
+    hub.ask('b1', 'một')
+    await vi.waitFor(() => expect(hub.get('b1')!.qa[0].status).toBe('done'))
+    hub.markRevised('b1', 'sửa')
+    hub.remove('b1')
+    add(hub, 'b2')
+    hub.ask('b2', 'hai')
+    await vi.waitFor(() => expect(hub.get('b2')!.qa[0].status).toBe('done'))
+    expect(hub.ask('b2', 'ba')).toEqual({ status: 'limit' })
+  })
+})
+
+describe('prompt giải thích — bản làm lại', () => {
+  it('gửi kèm các bản trước: nội dung (cắt ngắn), hỏi đáp, yêu cầu sửa; bản hiện tại ghi rõ số bản', () => {
+    const card: ApprovalCard = {
+      id: 'b2',
+      conversationId: 'c1',
+      createdAt: 0,
+      version: 2,
+      chainId: 'b1',
+      revising: null,
+      kind: 'code',
+      request: { ...codeRequest, id: 'b2', change: { ...codeRequest.change, patch: '+speed = 5\n' } },
+      qa: [],
+      history: [
+        {
+          version: 1,
+          request: { ...codeRequest, change: { ...codeRequest.change, patch: '+' + 'y'.repeat(8000) } },
+          qa: [{ question: 'Tại sao đổi?', answer: 'Để nhanh hơn.', status: 'done' }],
+          revision: 'chỉ đổi thành 5'
+        }
+      ]
+    }
+    const prompt = explainPrompt(card, [], 'Bản này khác gì?')
+    const past = /<cac-ban-truoc>([\s\S]*)<\/cac-ban-truoc>/.exec(prompt)![1]
+    expect(past).toContain('Bản 1:')
+    expect(past).toContain('đã cắt')
+    expect(past).toContain('Người dùng hỏi: Tại sao đổi?\nBạn đã trả lời: Để nhanh hơn.')
+    expect(past).toContain('Người dùng yêu cầu sửa: chỉ đổi thành 5')
+    expect(prompt).toContain('<de-xuat>\nBản 2 (hiện tại)')
+    expect(prompt).toContain('+speed = 5')
+    expect(prompt.indexOf('<cac-ban-truoc>')).toBeLessThan(prompt.indexOf('<de-xuat>'))
+  })
+})
+
+describe('ApprovalHub — thẻ không biến mất trong lúc chờ bản tiếp theo', () => {
+  const add = (hub: ApprovalHub, id: string): void =>
+    hub.add({ id, conversationId: 'c1', kind: 'code', request: { ...codeRequest, id } }, () => true)
+
+  it('Yêu cầu sửa → thẻ ở lại (đang chờ), không hỏi được; bản mới thay nó, cùng chainId', () => {
+    const hub = new ApprovalHub({ changed: () => {}, delta: () => {}, answer: async () => ({}), log: { warn: vi.fn() } })
+    add(hub, 'b1')
+    hub.markRevised('b1', 'đổi tên biến')
+    hub.remove('b1')
+    expect(hub.list()).toMatchObject([{ id: 'b1', revising: 'đổi tên biến', chainId: 'b1' }])
+    expect(hub.ask('b1', 'x')).toEqual({ status: 'expired' })
+    add(hub, 'b2')
+    expect(hub.list()).toMatchObject([{ id: 'b2', version: 2, chainId: 'b1', revising: null }])
+
+    // Trợ lý không đề xuất lại → hết lượt thì thẻ chờ được dọn.
+    hub.markRevised('b2', 'thôi')
+    hub.remove('b2')
+    expect(hub.list()).toHaveLength(1)
+    hub.endRun('c1')
+    expect(hub.list()).toEqual([])
+  })
+
+  it('đóng thẻ bình thường (Đồng ý / Từ chối / hết hạn) → biến mất ngay', () => {
+    const hub = new ApprovalHub({ changed: () => {}, delta: () => {}, answer: async () => ({}), log: { warn: vi.fn() } })
+    add(hub, 'b1')
+    hub.remove('b1')
+    expect(hub.list()).toEqual([])
   })
 })
