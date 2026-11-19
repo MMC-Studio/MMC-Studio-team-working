@@ -8,6 +8,8 @@ import { Button } from '@renderer/components/ui/button'
 import { Select } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { useSync } from '@renderer/lib/sync'
+import { ResizeHandle } from '../layout/ChatLayout'
+import { useChatLayout, useSidebar } from '../layout/sidebarStore'
 import { useChat } from '../store'
 import { useArtifacts } from './store'
 
@@ -78,7 +80,8 @@ export function ArtifactPanel({ conversationId }: { conversationId: string | nul
   const [reload, setReload] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
   const [templates, setTemplates] = useState<{ id: string; name: string; prompt: string }[]>([])
-  const [width, setWidth] = useState(520)
+  // Độ rộng nhớ trên máy; giới hạn để khung chat luôn ≥ 360px.
+  const { panelWidth: width, panelMax } = useChatLayout()
   const frame = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => void load(conversationId), [conversationId, load])
@@ -130,20 +133,13 @@ export function ArtifactPanel({ conversationId }: { conversationId: string | nul
       style={{ width }}
       data-testid="artifact-panel"
     >
-      <div
-        className="absolute inset-y-0 -left-1 w-2 cursor-col-resize"
-        onMouseDown={(e) => {
-          const startX = e.clientX
-          const startW = width
-          const move = (ev: MouseEvent): void =>
-            setWidth(Math.min(1100, Math.max(320, startW + startX - ev.clientX)))
-          const up = (): void => (
-            window.removeEventListener('mousemove', move),
-            window.removeEventListener('mouseup', up)
-          )
-          window.addEventListener('mousemove', move)
-          window.addEventListener('mouseup', up)
-        }}
+      <ResizeHandle
+        side="left"
+        label={t('artifacts.resize')}
+        testId="artifact-panel-resize"
+        startWidth={width}
+        onDrag={(start, dx) => useSidebar.getState().setPanelWidth(Math.min(start + dx, panelMax))}
+        onReset={() => useSidebar.getState().resetPanelWidth()}
       />
       <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
         {list.length > 0 && (

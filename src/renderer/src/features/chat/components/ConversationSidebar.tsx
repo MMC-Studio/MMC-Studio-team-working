@@ -62,7 +62,8 @@ type Drop = { kind: 'pinned' } | { kind: 'group'; groupId: string } | { kind: 'r
 const dropKey = (d: Drop): string => (d.kind === 'group' ? `group:${d.groupId}` : d.kind)
 const hasConversation = (e: DragEvent): boolean => e.dataTransfer.types.includes(DRAG_TYPE)
 
-export function ConversationSidebar() {
+/** `variant="overlay"`: thanh bên nổi (đè lên nội dung khi thanh bên đang ẩn / thiếu chỗ). */
+export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   const { t } = useTranslation('chat')
   const {
     conversations,
@@ -87,6 +88,7 @@ export function ConversationSidebar() {
   const setSearchOpen = useSidebar((s) => s.setSearchOpen)
   const sectionCollapsed = useSidebar((s) => s.collapsed)
   const toggleSection = useSidebar((s) => s.toggleSection)
+  const setOverlay = useSidebar((s) => s.setOverlay)
   const [search, setSearch] = useState(query)
   const [renaming, setRenaming] = useState<Conversation | null>(null)
   const [deleting, setDeleting] = useState<Conversation | null>(null)
@@ -164,6 +166,8 @@ export function ConversationSidebar() {
           className="flex min-w-0 flex-1 flex-col px-2.5 py-2 text-left"
           onClick={() => {
             void select(c.id)
+            // Thanh bên nổi: chọn xong thì đóng lại (trả chỗ cho khung chat).
+            if (variant === 'overlay') setOverlay('none')
             if (pathname !== '/') void navigate('/')
           }}
           title={c.title || t('untitled')}
@@ -313,9 +317,10 @@ export function ConversationSidebar() {
   const hasAny = sections.length > 0
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar" data-testid="chat-sidebar">
+    // Độ rộng do ChatLayout quyết định (kéo đổi được); thanh bên nổi có viền phải rõ hơn.
+    <aside className="flex h-full w-full flex-col border-r bg-sidebar" data-testid="chat-sidebar" data-variant={variant ?? 'inline'}>
       <div className="flex items-center justify-between px-2 pt-2">
-        <SidebarToggle />
+        <SidebarToggle variant={variant} />
         <Button
           variant="ghost"
           size="icon-sm"

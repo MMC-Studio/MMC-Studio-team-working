@@ -308,7 +308,8 @@
       "not_found": "Could not edit \"{{title}}\": the text to replace no longer matches.",
       "ambiguous": "Could not edit \"{{title}}\": the text to replace matches several places.",
       "no_artifact": "There is no artifact \"{{title}}\" to edit."
-    }
+    },
+    "resize": "Drag to resize the panel · double-click to reset"
   },
   "organize": {
     "newGroup": "New group",
@@ -405,6 +406,7 @@
     "plugins": "Plugins",
     "hide": "Hide sidebar (Ctrl+B)",
     "show": "Show sidebar (Ctrl+B)",
-    "localAccount": "On this computer"
+    "localAccount": "On this computer",
+    "resize": "Drag to resize the sidebar · double-click to reset"
   }
 }

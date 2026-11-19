@@ -5,7 +5,7 @@
 ## [Unreleased]
 
 ### Tóm tắt
-- **Thanh bên chat mới** (giống Claude Desktop): trên cùng là **Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin**; dưới là **Đã ghim**, các nhóm và **Gần đây** — mục nào cũng thu gọn được. Ẩn / hiện cả thanh bằng nút ở đầu thanh hoặc **Ctrl+B**.
+- **Thanh bên chat mới** (giống Claude Desktop): trên cùng là **Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin**; dưới là **Đã ghim**, các nhóm và **Gần đây** — mục nào cũng thu gọn được. Ẩn / hiện cả thanh bằng nút ở đầu thanh hoặc **Ctrl+B**. Kéo mép phải để đổi độ rộng (nhấp đúp về mặc định, kéo nhỏ hẳn để ẩn); khi đang ẩn, đưa chuột sát mép trái để xem nhanh. Cửa sổ hẹp mà mở panel artifact thì thanh bên tự nhường chỗ để khung chat luôn đủ rộng.
 - **Trang Artifacts**: xem mọi tài liệu, slide, bảng, biểu đồ trợ lý đã tạo ở mọi cuộc trò chuyện; bấm vào là mở đúng cuộc trò chuyện và artifact đó. Dự án / Lịch hẹn / Plugin đang "Sắp có".
 - Trang Công việc đổi tên thành **Dự án team**.
 - Sửa lỗi: tin nhắn có đường link hoặc JSON rất dài làm khung chat bị kéo ngang.

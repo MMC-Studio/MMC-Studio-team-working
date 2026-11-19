@@ -308,7 +308,8 @@
       "not_found": "Không sửa được \"{{title}}\": đoạn cần sửa không còn khớp.",
       "ambiguous": "Không sửa được \"{{title}}\": đoạn cần sửa khớp nhiều chỗ.",
       "no_artifact": "Không có artifact \"{{title}}\" để sửa."
-    }
+    },
+    "resize": "Kéo để đổi độ rộng panel · nhấp đúp để về mặc định"
   },
   "organize": {
     "newGroup": "Nhóm mới",
@@ -405,6 +406,7 @@
     "plugins": "Plugin",
     "hide": "Ẩn thanh bên (Ctrl+B)",
     "show": "Hiện thanh bên (Ctrl+B)",
-    "localAccount": "Dùng trên máy này"
+    "localAccount": "Dùng trên máy này",
+    "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định"
   }
 }
