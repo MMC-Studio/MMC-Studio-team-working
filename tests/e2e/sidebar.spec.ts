@@ -22,6 +22,8 @@ test.beforeAll(async () => {
   })
   page = await app.firstWindow()
   await waitForStartup(page)
+  // Cố định cỡ cửa sổ (máy CI mặc định nhỏ hơn) để bố cục giống nhau mọi máy.
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820))
 })
 
 test.afterAll(async () => {
@@ -147,7 +149,8 @@ test('trang Artifacts: mọi artifact của mọi cuộc, lọc không dấu, b�
   await expect(panel.getByRole('combobox', { name: 'Chọn artifact' }).locator('option:checked')).toHaveText('GDD')
 
   // Đổi tên cuộc trò chuyện ở nơi khác → trang Artifacts cập nhật tên ngay (đồng bộ).
-  await page.getByTestId('nav-artifacts').click()
+  // Panel đang mở — cửa sổ nhỏ (CI) thì thanh bên tự ẩn → vào trang bằng đường dẫn.
+  await goTo(page, '#/artifacts', library)
   await page.evaluate(async () => {
     const api = (window as unknown as { api: { conversations: { list(): Promise<{ id: string; title: string }[]>; update(i: object): Promise<unknown> } } }).api
     const conv = (await api.conversations.list()).find((c) => c.title.includes('Viết tài liệu'))!
