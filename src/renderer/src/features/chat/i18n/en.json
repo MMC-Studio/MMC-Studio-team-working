@@ -20,6 +20,15 @@
   "stopped": "Response stopped",
   "failed": "No response: {{message}}",
   "toolUsed": "Used tool {{name}}",
+  "toolsUsed": "Used {{count}} tools · {{list}}",
+  "toolActivity": {
+    "reading": "Reading files…",
+    "searching": "Searching files…",
+    "editing": "Preparing an edit…",
+    "running": "Running a command…",
+    "web": "Searching the web…",
+    "working": "Using a tool…"
+  },
   "welcome": "Hi, I'm {{name}}!",
   "welcomeHint": "Pick a mode below and ask anything about studying, work or code.",
   "cliMissing": "Claude Code CLI is not connected.",

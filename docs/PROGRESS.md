@@ -37,6 +37,32 @@
   - IPC `chat:pin` / `chat:recall` / `chat:editResend` báo sync mục mới `messages` → cuộc đang mở tải lại tin (bỏ qua khi đang stream).
   - Test: `chatService.test.ts` (5 test mới); e2e `message-actions.spec.ts`.
 
+## Đợt "giống Claude" (bắt đầu 2026-11-19, yêu cầu trong `script-update-agent.md`)
+| PR | Nội dung | Migration | Quyền mới cho trợ lý |
+|---|---|---|---|
+| 1 | Thu gọn lời gọi công cụ trong chat + gom nhóm / thu gọn "Những điều đã ghi nhớ" | — | — |
+| 1b | Thẻ duyệt nằm trong khung chat + **Hỏi lại** + **Từ chối kèm góp ý** (sửa file, xin quyền thư mục, nháp Gmail/Telegram) | — | Không (câu trả lời giải thích không có tool) |
+| 2 | Thanh bên mới (Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin, Đã ghim, nhóm, Gần đây, avatar + cài đặt ở đáy) + trang Artifacts + trang "Sắp có" | — | — |
+| 3 | Ô tìm kiếm nổi (Ctrl+K), tab lọc, xem trước artifact, dùng lại FTS | — | — |
+| 4 | Cài đặt thành cửa sổ nổi, có ô tìm (không dấu) | — | — |
+| 5 | Dự án (hướng dẫn, ngữ cảnh, trí nhớ riêng, lịch hẹn) | SQLite | Hướng dẫn / ngữ cảnh dự án vào prompt; trí nhớ dự án vẫn qua duyệt |
+| 6 | Trang Plugin (đã cài + gợi ý) | — | — |
+| 7 | Lịch hẹn — gửi thiết kế riêng, chờ duyệt | SQLite | Có (chạy khi không có người) |
+| 8 | Kho plugin online — gửi thiết kế riêng, chờ duyệt | có thể | Có (nội dung từ Internet, MCP) |
+
+Quyết định đã duyệt (2026-11-19):
+- **Thanh biểu tượng mảnh bên trái giữ lại** (các tính năng team / cá nhân), thanh bên mới thuộc trang Chat và **thu gọn được**. Một mục chỉ ở MỘT chỗ — vd Plugin, Artifacts chỉ ở thanh bên mới; mục nào chuyển sang thanh bên mới thì bỏ khỏi thanh biểu tượng.
+- **Tên:** dự án chat = "Dự án"; dự án team trong Công việc đổi chữ hiển thị thành "Dự án team" (chỉ đổi chữ, không đổi dữ liệu / route).
+- **Hỏi lại (1b):** gọi Claude một lần riêng, cùng model đang chat, KHÔNG tool, không resume session, kèm diff + ~10 tin gần nhất + các câu hỏi trước → lượt CLI đang chờ duyệt không bị đụng; mỗi câu trả lời tính lại hạn 10 phút. **Từ chối kèm góp ý:** trả `{ allow: false, message: <góp ý> }` cho lượt đang chờ → Claude tự đề xuất bản sửa mới trong cùng lượt (lại qua thẻ duyệt), không tốn thêm lần gọi.
+- Trạng thái thu gọn (nhóm trí nhớ, danh sách công cụ) chỉ là cách xem → localStorage / state cục bộ, không vào DB.
+
+Tiến độ:
+- **PR 1 `feat/collapse-tools-memory`** (đang mở):
+  - **Công cụ:** `ToolEvents.tsx` gộp mọi lời gọi công cụ của một tin thành một dòng, mặc định thu gọn ("Đã dùng 9 công cụ · Read ×5, Grep ×4", tối đa 3 loại rồi "…"; một công cụ vẫn là "Đã dùng công cụ X"). Bấm → danh sách từng lần kèm file / từ khoá / lệnh (`toolSummary.ts`). Đang chạy (đang stream và chữ chưa dài thêm từ lúc nhận công cụ cuối) → "Đang đọc file…" + file đang đọc. MCP ngoài hiện "server · tool". Thẻ duyệt là hộp thoại riêng nên không bị gộp.
+  - **Trí nhớ:** gom theo loại (Sở thích trả lời, Dự án, Mục tiêu, Kỹ năng, Deadline, Khác), tiêu đề + số, bấm thu / mở (localStorage `mmc.memory.collapsed.group.<loại>`); 5 mục + "Xem thêm N"; mục dài một dòng + "Xem thêm" / "Thu gọn" (chỉ hiện khi bị cắt thật). Đang tìm: nhóm có kết quả tự mở, thu gọn chỉ tạm thời; xoá ô tìm → về trạng thái đã lưu. Bỏ nhãn loại trên từng dòng (đã có tiêu đề nhóm).
+  - Test: `toolSummary.test.ts`, `groupMemories.test.ts`; e2e `collapse.spec.ts` (FakeChat `FAKE_TOOLS:<n>`, ảnh sáng / tối 900 / 1280px trong `test-results/`).
+  - Chưa thử với Claude thật: dòng "Đang …" khi CLI gọi công cụ xen giữa đoạn chữ.
+
 ## Việc tiếp theo
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
 2. Các mức quyền sau (để sẵn khung, chưa làm): "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.

@@ -1,11 +1,14 @@
-import { Check, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { Check, ChevronDown, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMORY_CATEGORIES, type MemoryCategory } from '@shared/schemas'
 import type { Memory } from '@shared/types'
 import { Button } from '@renderer/components/ui/button'
 import { Input, Select } from '@renderer/components/ui/input'
+import { cn } from '@renderer/lib/utils'
+import { groupMemories, MEMORIES_SHOWN, type MemoryGroup } from '../groupMemories'
 import { useMemory } from '../store'
+import { useCollapsed } from '../useCollapsed'
 
 function CategorySelect({ value, onChange }: { value: MemoryCategory; onChange(v: MemoryCategory): void }) {
   const { t } = useTranslation('memory')
@@ -56,12 +59,9 @@ function MemoryRow({ memory }: { memory: Memory }) {
   }
 
   return (
-    <li className="group flex items-start gap-3 py-2" data-testid="memory-item">
-      <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-        {t(`categories.${memory.category}`)}
-      </span>
+    <li className="group flex items-center gap-3 py-1" data-testid="memory-item">
       <div className="min-w-0 flex-1">
-        <p className="text-sm">{memory.content}</p>
+        <ClampedText text={memory.content} />
         {memory.lastUsedAt && (
           <p className="text-xs text-muted-foreground">
             {t('list.lastUsed', { date: new Date(memory.lastUsedAt).toLocaleDateString(i18n.language) })}
@@ -126,14 +126,108 @@ export function MemoryList() {
         />
       </div>
       {memories.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">{t('list.empty')}</p>
+        <p className="py-4 text-center text-sm text-muted-foreground">{t(query ? 'list.noResults' : 'list.empty')}</p>
       ) : (
-        <ul className="divide-y">
-          {memories.map((m) => (
-            <MemoryRow key={m.id} memory={m} />
+        <div className="space-y-1">
+          {groupMemories(memories).map((g) => (
+            // Đổi giữa đang tìm / không tìm → dựng lại nhóm (trạng thái thu gọn tạm thời về mặc định).
+            <MemoryGroupSection key={`${g.category}:${query ? 'search' : ''}`} group={g} searching={!!query} />
           ))}
-        </ul>
+        </div>
       )}
     </div>
+  )
+}
+
+/** Nội dung một dòng (cắt …); dài quá thì có "Xem thêm" / "Thu gọn". */
+function ClampedText({ text }: { text: string }) {
+  const { t } = useTranslation('memory')
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el || expanded) return
+    const measure = (): void => setOverflowing(el.scrollWidth > el.clientWidth + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [text, expanded])
+
+  return (
+    <div className="flex min-w-0 items-baseline gap-2">
+      <p
+        ref={ref}
+        className={cn('min-w-0 flex-1 text-sm', expanded ? 'whitespace-pre-wrap break-words' : 'truncate')}
+        title={expanded ? undefined : text}
+        data-testid="memory-content"
+      >
+        {text}
+      </p>
+      {(overflowing || expanded) && (
+        <button
+          type="button"
+          className="shrink-0 text-xs text-muted-foreground hover:text-foreground hover:underline"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+          data-testid="memory-expand"
+        >
+          {expanded ? t('list.collapseItem') : t('list.expandItem')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Một nhóm theo loại: tiêu đề + số, bấm để thu / mở (nhớ trạng thái); 5 mục đầu + "Xem thêm N". */
+function MemoryGroupSection({ group, searching }: { group: MemoryGroup; searching: boolean }) {
+  const { t } = useTranslation('memory')
+  const [savedCollapsed, setSavedCollapsed] = useCollapsed(`group.${group.category}`)
+  // Đang tìm: nhóm có kết quả tự mở; bấm thu gọn chỉ tạm thời (không lưu), xoá ô tìm → về trạng thái đã lưu.
+  const [searchCollapsed, setSearchCollapsed] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+
+  const collapsed = searching ? searchCollapsed : savedCollapsed
+  const toggle = (): void => (searching ? setSearchCollapsed(!collapsed) : setSavedCollapsed(!collapsed))
+  const visible = showAll ? group.items : group.items.slice(0, MEMORIES_SHOWN)
+  const label = t(`categories.${group.category}`)
+
+  return (
+    <section data-testid="memory-group" data-category={group.category}>
+      <button
+        type="button"
+        className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-left text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        aria-expanded={!collapsed}
+        onClick={toggle}
+        data-testid="memory-group-toggle"
+      >
+        <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', collapsed && '-rotate-90')} />
+        <span>{label}</span>
+        <span className="rounded-full bg-muted px-1.5 text-[11px] leading-4" data-testid="memory-group-count">
+          {group.items.length}
+        </span>
+      </button>
+      {!collapsed && (
+        <>
+          <ul className="divide-y pl-5">
+            {visible.map((m) => (
+              <MemoryRow key={m.id} memory={m} />
+            ))}
+          </ul>
+          {group.items.length > visible.length && (
+            <button
+              type="button"
+              className="ml-5 rounded-md px-2 py-1 text-xs text-primary hover:bg-muted"
+              onClick={() => setShowAll(true)}
+              data-testid="memory-show-more"
+            >
+              {t('list.showMore', { count: group.items.length - visible.length })}
+            </button>
+          )}
+        </>
+      )}
+    </section>
   )
 }

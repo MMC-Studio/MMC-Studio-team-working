@@ -7,24 +7,11 @@ import { useAuth } from '@renderer/stores/auth'
 import { cn } from '@renderer/lib/utils'
 import { usePreferences } from '@renderer/stores/preferences'
 import { useMemory } from '../store'
+import { useCollapsed } from '../useCollapsed'
 import { BackupSection } from './BackupSection'
 import { MemoryList } from './MemoryList'
 import { ProfileForm } from './ProfileForm'
 import { SuggestionList } from './SuggestionList'
-
-/** Trạng thái thu gọn của một mục — chỉ là cách xem trên máy này, lưu localStorage. */
-function useCollapsed(key: string): [boolean, (v: boolean) => void] {
-  const storageKey = `mmc.memory.collapsed.${key}`
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey) === '1')
-  return [
-    collapsed,
-    (v) => {
-      setCollapsed(v)
-      if (v) localStorage.setItem(storageKey, '1')
-      else localStorage.removeItem(storageKey)
-    }
-  ]
-}
 
 function Section({
   title,

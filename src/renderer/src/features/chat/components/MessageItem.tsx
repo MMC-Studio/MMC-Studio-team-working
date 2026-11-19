@@ -1,4 +1,4 @@
-import { CircleAlert, CircleStop, GitBranch, Pin, Undo2, Wrench } from 'lucide-react'
+import { CircleAlert, CircleStop, GitBranch, Pin, Undo2 } from 'lucide-react'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { stripExpressTags } from '@shared/expressive'
@@ -13,6 +13,7 @@ import { hideArtifactBlocks } from '@shared/artifacts'
 import { AttachmentChip } from './AttachmentChip'
 import { ImageThumb } from './ImageThumb'
 import { Markdown } from './Markdown'
+import { ToolEvents } from './ToolEvents'
 import { Button } from '@renderer/components/ui/button'
 import { useChat } from '../store'
 import { EditBox, MessageMenu, ReplyQuote } from './MessageActions'
@@ -118,14 +119,7 @@ export const MessageItem = memo(function MessageItem({ message }: { message: Mes
       <AssistantAvatar avatar={assistant.avatar} />
       <div className="min-w-0 flex-1 space-y-2 pt-1 text-sm">
         <div className="text-xs font-medium text-muted-foreground">{assistant.name}</div>
-        {message.toolEvents.map((tool, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Wrench className="size-3.5" />
-            {t('toolUsed', {
-              name: t(`tools.${tool.name.replace(/^mcp__mmc__/, '')}`, { defaultValue: tool.name })
-            })}
-          </div>
-        ))}
+        <ToolEvents message={message} />
         {waiting ? (
           <div className="animate-pulse text-muted-foreground">
             {t('thinking', { name: assistant.name })}
