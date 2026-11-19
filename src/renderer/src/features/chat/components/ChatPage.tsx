@@ -49,7 +49,9 @@ export function ChatPage() {
   const askCard = useApprovals((s) => s.ask)
   const cards = cardsFor(allCards, activeId)
   const target = cards[0]
-  const cardsKey = cards.map((c) => `${c.id}:${c.qa.length}:${c.qa.at(-1)?.answer.length ?? 0}`).join('|')
+  // Chỉ cuộn khi có THẺ MỚI. Hỏi đáp trên thẻ (kể cả từng đoạn đang stream) không kéo khung chat — nếu kéo xuống
+  // đáy mỗi lần, phần đầu thẻ / diff / các câu hỏi trước bị đẩy khỏi màn hình, nhìn như thẻ nháy và mất câu cũ.
+  const cardIds = cards.map((c) => c.id).join('|')
 
   useEffect(() => {
     void loadConversations()
@@ -58,7 +60,7 @@ export function ChatPage() {
   const lastContent = messages.at(-1)?.content
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [activeId, messages.length, lastContent, cardsKey])
+  }, [activeId, messages.length, lastContent, cardIds])
 
   const onModeChange = (m: ChatMode): void => {
     if (active) void setMode(active.id, m)

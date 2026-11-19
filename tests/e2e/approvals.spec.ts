@@ -126,6 +126,62 @@ test('sửa file: hỏi 2 câu liên tiếp rồi Đồng ý → file được s
   await expect(box()).toBeVisible({ timeout: 20_000 })
 })
 
+test('hỏi 3 câu liên tiếp → cả 3 cặp hỏi đáp còn nguyên, thẻ không bị gắn lại, không xê dịch', async () => {
+  await send('FAKE_EDIT:e.txt')
+  const code = card('code')
+  await expect(code).toBeVisible({ timeout: 20_000 })
+  // Đánh dấu đúng nút DOM của thẻ + theo dõi mọi lần thẻ bị gỡ khỏi trang.
+  await page.evaluate(() => {
+    const w = window as unknown as { __removed: number }
+    w.__removed = 0
+    const el = document.querySelector('[data-testid="approval-card"]') as HTMLElement
+    el.dataset.probe = 'goc'
+    new MutationObserver((muts) => {
+      for (const m of muts)
+        for (const n of Array.from(m.removedNodes))
+          if (n instanceof HTMLElement && (n.matches('[data-testid="approval-card"]') || n.querySelector('[data-testid="approval-card"]')))
+            w.__removed++
+    }).observe(document.body, { childList: true, subtree: true })
+  })
+  const header = code.locator('.font-medium').first()
+  const top = async (): Promise<number> => Math.round((await header.boundingBox())!.y)
+  const startTop = await top()
+
+  const questions = ['Tại sao phải sửa?', 'Có ảnh hưởng gì khác không?', 'Có cách nào khác không?']
+  for (let i = 0; i < questions.length; i++) {
+    await askOnCard(code, questions[i], i + 1)
+    // Thẻ đứng yên: đầu thẻ không nhảy sau mỗi câu hỏi / trả lời.
+    expect(await top()).toBe(startTop)
+  }
+  await expect(code.getByTestId('approval-question')).toHaveText(questions)
+  const answers = code.getByTestId('approval-answer')
+  await expect(answers).toHaveCount(3)
+  for (let i = 0; i < 3; i++) {
+    await expect(answers.nth(i)).toContainText(`#${i + 1}`)
+    await expect(answers.nth(i)).toContainText(questions[i])
+  }
+  expect(await code.getAttribute('data-probe')).toBe('goc')
+  expect(await page.evaluate(() => (window as unknown as { __removed: number }).__removed)).toBe(0)
+
+  // Ảnh thẻ có 3 câu hỏi đáp (sáng / tối) trong test-results/.
+  // Chỉ để chụp trọn thẻ: cửa sổ cao hơn + cuộn tới câu trả lời cuối (thanh dưới không che).
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 1150))
+  await answers.nth(2).scrollIntoViewIfNeeded()
+  for (const theme of ['light', 'dark'] as const) {
+    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
+      await page.getByTestId('theme-toggle').click()
+    }
+    await code.screenshot({ path: `test-results/approval-card-3qa-${theme}.png` })
+  }
+  await page.getByTestId('theme-toggle').click()
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820))
+  expect(await page.evaluate(() => (window as unknown as { __removed: number }).__removed)).toBe(0)
+
+  await code.getByTestId('approval-reject').click()
+  await expect(code).toHaveCount(0, { timeout: 1_000 })
+  await expect(box()).toBeVisible({ timeout: 20_000 })
+})
+
 test('"Yêu cầu sửa" → thẻ mới thay thẻ cũ, ghi Bản 2, Bản 3; Đồng ý ghi đúng bản cuối', async () => {
   await send('FAKE_EDIT:b.txt')
   const code = card('code')
@@ -144,22 +200,6 @@ test('"Yêu cầu sửa" → thẻ mới thay thẻ cũ, ghi Bản 2, Bản 3; �
   await askBox().fill('Có cần sửa file khác không?')
   await askBox().press('Enter')
   await expect(code.getByTestId('approval-answer').nth(1)).toHaveAttribute('data-status', 'done', { timeout: 10_000 })
-
-  // Ảnh để xem tay giao diện thẻ (sáng / tối, 900 / 1280px) trong test-results/.
-  const setWidth = (width: number): Promise<void> =>
-    app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 820), width)
-  await code.getByTestId('approval-input').fill('đổi tên file thành config.txt')
-  for (const theme of ['light', 'dark'] as const) {
-    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
-      await page.getByTestId('theme-toggle').click()
-    }
-    for (const width of [900, 1280]) {
-      await setWidth(width)
-      await code.scrollIntoViewIfNeeded()
-      await page.screenshot({ path: `test-results/approval-card-${theme}-${width}.png`, fullPage: true })
-    }
-  }
-  await page.getByTestId('theme-toggle').click()
 
   await revise(code, 'thêm dòng cuối')
   await expect(code.getByTestId('approval-version')).toHaveText('Bản 3', { timeout: 10_000 })
