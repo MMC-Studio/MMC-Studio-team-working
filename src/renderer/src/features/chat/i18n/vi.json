@@ -20,6 +20,15 @@
   "stopped": "Đã dừng phản hồi",
   "failed": "Không nhận được phản hồi: {{message}}",
   "toolUsed": "Đã dùng công cụ {{name}}",
+  "toolsUsed": "Đã dùng {{count}} công cụ · {{list}}",
+  "toolActivity": {
+    "reading": "Đang đọc file…",
+    "searching": "Đang tìm trong file…",
+    "editing": "Đang chuẩn bị sửa file…",
+    "running": "Đang chạy lệnh…",
+    "web": "Đang tra trên mạng…",
+    "working": "Đang dùng công cụ…"
+  },
   "welcome": "Xin chào, mình là {{name}}!",
   "welcomeHint": "Chọn chế độ bên dưới rồi hỏi bất cứ điều gì về học tập, công việc hay code.",
   "cliMissing": "Chưa kết nối được Claude Code CLI.",

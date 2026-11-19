@@ -78,6 +78,16 @@ export class FakeChatProvider implements AIProvider {
       yield { type: 'done' }
       return
     }
+    // FAKE_TOOLS:<n>: giả n lần đọc / tìm file (Read, Grep xen kẽ), công cụ cuối "chạy" 1,5 giây → e2e thấy dòng
+    // "Đang …" rồi về dòng tóm tắt gộp.
+    const fakeTools = Math.min(30, Number(/FAKE_TOOLS:(\d+)/.exec(req.prompt)?.[1] ?? 0))
+    for (let i = 0; i < fakeTools; i++) {
+      if (signal.aborted) return
+      yield i % 2 === 0
+        ? { type: 'tool', name: 'Read', input: { file_path: `C:\\du-an\\src\\file${i + 1}.ts` } }
+        : { type: 'tool', name: 'Grep', input: { pattern: `tukhoa${i + 1}`, path: 'C:\\du-an\\src' } }
+      await new Promise((r) => setTimeout(r, i === fakeTools - 1 ? 1500 : 50))
+    }
     const artifact = FAKE_ARTIFACTS[/FAKE_ARTIFACT:([\w-]+)/.exec(req.prompt)?.[1] ?? ''] ?? ''
     const used = skills.length ? ` [skill: ${skills.join(', ')}]` : ''
     const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${tags}${artifact}`
