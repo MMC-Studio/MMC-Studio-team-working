@@ -19,6 +19,8 @@ export type FeatureDefinition = {
   i18n: FeatureResources
   /** Vị trí trên thanh điều hướng; `false` = không hiện (vẫn có route). */
   nav: 'top' | 'bottom' | false
+  /** Nút riêng trên thanh biểu tượng thay cho link mặc định tới `route` (vd Cài đặt mở cửa sổ nổi). */
+  navButton?: ComponentType
   /** Chạy một lần khi app khởi động (đăng ký listener…); trả về hàm dọn dẹp. */
   setup?: () => () => void
   /** Hook trả về số hiển thị trên biểu tượng menu (0 = ẩn). */

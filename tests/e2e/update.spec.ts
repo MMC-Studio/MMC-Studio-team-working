@@ -9,7 +9,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { openSettings as openSettingsTab, waitForStartup } from './helpers'
 
 // Phiên bản đang chạy lấy từ package.json — không ghi cứng (mỗi lần phát hành đều đổi).
 const APP_VERSION = (JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf8')) as { version: string }).version
@@ -69,7 +69,7 @@ async function launch(): Promise<void> {
  */
 async function openSettings(): Promise<void> {
   await waitForStartup(page)
-  await goTo(page, '#/settings', page.getByRole('heading', { name: 'Cập nhật', exact: true }))
+  await openSettingsTab(page, 'updates', page.getByRole('heading', { name: 'Cập nhật', exact: true }))
 }
 
 async function stopAll(): Promise<void> {
@@ -205,15 +205,15 @@ test('đổi kênh sang beta → lưu lại sau khi mở lại app, app kiểm t
   await startServer(['--version', '0.0.1'])
   await launch()
   await openSettings()
-  const beta = page.getByRole('radio', { name: /beta/ })
-  await expect(page.getByRole('radio', { name: /stable/ })).toBeChecked()
+  const channel = page.getByTestId('update-channel')
+  await expect(channel).toHaveValue('stable')
   await expect.poll(() => requests.length, { timeout: 30_000 }).toBeGreaterThan(0)
   const before = requests.length
-  await beta.check()
+  await channel.selectOption('beta')
   await expect.poll(() => requests.length, { timeout: 30_000 }).toBeGreaterThan(before)
 
   await app.close()
   await launch()
   await openSettings()
-  await expect(page.getByRole('radio', { name: /beta/ })).toBeChecked()
+  await expect(page.getByTestId('update-channel')).toHaveValue('beta')
 })

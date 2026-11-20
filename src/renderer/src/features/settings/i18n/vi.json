@@ -1,8 +1,6 @@
 {
   "title": "Cài đặt",
   "assistant": {
-    "heading": "Trợ lý của bạn",
-    "description": "Tên, avatar và tính cách được dùng ở mọi nơi trong app và trong cách trợ lý trả lời. Chỉ riêng bạn thấy: lưu trên máy và đi theo tài khoản GitHub khi bạn đăng nhập (đổi máy vẫn giữ). Thành viên khác — kể cả quản lý — không thấy và có trợ lý của riêng họ.",
     "name": "Tên trợ lý",
     "avatar": "Avatar",
     "upload": "Tải ảnh lên",
@@ -24,15 +22,12 @@
     }
   },
   "appearance": {
-    "heading": "Giao diện",
-    "theme": "Chế độ sáng / tối",
     "themes": {
       "system": "Theo hệ thống",
       "light": "Sáng",
       "dark": "Tối"
     },
     "toggle": "Chuyển sang chế độ {{mode}}",
-    "accent": "Màu nhấn",
     "accents": {
       "blue": "Xanh dương",
       "violet": "Tím",
@@ -41,14 +36,7 @@
       "rose": "Hồng"
     }
   },
-  "claude": {
-    "heading": "Kết nối AI",
-    "description": "Chọn cách trợ lý chạy. Mỗi người dùng tài khoản/key của chính mình.",
-    "open": "Kiểm tra Claude Code CLI"
-  },
   "support": {
-    "heading": "Hỗ trợ",
-    "description": "Gặp lỗi? Gửi báo lỗi kèm phiên bản và log gần nhất (đã che thông tin cá nhân) để team sửa.",
     "reportBug": "Gửi báo lỗi"
   },
   "ai": {
@@ -63,31 +51,16 @@
         "description": "Dùng API key do bạn tự tạo trên Claude Console; tính phí theo mức dùng vào tài khoản của bạn."
       }
     },
-    "apiKey": "Anthropic API key",
     "keySaved": "Đã lưu key (mã hóa bằng Windows)",
     "removeKey": "Xóa key",
     "invalidKey": "Key không đúng định dạng (bắt đầu bằng sk-ant-).",
     "noSecureStorage": "Máy này không hỗ trợ lưu bí mật an toàn nên không thể lưu API key.",
-    "keyHelp": "Key được mã hóa và chỉ lưu trên máy này, không bao giờ gửi cho ai khác ngoài Anthropic.",
-    "getKey": "Tạo key trên Claude Console",
-    "autoSuggest": "Tự đề xuất ghi nhớ",
-    "autoSuggestHelp": "Khi bạn rời một cuộc trò chuyện có từ 2 tin nhắn mới, trợ lý đề xuất điều nên nhớ (dùng thêm một lượt gọi AI). Bạn vẫn duyệt trước khi lưu.",
-    "organize": {
-      "aiTitles": "Tự đặt tiêu đề ngắn cho cuộc trò chuyện",
-      "aiTitlesHelp": "Sau câu trả lời đầu tiên, dùng model rẻ (Haiku) đặt tiêu đề 2–6 từ. Bạn đổi tên thì giữ tên của bạn.",
-      "suggestGroups": "Gợi ý nhóm cho cuộc trò chuyện mới",
-      "suggestGroupsHelp": "So khớp từ khoá với tên nhóm (không tốn hạn mức), không ra thì hỏi kèm ở lượt đặt tiêu đề. Chỉ chuyển khi bạn bấm đồng ý."
-    }
+    "getKey": "Tạo key trên Claude Console"
   },
   "update": {
-    "heading": "Cập nhật",
-    "description": "App tự tải bản mới từ GitHub Releases của team. Lịch sử chat và cài đặt luôn được giữ khi cập nhật.",
     "current": "Đang dùng phiên bản {{version}}",
     "checkNow": "Kiểm tra ngay",
     "view": "Xem bản mới",
-    "autoCheck": "Tự động kiểm tra bản mới",
-    "autoCheckHelp": "Khi mở app và mỗi 2 giờ. Tắt thì chỉ kiểm tra khi bạn bấm \"Kiểm tra ngay\".",
-    "channel": "Kênh cập nhật",
     "channels": {
       "stable": {
         "name": "Ổn định (stable)",
@@ -108,15 +81,7 @@
       "error": "Không kiểm tra được: {{message}}"
     }
   },
-  "experimental": {
-    "heading": "Tính năng thử nghiệm",
-    "description": "Các tính năng mới, mặc định tắt. Chỉ bật khi bạn đã đọc kỹ hướng dẫn.",
-    "computer": "Điều khiển máy tính (xem màn hình)",
-    "agents": "Kết nối agent (Claude Code, Claude Desktop, MCP)",
-    "connectors": "Gmail & Telegram (đọc + soạn nháp)"
-  },
   "skills": {
-    "heading": "Skill",
     "description": "Dạy {{name}} cách làm việc riêng của bạn bằng skill (thư mục có SKILL.md, giống skill của Claude). {{name}} tự chọn vài skill hợp với câu hỏi, không dùng hết cùng lúc. Skill chỉ là chữ — app không chạy script kèm theo.",
     "installFolder": "Cài từ thư mục",
     "installZip": "Cài từ file .zip",
@@ -138,8 +103,6 @@
       "install": "Cài"
     },
     "style": {
-      "heading": "Phong cách của bạn (my-style)",
-      "description": "Ghi chú về cách bạn thích được trả lời, trình bày slide, tài liệu, code. Luôn được dùng khi có. Chỉ lưu những gì bạn duyệt.",
       "learn": "Học từ các cuộc chat gần đây",
       "proposed": "Đề xuất — bỏ chọn hoặc sửa trước khi lưu",
       "save": "Lưu ghi chú đã chọn",
@@ -160,6 +123,130 @@
       "bad_zip": "File .zip bị lỗi hoặc không đọc được.",
       "unreadable": "Không đọc được thư mục / file đã chọn.",
       "install": "Cài không được. Thử chọn lại gói."
+    }
+  },
+  "dialog": {
+    "title": "Cài đặt",
+    "close": "Đóng",
+    "search": "Tìm cài đặt",
+    "noResults": "Không có cài đặt nào khớp “{{query}}”.",
+    "open": "Mở",
+    "manage": "Quản lý",
+    "tabs": {
+      "appearance": "Giao diện",
+      "assistant": "Trợ lý của bạn",
+      "ai": "Trò chuyện & AI",
+      "capabilities": "Khả năng",
+      "connections": "Kết nối",
+      "updates": "Cập nhật",
+      "support": "Hỗ trợ"
+    },
+    "items": {
+      "theme": {
+        "label": "Chế độ sáng / tối",
+        "description": "Theo hệ thống, sáng hoặc tối. Nút mặt trời / mặt trăng ở thanh bên đổi nhanh.",
+        "keywords": "theme dark light mau nen"
+      },
+      "accent": {
+        "label": "Màu nhấn",
+        "description": "Màu của nút, mục đang chọn và đường viền nổi bật.",
+        "keywords": "accent mau sac"
+      },
+      "profile": {
+        "label": "Tên, avatar, tính cách, ngôn ngữ",
+        "description": "Dùng ở mọi nơi trong app và trong cách trợ lý trả lời. Chỉ riêng bạn thấy: lưu trên máy và đi theo tài khoản GitHub khi bạn đăng nhập.",
+        "keywords": "ten tro ly avatar anh dai dien persona tinh cach ngon ngu"
+      },
+      "myStyle": {
+        "label": "Phong cách của bạn (my-style)",
+        "description": "Ghi chú về cách bạn thích được trả lời, trình bày slide, tài liệu, code. Chỉ lưu những gì bạn duyệt.",
+        "keywords": "style phong cach hoc tu chat"
+      },
+      "autoSuggestMemory": {
+        "label": "Tự đề xuất ghi nhớ",
+        "description": "Khi bạn rời một cuộc trò chuyện có từ 2 tin nhắn mới, trợ lý đề xuất điều nên nhớ (thêm một lượt gọi AI). Bạn vẫn duyệt trước khi lưu.",
+        "keywords": "memory tri nho de xuat"
+      },
+      "memory": {
+        "label": "Những điều trợ lý ghi nhớ",
+        "description": "Xem, thêm, sửa hoặc xoá trí nhớ và hồ sơ của bạn.",
+        "keywords": "memory tri nho ho so"
+      },
+      "provider": {
+        "label": "Chạy trợ lý bằng",
+        "description": "Mỗi người dùng tài khoản / key của chính mình.",
+        "keywords": "claude cli api provider ket noi ai"
+      },
+      "apiKey": {
+        "label": "Anthropic API key",
+        "description": "Mã hoá bằng Windows, chỉ lưu trên máy này, không gửi cho ai ngoài Anthropic.",
+        "keywords": "key api anthropic sk-ant"
+      },
+      "cliCheck": {
+        "label": "Kiểm tra Claude Code CLI",
+        "description": "Xem CLI đã cài và đăng nhập chưa.",
+        "keywords": "claude cli dang nhap kiem tra"
+      },
+      "aiTitles": {
+        "label": "Tự đặt tiêu đề ngắn cho cuộc trò chuyện",
+        "description": "Sau câu trả lời đầu tiên, dùng model rẻ (Haiku) đặt tiêu đề 2–6 từ. Bạn đổi tên thì giữ tên của bạn.",
+        "keywords": "tieu de title haiku"
+      },
+      "suggestGroups": {
+        "label": "Gợi ý nhóm cho cuộc trò chuyện mới",
+        "description": "So khớp từ khoá với tên nhóm (không tốn hạn mức), không ra thì hỏi kèm ở lượt đặt tiêu đề. Chỉ chuyển khi bạn bấm đồng ý.",
+        "keywords": "nhom group goi y"
+      },
+      "expressive": {
+        "label": "Biểu cảm",
+        "description": "Emoji, GIF, sticker và thả cảm xúc trong câu trả lời.",
+        "keywords": "emoji gif sticker giphy reaction cam xuc"
+      },
+      "voice": {
+        "label": "Giọng nói",
+        "description": "Nói thay vì gõ (chép lời) và nghe trợ lý đọc câu trả lời.",
+        "keywords": "voice micro chep loi doc to tts stt whisper"
+      },
+      "skills": {
+        "label": "Skill",
+        "description": "Dạy trợ lý cách làm việc riêng của bạn bằng skill (thư mục có SKILL.md). Skill chỉ là chữ — app không chạy script kèm theo.",
+        "keywords": "skill ky nang cai dat zip"
+      },
+      "computer": {
+        "label": "Điều khiển máy tính (xem màn hình)",
+        "description": "Thử nghiệm, mặc định tắt. Đọc kỹ cảnh báo trước khi bật.",
+        "keywords": "computer man hinh dieu khien chup"
+      },
+      "connectors": {
+        "label": "Gmail & Telegram",
+        "description": "Trợ lý đọc thư / tin nhắn và soạn nháp — mọi nháp qua hộp duyệt, không tự gửi.",
+        "keywords": "gmail telegram email thu tin nhan nhap"
+      },
+      "agents": {
+        "label": "Kết nối agent",
+        "description": "Cho Claude Code, Claude Desktop hoặc MCP client khác hỏi trợ lý (cần duyệt lần đầu).",
+        "keywords": "agent mcp claude desktop"
+      },
+      "version": {
+        "label": "Phiên bản",
+        "description": "App tự tải bản mới từ GitHub Releases của team. Lịch sử chat và cài đặt luôn được giữ khi cập nhật.",
+        "keywords": "version phien ban kiem tra"
+      },
+      "autoCheck": {
+        "label": "Tự động kiểm tra bản mới",
+        "description": "Khi mở app và mỗi 2 giờ. Tắt thì chỉ kiểm tra khi bạn bấm \"Kiểm tra ngay\".",
+        "keywords": "update tu dong"
+      },
+      "channel": {
+        "label": "Kênh cập nhật",
+        "description": "Ổn định: chỉ bản chính thức. Thử nghiệm: nhận cả bản pre-release, có thể còn lỗi.",
+        "keywords": "stable beta kenh"
+      },
+      "reportBug": {
+        "label": "Gửi báo lỗi",
+        "description": "Bản nháp tự viết kèm phiên bản và log gần nhất (đã che thông tin cá nhân) để team sửa.",
+        "keywords": "bug loi ho tro"
+      }
     }
   }
 }

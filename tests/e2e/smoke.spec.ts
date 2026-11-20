@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { waitForStartup } from './helpers'
+import { openSettings, waitForStartup } from './helpers'
 
 let app: ElectronApplication
 let page: Page
@@ -49,7 +49,7 @@ test('kiểm tra Claude CLI và hiện kết quả', async () => {
 })
 
 test('đổi tên trợ lý trong Cài đặt và thấy ở màn hình chat', async () => {
-  await go('#/settings')
+  await openSettings(page, 'assistant', page.getByLabel('Tên trợ lý'))
   await page.getByLabel('Tên trợ lý').fill('Bông')
   // Nút Lưu đầu tiên thuộc mục "Trợ lý của bạn" (mục Kết nối AI có nút lưu API key riêng).
   await page.getByRole('button', { name: 'Lưu' }).first().click()
@@ -103,9 +103,11 @@ test('nút sáng/tối ở thanh bên đổi giao diện và lưu vào Cài đ�
   const before = await isDark()
   await page.getByTestId('theme-toggle').click()
   await expect.poll(isDark).toBe(!before)
-  await go('#/settings')
-  await expect(page.getByText('Chế độ sáng / tối')).toBeVisible()
-  await expect(page.getByRole('button', { name: before ? 'Sáng' : 'Tối', exact: true })).toHaveClass(/bg-primary/)
+  await openSettings(page, 'appearance', page.getByText('Chế độ sáng / tối'))
+  await expect(page.getByTestId(before ? 'theme-light' : 'theme-dark')).toHaveAttribute('aria-pressed', 'true')
+  // Nút sáng / tối nằm sau lớp nền của cửa sổ Cài đặt → đóng cửa sổ trước.
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('settings-dialog')).toHaveCount(0)
   await page.getByTestId('theme-toggle').click()
   await expect.poll(isDark).toBe(before)
 })
@@ -133,7 +135,7 @@ test('trang Trí nhớ: hồ sơ, thêm/sửa/xóa memory thủ công', async ()
 })
 
 test('Cài đặt → Gửi báo lỗi: bản nháp tự viết kèm phiên bản và log đã che', async () => {
-  await go('#/settings')
+  await openSettings(page, 'support', page.getByTestId('report-bug'))
   await page.getByTestId('report-bug').click()
   await expect(page.getByRole('tab', { name: 'Báo lỗi' })).toHaveAttribute('aria-selected', 'true')
   await page.getByLabel('Tiêu đề').fill('Không lưu được flashcard')

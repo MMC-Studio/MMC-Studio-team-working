@@ -102,3 +102,17 @@
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
 }
+
+/* Cài đặt: dòng vừa nhảy tới từ ô tìm kiếm nháy nền màu nhấn rồi mờ dần (theo theme sáng + tối). */
+@keyframes setting-flash {
+  0%,
+  35% {
+    background-color: color-mix(in oklab, var(--primary) 16%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.setting-flash {
+  animation: setting-flash 1.6s ease-out;
+}

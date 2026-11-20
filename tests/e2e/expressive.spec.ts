@@ -10,7 +10,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Chat biểu cảm — chạy được khi KHÔNG có Claude CLI: MMC_FAKE_CHAT (Claude giả lập) + server GIPHY giả.
 test.describe.configure({ mode: 'serial' })
@@ -115,7 +115,7 @@ test('chưa có key GIPHY: tab GIF/sticker hiện hướng dẫn lấy key, app 
 })
 
 test('cài đặt: mặc định Tắt; chọn mức Nhiều, lưu key GIPHY (không hiện lại)', async () => {
-  await goTo(page, '#/settings', page.getByTestId('expressive-settings'))
+  await openSettings(page, 'capabilities', page.getByTestId('expressive-settings'))
   const mode = page.getByLabel('Mức biểu cảm')
   await expect(mode).toHaveValue('off')
   await mode.selectOption('auto')

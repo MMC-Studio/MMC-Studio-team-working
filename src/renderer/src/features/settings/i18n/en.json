@@ -1,8 +1,6 @@
 {
   "title": "Settings",
   "assistant": {
-    "heading": "Your assistant",
-    "description": "Name, avatar and personality are used everywhere in the app and in how the assistant replies. Private to you: stored on this computer and follows your GitHub account when signed in (kept across computers). Teammates — managers included — can't see it and have their own assistant.",
     "name": "Assistant name",
     "avatar": "Avatar",
     "upload": "Upload image",
@@ -24,15 +22,12 @@
     }
   },
   "appearance": {
-    "heading": "Appearance",
-    "theme": "Light / dark mode",
     "themes": {
       "system": "System",
       "light": "Light",
       "dark": "Dark"
     },
     "toggle": "Switch to {{mode}} mode",
-    "accent": "Accent color",
     "accents": {
       "blue": "Blue",
       "violet": "Violet",
@@ -41,14 +36,7 @@
       "rose": "Rose"
     }
   },
-  "claude": {
-    "heading": "AI connection",
-    "description": "Choose how the assistant runs. Everyone uses their own account or key.",
-    "open": "Check Claude Code CLI"
-  },
   "support": {
-    "heading": "Support",
-    "description": "Hit a bug? Send a report with the app version and recent log (personal info masked) so the team can fix it.",
     "reportBug": "Report a bug"
   },
   "ai": {
@@ -63,31 +51,16 @@
         "description": "Uses an API key you create on Claude Console; usage is billed to your own account."
       }
     },
-    "apiKey": "Anthropic API key",
     "keySaved": "Key saved (encrypted by Windows)",
     "removeKey": "Remove key",
     "invalidKey": "Invalid key format (should start with sk-ant-).",
     "noSecureStorage": "This computer has no secure storage, so the API key cannot be saved.",
-    "keyHelp": "The key is encrypted, stays on this computer, and is only ever sent to Anthropic.",
-    "getKey": "Create a key on Claude Console",
-    "autoSuggest": "Suggest memories automatically",
-    "autoSuggestHelp": "When you leave a chat with 2+ new messages, the assistant suggests what to remember (uses one extra AI call). You still review before saving.",
-    "organize": {
-      "aiTitles": "Auto-name conversations",
-      "aiTitlesHelp": "After the first reply, a cheap model (Haiku) writes a 2–6 word title. Titles you rename stay yours.",
-      "suggestGroups": "Suggest a group for new conversations",
-      "suggestGroupsHelp": "Matches keywords against group names (no quota); otherwise asked along with the title call. Moves only when you accept."
-    }
+    "getKey": "Create a key on Claude Console"
   },
   "update": {
-    "heading": "Updates",
-    "description": "The app downloads new versions from the team's GitHub Releases. Chat history and settings are always kept.",
     "current": "Current version {{version}}",
     "checkNow": "Check now",
     "view": "View update",
-    "autoCheck": "Check for updates automatically",
-    "autoCheckHelp": "On launch and every 2 hours. When off, only when you click \"Check now\".",
-    "channel": "Update channel",
     "channels": {
       "stable": {
         "name": "Stable",
@@ -108,15 +81,7 @@
       "error": "Could not check: {{message}}"
     }
   },
-  "experimental": {
-    "heading": "Experimental features",
-    "description": "New features, off by default. Only enable them after reading the instructions.",
-    "computer": "Computer control (screen viewing)",
-    "agents": "Agent connections (Claude Code, Claude Desktop, MCP)",
-    "connectors": "Gmail & Telegram (read + drafts)"
-  },
   "skills": {
-    "heading": "Skills",
     "description": "Teach {{name}} your own way of working with skills (a folder with SKILL.md, like Claude skills). {{name}} picks a few skills that fit each question instead of using all of them. Skills are text only — the app never runs bundled scripts.",
     "installFolder": "Install from folder",
     "installZip": "Install from .zip",
@@ -138,8 +103,6 @@
       "install": "Install"
     },
     "style": {
-      "heading": "Your style (my-style)",
-      "description": "Notes on how you like answers, slides, documents and code. Always used when present. Only what you approve is saved.",
       "learn": "Learn from recent chats",
       "proposed": "Suggestions — untick or edit before saving",
       "save": "Save selected notes",
@@ -160,6 +123,130 @@
       "bad_zip": "The .zip file is broken or unreadable.",
       "unreadable": "Could not read the selected folder / file.",
       "install": "Install failed. Try picking the package again."
+    }
+  },
+  "dialog": {
+    "title": "Settings",
+    "close": "Close",
+    "search": "Search settings",
+    "noResults": "No settings match “{{query}}”.",
+    "open": "Open",
+    "manage": "Manage",
+    "tabs": {
+      "appearance": "Appearance",
+      "assistant": "Your assistant",
+      "ai": "Chat & AI",
+      "capabilities": "Capabilities",
+      "connections": "Connections",
+      "updates": "Updates",
+      "support": "Support"
+    },
+    "items": {
+      "theme": {
+        "label": "Light / dark mode",
+        "description": "System, light or dark. The sun / moon button in the side bar switches quickly.",
+        "keywords": "theme dark light"
+      },
+      "accent": {
+        "label": "Accent color",
+        "description": "Color of buttons, selected items and highlighted borders.",
+        "keywords": "accent color"
+      },
+      "profile": {
+        "label": "Name, avatar, personality, language",
+        "description": "Used everywhere in the app and in how the assistant replies. Only you see it.",
+        "keywords": "name avatar persona language"
+      },
+      "myStyle": {
+        "label": "Your style (my-style)",
+        "description": "Notes on how you like answers, slides, documents and code. Only what you approve is saved.",
+        "keywords": "style learn"
+      },
+      "autoSuggestMemory": {
+        "label": "Suggest memories automatically",
+        "description": "When you leave a chat with at least 2 new messages, the assistant suggests what to remember. You still approve before saving.",
+        "keywords": "memory suggest"
+      },
+      "memory": {
+        "label": "What the assistant remembers",
+        "description": "View, add, edit or delete memories and your profile.",
+        "keywords": "memory profile"
+      },
+      "provider": {
+        "label": "Run the assistant with",
+        "description": "Everyone uses their own account / key.",
+        "keywords": "claude cli api provider"
+      },
+      "apiKey": {
+        "label": "Anthropic API key",
+        "description": "Encrypted by Windows, stored only on this computer, never sent to anyone but Anthropic.",
+        "keywords": "key api anthropic sk-ant"
+      },
+      "cliCheck": {
+        "label": "Check Claude Code CLI",
+        "description": "See whether the CLI is installed and signed in.",
+        "keywords": "claude cli sign in check"
+      },
+      "aiTitles": {
+        "label": "Give chats short titles automatically",
+        "description": "After the first reply, a cheap model (Haiku) writes a 2–6 word title. Renaming keeps your name.",
+        "keywords": "title haiku"
+      },
+      "suggestGroups": {
+        "label": "Suggest a group for new chats",
+        "description": "Matches keywords against group names (free), otherwise asks along with the title. Only moves when you accept.",
+        "keywords": "group suggest"
+      },
+      "expressive": {
+        "label": "Expressions",
+        "description": "Emoji, GIFs, stickers and reactions in replies.",
+        "keywords": "emoji gif sticker giphy reaction"
+      },
+      "voice": {
+        "label": "Voice",
+        "description": "Talk instead of typing (transcription) and hear replies read aloud.",
+        "keywords": "voice microphone transcription tts stt whisper"
+      },
+      "skills": {
+        "label": "Skills",
+        "description": "Teach the assistant your own way of working with skills (folders with SKILL.md). Skills are text only — scripts are never run.",
+        "keywords": "skill install zip"
+      },
+      "computer": {
+        "label": "Computer control (view screen)",
+        "description": "Experimental, off by default. Read the warning before turning it on.",
+        "keywords": "computer screen control"
+      },
+      "connectors": {
+        "label": "Gmail & Telegram",
+        "description": "The assistant reads mail / messages and writes drafts — every draft needs your approval, nothing is sent.",
+        "keywords": "gmail telegram email messages drafts"
+      },
+      "agents": {
+        "label": "Agent connections",
+        "description": "Let Claude Code, Claude Desktop or another MCP client ask the assistant (approval needed the first time).",
+        "keywords": "agent mcp claude desktop"
+      },
+      "version": {
+        "label": "Version",
+        "description": "The app downloads new versions from the team's GitHub Releases. Chats and settings are always kept.",
+        "keywords": "version check update"
+      },
+      "autoCheck": {
+        "label": "Check for updates automatically",
+        "description": "On launch and every 2 hours. When off, only when you press \"Check now\".",
+        "keywords": "update auto"
+      },
+      "channel": {
+        "label": "Update channel",
+        "description": "Stable: official releases only. Beta: pre-releases too, may have bugs.",
+        "keywords": "stable beta channel"
+      },
+      "reportBug": {
+        "label": "Report a bug",
+        "description": "A draft is written for you with the version and recent logs (personal info masked).",
+        "keywords": "bug report support"
+      }
     }
   }
 }

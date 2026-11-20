@@ -9,7 +9,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Cài skill — chạy được khi KHÔNG có Claude CLI: MMC_FAKE_CHAT (Claude giả lập báo skill nào được dùng)
 // + MMC_FAKE_SKILL_PICK (file chứa đường dẫn gói, thay cho hộp thoại chọn thư mục / .zip).
@@ -84,7 +84,7 @@ const pick = (path: string): void => writeFileSync(pickFile, path)
 const box = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Nhắn cho/ })
 
 test('cài từ thư mục: xem trước nguồn + nội dung, script bị bỏ qua, có theme', async () => {
-  await goTo(page, '#/settings', page.getByTestId('skill-pick-folder'))
+  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
   pick(join(work, 'slide-pixel'))
   await page.getByTestId('skill-pick-folder').click()
   const dialog = page.getByTestId('skill-preview')
@@ -129,7 +129,7 @@ test('chat: tự chọn skill liên quan, gọi đích danh được, tắt thì
   )
   await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible()
 
-  await goTo(page, '#/settings', page.getByTestId('skill-pick-folder'))
+  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
   await page.getByTestId('skill-enable-slide-pixel').uncheck()
   await goTo(page, '#/', box())
   await box().fill('dùng skill slide-pixel')
@@ -141,7 +141,7 @@ test('chat: tự chọn skill liên quan, gọi đích danh được, tắt thì
 })
 
 test('học phong cách: chỉ lưu ghi chú đã duyệt, my-style được dùng khi chat', async () => {
-  await goTo(page, '#/settings', page.getByTestId('style-learn'))
+  await openSettings(page, 'assistant', page.getByTestId('style-learn'))
   await page.getByTestId('style-learn').click()
   const proposed = page.getByTestId('style-proposed')
   await expect(proposed.getByRole('textbox')).toHaveValue('Trả lời ngắn gọn, có gạch đầu dòng')
@@ -158,7 +158,7 @@ test('học phong cách: chỉ lưu ghi chú đã duyệt, my-style được dù
 })
 
 test('xoá skill cần bấm xác nhận', async () => {
-  await goTo(page, '#/settings', page.getByTestId('skill-pick-folder'))
+  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
   await page.getByTestId('skill-remove-bao-cao-tuan').click()
   await expect(page.getByTestId('skill-bao-cao-tuan')).toBeVisible()
   await page.getByTestId('skill-remove-confirm-bao-cao-tuan').click()

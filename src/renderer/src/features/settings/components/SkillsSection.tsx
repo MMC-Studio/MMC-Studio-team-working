@@ -143,7 +143,8 @@ function PreviewDialog({
 }
 
 /** Học phong cách: trợ lý đề xuất ghi chú, người dùng chọn / sửa rồi mới lưu vào my-style. */
-function StyleNotes() {
+/** Ghi chú my-style (tab Trợ lý của bạn, trong dòng "Phong cách của bạn"). */
+export function StyleNotes() {
   const { t } = useTranslation('settings')
   // Ghi chú my-style là một skill → đồng bộ cùng mục "skills".
   const { data, setData: setNotes } = useSyncedState('skills', () => api.skills.styleNotes())
@@ -171,12 +172,8 @@ function StyleNotes() {
   }
 
   return (
-    <div className="space-y-2 rounded-md border p-3" data-testid="style-notes">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="font-medium">{t('skills.style.heading')}</p>
-          <p className="text-xs text-muted-foreground">{t('skills.style.description')}</p>
-        </div>
+    <div className="space-y-2 text-sm" data-testid="style-notes">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
           variant="outline"
@@ -401,8 +398,6 @@ export function SkillsSection() {
           ))}
         </ul>
       )}
-
-      <StyleNotes />
 
       <details>
         <summary className="cursor-pointer text-muted-foreground">

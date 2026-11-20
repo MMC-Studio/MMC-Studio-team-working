@@ -1,35 +1,46 @@
 import { KeyRound, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { AI_PROVIDERS, apiKeySchema, type AiProviderId, type AiSettings, type ChatOrganizeSettings } from '@shared/schemas'
 import { Button } from '@renderer/components/ui/button'
-import { Input, Label } from '@renderer/components/ui/input'
+import { Input } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { optimistic, useSyncedState } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
+import { SettingRow, Switch } from './rows'
 
 type AiState = AiSettings & { hasApiKey: boolean; secureStorage: boolean }
 
 const CONSOLE_URL = 'https://platform.claude.com/settings/keys'
 
-export function AiSection() {
+/**
+ * Cài đặt AI (nhà cung cấp, key, tự đề xuất ghi nhớ) — dùng chung cho các dòng ở tab khác nhau.
+ * Đồng bộ mục `ai`; bấm là đổi ngay, lỗi thì hoàn tác + báo.
+ */
+function useAiSettings() {
+  const { data: state, setData, refresh } = useSyncedState('ai', (): Promise<AiState> => api.settings.getAi())
+  const save = async (patch: Partial<AiSettings>): Promise<void> => {
+    if (!state) return
+    const next = { provider: state.provider, autoSuggestMemory: state.autoSuggestMemory, ...patch }
+    await optimistic({
+      topic: 'ai',
+      apply: () => setData({ ...state, ...next }),
+      rollback: () => setData(state),
+      save: () => api.settings.setAi(next)
+    })
+  }
+  return { state, reload: refresh, save }
+}
+
+/** Tab Trò chuyện & AI: chạy trợ lý bằng CLI / API key, ô API key, kiểm tra CLI. */
+export function AiConnectionRows() {
   const { t } = useTranslation('settings')
-  const [state, setState] = useState<AiState | null>(null)
+  const { state, reload, save } = useAiSettings()
   const [key, setKey] = useState('')
   const [keyError, setKeyError] = useState(false)
 
-  const reload = async (): Promise<void> => setState(await api.settings.getAi())
-  useEffect(() => {
-    void api.settings.getAi().then(setState)
-  }, [])
-
   if (!state) return null
-
-  const save = async (patch: Partial<AiSettings>): Promise<void> => {
-    await api.settings.setAi({ provider: state.provider, autoSuggestMemory: state.autoSuggestMemory, ...patch })
-    await reload()
-  }
 
   const saveKey = async (): Promise<void> => {
     if (!apiKeySchema.safeParse(key).success) {
@@ -45,39 +56,36 @@ export function AiSection() {
   const canUse = (p: AiProviderId): boolean => p === 'claude-cli' || state.hasApiKey
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2" role="radiogroup" aria-label={t('ai.provider')}>
-        <Label>{t('ai.provider')}</Label>
-        {AI_PROVIDERS.map((p) => (
-          <label
-            key={p}
-            className={cn(
-              'flex cursor-pointer items-start gap-3 rounded-md border p-3',
-              state.provider === p && 'border-primary bg-primary/5',
-              !canUse(p) && 'cursor-not-allowed opacity-60'
-            )}
-          >
-            <input
-              type="radio"
-              name="ai-provider"
-              className="mt-1"
-              checked={state.provider === p}
-              disabled={!canUse(p)}
-              onChange={() => void save({ provider: p })}
-            />
-            <span>
-              <span className="block text-sm font-medium">{t(`ai.providers.${p}.name`)}</span>
-              <span className="block text-xs text-muted-foreground">{t(`ai.providers.${p}.description`)}</span>
-            </span>
-          </label>
-        ))}
-        <Button asChild variant="link" size="sm" className="px-0">
-          <Link to="/claude">{t('claude.open')}</Link>
-        </Button>
-      </div>
+    <>
+      <SettingRow id="provider">
+        <div className="space-y-2" role="radiogroup" aria-label={t('ai.provider')}>
+          {AI_PROVIDERS.map((p) => (
+            <label
+              key={p}
+              className={cn(
+                'flex cursor-pointer items-start gap-3 rounded-md border p-3',
+                state.provider === p && 'border-primary bg-primary/5',
+                !canUse(p) && 'cursor-not-allowed opacity-60'
+              )}
+            >
+              <input
+                type="radio"
+                name="ai-provider"
+                className="mt-1"
+                checked={state.provider === p}
+                disabled={!canUse(p)}
+                onChange={() => void save({ provider: p })}
+              />
+              <span>
+                <span className="block text-sm font-medium">{t(`ai.providers.${p}.name`)}</span>
+                <span className="block text-xs text-muted-foreground">{t(`ai.providers.${p}.description`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </SettingRow>
 
-      <div className="space-y-2">
-        <Label htmlFor="api-key">{t('ai.apiKey')}</Label>
+      <SettingRow id="apiKey" htmlFor="api-key">
         {!state.secureStorage ? (
           <p className="text-sm text-destructive">{t('ai.noSecureStorage')}</p>
         ) : state.hasApiKey ? (
@@ -109,35 +117,46 @@ export function AiSection() {
             </Button>
           </div>
         )}
-        {keyError && <p className="text-sm text-destructive">{t('ai.invalidKey')}</p>}
-        <p className="text-xs text-muted-foreground">
-          {t('ai.keyHelp')}{' '}
-          <button type="button" className="text-primary underline" onClick={() => void api.app.openExternal(CONSOLE_URL)}>
-            {t('ai.getKey')}
-          </button>
-        </p>
-      </div>
+        {keyError && <p className="mt-2 text-sm text-destructive">{t('ai.invalidKey')}</p>}
+        <button type="button" className="mt-2 text-xs text-primary underline" onClick={() => void api.app.openExternal(CONSOLE_URL)}>
+          {t('ai.getKey')}
+        </button>
+      </SettingRow>
 
-      <label className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1"
+      <SettingRow
+        id="cliCheck"
+        control={
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/claude">{t('dialog.open')}</Link>
+          </Button>
+        }
+      />
+    </>
+  )
+}
+
+/** Tab Trợ lý của bạn: tự đề xuất ghi nhớ khi rời cuộc trò chuyện. */
+export function AutoSuggestRow() {
+  const { state, save } = useAiSettings()
+  if (!state) return null
+  return (
+    <SettingRow
+      id="autoSuggestMemory"
+      htmlFor="auto-suggest-memory"
+      control={
+        <Switch
+          id="auto-suggest-memory"
           checked={state.autoSuggestMemory}
           onChange={(e) => void save({ autoSuggestMemory: e.target.checked })}
+          data-testid="auto-suggest-memory"
         />
-        <span>
-          <span className="block text-sm font-medium">{t('ai.autoSuggest')}</span>
-          <span className="block text-xs text-muted-foreground">{t('ai.autoSuggestHelp')}</span>
-        </span>
-      </label>
-      <ChatOrganizeOptions />
-    </div>
+      }
+    />
   )
 }
 
 /** Đặt tiêu đề / gợi ý nhóm cho cuộc trò chuyện mới bằng model rẻ (Haiku). */
-function ChatOrganizeOptions() {
-  const { t } = useTranslation('settings')
+export function OrganizeRows() {
   const { data, setData } = useSyncedState('conversations', () => api.settings.getChatOrganize())
   if (!data) return null
   const toggle = (key: keyof ChatOrganizeSettings, value: boolean): void => {
@@ -152,19 +171,19 @@ function ChatOrganizeOptions() {
   return (
     <>
       {(['aiTitles', 'suggestGroups'] as const).map((key) => (
-        <label key={key} className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={data[key]}
-            onChange={(e) => toggle(key, e.target.checked)}
-            data-testid={`organize-${key}`}
-          />
-          <span>
-            <span className="block text-sm font-medium">{t(`ai.organize.${key}`)}</span>
-            <span className="block text-xs text-muted-foreground">{t(`ai.organize.${key}Help`)}</span>
-          </span>
-        </label>
+        <SettingRow
+          key={key}
+          id={key}
+          htmlFor={`organize-${key}`}
+          control={
+            <Switch
+              id={`organize-${key}`}
+              checked={data[key]}
+              onChange={(e) => toggle(key, e.target.checked)}
+              data-testid={`organize-${key}`}
+            />
+          }
+        />
       ))}
     </>
   )
