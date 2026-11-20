@@ -1,21 +1,33 @@
-import { Plus, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { McpServerType } from '@shared/agents'
+import type { McpServerInfo, McpServerType } from '@shared/agents'
 import { Button } from '@renderer/components/ui/button'
 import { Input, Label, Select, Textarea } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
+import { cn } from '@renderer/lib/utils'
 import { useSync } from '@renderer/lib/sync'
 import { parsePairs, useAgents } from '../store'
 
 const EMPTY = { name: '', type: 'stdio' as McpServerType, command: '', args: '', url: '', secrets: '' }
 
 /** MCP server người dùng thêm — Mizuki dùng như tool, mỗi lần gọi phải duyệt (trừ tool "luôn cho phép"). */
-export function McpServersSection() {
+/**
+ * `renderMenu`: menu ⋯ của trang Plugin cho từng server — bật / tắt và gỡ chỉ ở đó (một mục một chỗ).
+ */
+export function McpServersSection({
+  startAdding = false,
+  highlight,
+  renderMenu
+}: {
+  startAdding?: boolean
+  highlight?: string
+  renderMenu?(server: McpServerInfo): ReactNode
+}) {
   const { t } = useTranslation('agents')
-  const { servers, refreshServers, patchServers } = useAgents()
+  const { servers, refreshServers } = useAgents()
   const [form, setForm] = useState(EMPTY)
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(startAdding)
   const [error, setError] = useState<string | null>(null)
 
   // Danh sách đổi cả khi duyệt tool "luôn cho phép" ở trang Chat → tự hỏi lại khi main báo.
@@ -54,39 +66,21 @@ export function McpServersSection() {
       {servers.length > 0 && (
         <ul className="divide-y rounded-md border text-sm">
           {servers.map((s) => (
-            <li key={s.id} className="space-y-1.5 px-3 py-2" data-testid="mcp-server">
+            <li
+              key={s.id}
+              id={`mcp-${s.id}`}
+              className={cn('space-y-1.5 px-3 py-2', highlight === s.id && 'setting-flash')}
+              data-testid="mcp-server"
+            >
               <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={s.enabled}
-                    onChange={(e) => {
-                      const enabled = e.target.checked
-                      void patchServers(
-                        (list) => list.map((x) => (x.id === s.id ? { ...x, enabled } : x)),
-                        () => api.mcp.setEnabled(s.id, enabled)
-                      )
-                    }}
-                    data-testid="mcp-server-enabled"
-                  />
-                  <span className="font-medium">{s.name}</span>
-                </label>
+                {/* Bật / tắt server ở menu ⋯ của trang Plugin. */}
+                <span className="font-medium">{s.name}</span>
+                <span className="text-xs text-muted-foreground" data-testid="mcp-server-state">
+                  {s.enabled ? t('mcp.on') : t('mcp.off')}
+                </span>
                 <code className="min-w-0 truncate text-xs text-muted-foreground">{s.type === 'stdio' ? [s.command, ...s.args].join(' ') : s.url}</code>
                 {s.secretKeys.length > 0 && <span className="text-xs text-muted-foreground">{t('mcp.secretKeys', { keys: s.secretKeys.join(', ') })}</span>}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() =>
-                    void patchServers(
-                      (list) => list.filter((x) => x.id !== s.id),
-                      () => api.mcp.remove(s.id)
-                    )
-                  }
-                >
-                  <Trash2 />
-                  {t('mcp.remove')}
-                </Button>
+                <span className="ml-auto">{renderMenu?.(s)}</span>
               </div>
               {s.alwaysAllow.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs">

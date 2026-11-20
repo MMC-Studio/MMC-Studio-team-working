@@ -9,7 +9,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, openSettings, waitForStartup } from './helpers'
+import { goTo, openSettings, pluginAdd, pluginMenu, pluginRow, waitForStartup } from './helpers'
 
 // Cài skill — chạy được khi KHÔNG có Claude CLI: MMC_FAKE_CHAT (Claude giả lập báo skill nào được dùng)
 // + MMC_FAKE_SKILL_PICK (file chứa đường dẫn gói, thay cho hộp thoại chọn thư mục / .zip).
@@ -84,9 +84,9 @@ const pick = (path: string): void => writeFileSync(pickFile, path)
 const box = (): ReturnType<Page['getByRole']> => page.getByRole('textbox', { name: /Nhắn cho/ })
 
 test('cài từ thư mục: xem trước nguồn + nội dung, script bị bỏ qua, có theme', async () => {
-  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
+  await goTo(page, '#/plugins', page.getByTestId('plugins-page'))
   pick(join(work, 'slide-pixel'))
-  await page.getByTestId('skill-pick-folder').click()
+  await pluginAdd(page, 'skill-folder')
   const dialog = page.getByTestId('skill-preview')
   await expect(dialog).toContainText('slide-pixel')
   await expect(dialog).toContainText(join(work, 'slide-pixel'))
@@ -95,19 +95,19 @@ test('cài từ thư mục: xem trước nguồn + nội dung, script bị bỏ 
   await expect(dialog).toContainText('pixel-neon')
   await dialog.getByTestId('skill-install').click()
   await expect(dialog).toBeHidden()
-  await expect(page.getByTestId('skill-slide-pixel')).toContainText('pixel art')
+  await expect(pluginRow(page, 'skill:slide-pixel')).toContainText('pixel art')
   expect(existsSync(join(work, 'userData', 'skills', 'slide-pixel', 'install.ps1'))).toBe(false)
 })
 
 test('cài từ .zip; trùng tên skill có sẵn thì báo lỗi', async () => {
   pick(join(work, 'trung.zip'))
-  await page.getByTestId('skill-pick-zip').click()
+  await pluginAdd(page, 'skill-zip')
   await expect(page.getByTestId('skill-error')).toContainText('Trùng tên skill có sẵn')
 
   pick(join(work, 'bao-cao.zip'))
-  await page.getByTestId('skill-pick-zip').click()
+  await pluginAdd(page, 'skill-zip')
   await page.getByTestId('skill-preview').getByTestId('skill-install').click()
-  await expect(page.getByTestId('skill-bao-cao-tuan')).toBeVisible()
+  await expect(pluginRow(page, 'skill:bao-cao-tuan')).toBeVisible()
 })
 
 test('chat: tự chọn skill liên quan, gọi đích danh được, tắt thì không dùng', async () => {
@@ -129,8 +129,9 @@ test('chat: tự chọn skill liên quan, gọi đích danh được, tắt thì
   )
   await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible()
 
-  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
-  await page.getByTestId('skill-enable-slide-pixel').uncheck()
+  await goTo(page, '#/plugins', page.getByTestId('plugins-page'))
+  await pluginMenu(page, 'skill:slide-pixel', 'disable')
+  await expect(pluginRow(page, 'skill:slide-pixel')).toHaveAttribute('data-enabled', 'false', { timeout: 1_000 })
   await goTo(page, '#/', box())
   await box().fill('dùng skill slide-pixel')
   await box().press('Enter')
@@ -157,11 +158,15 @@ test('học phong cách: chỉ lưu ghi chú đã duyệt, my-style được dù
   })
 })
 
-test('xoá skill cần bấm xác nhận', async () => {
-  await openSettings(page, 'capabilities', page.getByTestId('skill-pick-folder'))
-  await page.getByTestId('skill-remove-bao-cao-tuan').click()
-  await expect(page.getByTestId('skill-bao-cao-tuan')).toBeVisible()
-  await page.getByTestId('skill-remove-confirm-bao-cao-tuan').click()
-  await expect(page.getByTestId('skill-bao-cao-tuan')).toBeHidden()
+test('gỡ skill phải qua hộp xác nhận; Huỷ thì còn', async () => {
+  await goTo(page, '#/plugins', page.getByTestId('plugins-page'))
+  await pluginMenu(page, 'skill:bao-cao-tuan', 'remove')
+  const dialog = page.getByTestId('plugin-remove-dialog')
+  await expect(dialog).toContainText('Gỡ bao-cao-tuan?')
+  await dialog.getByRole('button', { name: 'Hủy' }).click()
+  await expect(pluginRow(page, 'skill:bao-cao-tuan')).toBeVisible()
+  await pluginMenu(page, 'skill:bao-cao-tuan', 'remove')
+  await page.getByTestId('plugin-remove-confirm').click()
+  await expect(pluginRow(page, 'skill:bao-cao-tuan')).toHaveCount(0, { timeout: 1_000 })
   expect(existsSync(join(work, 'userData', 'skills', 'bao-cao-tuan'))).toBe(false)
 })

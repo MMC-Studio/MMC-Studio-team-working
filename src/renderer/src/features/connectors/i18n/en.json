@@ -61,7 +61,9 @@
     "accountCount_other": "{{count}} accounts",
     "label": "Name",
     "accountEnabled": "Let the assistant read this account",
-    "privacy": "Privacy filters for this account"
+    "privacy": "Privacy filters for this account",
+    "disconnectConfirm": "Disconnect for good?",
+    "off": "Gmail is off. Turn it on from the ⋯ menu above to configure it."
   },
   "telegram": {
     "enable": "Enable Telegram connection",
@@ -103,7 +105,9 @@
       "bot": "bot",
       "group": "group",
       "channel": "channel"
-    }
+    },
+    "logoutConfirm": "Log out for good?",
+    "off": "Telegram is off. Turn it on from the ⋯ menu above to configure it."
   },
   "draft": {
     "title": {

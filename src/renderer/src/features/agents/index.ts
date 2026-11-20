@@ -1,19 +1,19 @@
 import { Network } from 'lucide-react'
 import type { FeatureDefinition } from '../types'
 import { AgentsOverlay } from './components/AgentsOverlay'
-import { AgentsPage } from './components/AgentsPage'
+import { AgentsRedirect } from '../plugins/components/Redirects'
 import en from './i18n/en.json'
 import vi from './i18n/vi.json'
 import { setupAgents } from './store'
 
-/** Kết nối agent (thử nghiệm, mặc định tắt). Không có trên menu — vào từ Cài đặt → Tính năng thử nghiệm. */
+/** Kết nối agent + MCP client (thử nghiệm, mặc định tắt). Giao diện ở trang Plugin; `/agents` chỉ chuyển hướng. Giữ module vì overlay duyệt agent / tool MCP. */
 export const agentsFeature: FeatureDefinition = {
   id: 'agents',
   titleKey: 'title',
   icon: Network,
   route: '/agents',
   roles: [],
-  component: AgentsPage,
+  component: AgentsRedirect,
   i18n: { vi, en },
   nav: false,
   setup: setupAgents,

@@ -1,0 +1,94 @@
+{
+  "title": "Plugins",
+  "intro": "Skills and connections let the assistant do more. Everything you turn on here still goes through the same reviews — the assistant only proposes, you decide.",
+  "search": "Search plugins…",
+  "tabs": {
+    "all": "All",
+    "connectors": "Connectors",
+    "skills": "Skills"
+  },
+  "filter": {
+    "label": "Filter by status",
+    "all": "Any status",
+    "on": "On",
+    "off": "Off",
+    "attention": "Needs attention"
+  },
+  "add": {
+    "button": "Add",
+    "skillFolder": "Install skill from folder",
+    "skillZip": "Install skill from .zip",
+    "openSkillFolder": "Open skills folder",
+    "mcp": "Add MCP server",
+    "gmail": "Connect Gmail",
+    "telegram": "Connect Telegram",
+    "agents": "Agent connection (Claude Code / Desktop)"
+  },
+  "sections": {
+    "yours": "Your plugins",
+    "builtin": "Built into the app",
+    "builtinHelp": "Skills shipped with the app, used automatically per chat mode — always on, view only.",
+    "suggestions": "Suggested",
+    "showAll": "Show all",
+    "showLess": "Show less"
+  },
+  "empty": {
+    "yours": "No plugins yet. Click \"Add\" or pick one from Suggested.",
+    "results": "No plugins match."
+  },
+  "names": {
+    "agents": "Agent connection"
+  },
+  "kind": {
+    "connector": "Connector",
+    "skill": "Skill",
+    "mcp": "MCP server"
+  },
+  "meta": {
+    "accounts_one": "{{count}} account",
+    "accounts_other": "{{count}} accounts",
+    "noAccounts": "no accounts yet",
+    "telegramConnected": "signed in",
+    "telegramDisconnected": "not signed in",
+    "clients_one": "{{count}} agent",
+    "clients_other": "{{count}} agents",
+    "noClients": "no agents yet",
+    "builtin": "built into the app",
+    "installedFrom": "installed from {{source}}",
+    "byApp": "supported by the app"
+  },
+  "describe": {
+    "gmail": "The assistant reads, summarizes and drafts replies — drafts always need your approval, nothing is sent.",
+    "telegram": "The assistant reads the chats you pick and drafts messages — nothing is sent.",
+    "agents": "Let Claude Code, Claude Desktop or another MCP client ask the assistant (new agents need your approval first)."
+  },
+  "state": {
+    "off": "Off",
+    "attention": "Needs attention",
+    "experimental": "Experimental"
+  },
+  "menu": {
+    "options": "Options for {{name}}",
+    "settings": "Settings",
+    "view": "View",
+    "enable": "Turn on",
+    "disable": "Turn off",
+    "remove": "Remove"
+  },
+  "enableDialog": {
+    "title": "Turn on {{name}}?",
+    "confirm": "Turn on",
+    "confirmSetup": "Turn on and set up"
+  },
+  "removeDialog": {
+    "title": "Remove {{name}}?",
+    "skill": "The skill is deleted from this computer. To use it again, install it from a folder / .zip.",
+    "mcp": "The server is deleted along with its saved secrets and \"always allow\" tools.",
+    "confirm": "Remove"
+  },
+  "detail": {
+    "back": "Plugins",
+    "notFound": "Plugin not found (it may have been removed).",
+    "files": "Files: {{files}}"
+  }
+}

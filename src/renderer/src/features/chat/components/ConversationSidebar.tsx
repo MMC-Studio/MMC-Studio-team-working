@@ -36,6 +36,7 @@ import type { Project } from '@shared/projects'
 import { ProjectMenu } from '@renderer/features/projects/components/ProjectMenu'
 import { useProjects } from '@renderer/features/projects/store'
 import { pinnedProjects, PROJECTS_ROUTE, projectPath } from '@renderer/features/projects/view'
+import { PLUGINS_ROUTE } from '@renderer/features/plugins/model'
 import { buildSidebar, DRAG_TYPE, type SidebarRow, type SidebarSection } from '../sidebarTree'
 import { useChat } from '../store'
 
@@ -381,8 +382,8 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <SidebarItem
           icon={Plug}
           label={t('sidebar.plugins')}
-          active={pathname === '/soon/plugins'}
-          onClick={() => void navigate('/soon/plugins')}
+          active={pathname.startsWith(PLUGINS_ROUTE)}
+          onClick={() => void navigate(PLUGINS_ROUTE)}
           testId="nav-plugins"
         />
       </div>

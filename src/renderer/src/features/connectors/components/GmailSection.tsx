@@ -13,6 +13,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input, Label, Textarea } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { daysLeft, invalid, isError, parseBlocked, safeCall, useConnectors } from '../store'
+import { ConfirmButton } from '@renderer/components/ConfirmButton'
 import { ConnectionBadge, ErrorText, SetupSteps } from './shared'
 
 function Credentials({
@@ -233,15 +234,14 @@ function AccountRow({ account, busy }: { account: GmailAccountStatus; busy: bool
               <RefreshCw />
               {t('gmail.reconnect')}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void run(() => api.gmail.disconnect(account.id))}
-              data-testid="gmail-disconnect"
-            >
-              <LogOut />
-              {t('gmail.disconnect')}
-            </Button>
+            {/* Ngắt = xoá token của tài khoản → bấm hai lần. */}
+            <ConfirmButton
+              icon={<LogOut />}
+              label={t('gmail.disconnect')}
+              confirmLabel={t('gmail.disconnectConfirm')}
+              onConfirm={() => void run(() => api.gmail.disconnect(account.id))}
+              testId="gmail-disconnect"
+            />
           </>
         )}
       </div>
@@ -326,23 +326,8 @@ export function GmailSection({ status }: { status: GmailStatus }) {
           </span>
         )}
       </div>
-      <label className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={status.enabled}
-          onChange={(e) => {
-            const on = e.target.checked
-            setError(null)
-            void patchGmail((s) => ({ ...s, enabled: on }), () => api.gmail.setEnabled(on), setError)
-          }}
-          data-testid="gmail-enable"
-        />
-        <span>
-          <span className="block text-sm font-medium">{t('gmail.enable')}</span>
-          <span className="block text-xs text-muted-foreground">{t('gmail.enableHelp')}</span>
-        </span>
-      </label>
+      {/* Bật / tắt Gmail chỉ ở menu ⋯ của trang Plugin (một mục một chỗ) — đây chỉ là phần cấu hình. */}
+      {!status.enabled && <p className="text-sm text-muted-foreground" data-testid="gmail-off">{t('gmail.off')}</p>}
 
       {status.enabled && (
         <>

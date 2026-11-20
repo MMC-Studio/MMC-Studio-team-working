@@ -10,7 +10,8 @@
     "running": "Đang chạy: {{url}}",
     "stopped": "Đang tắt",
     "hotkey": "Ctrl+Alt+Q để ngắt",
-    "stopAll": "Ngắt tất cả"
+    "stopAll": "Ngắt tất cả",
+    "off": "Kết nối agent đang tắt. Bật ở menu ⋯ phía trên."
   },
   "limits": {
     "perHour": "Yêu cầu / giờ / agent",
@@ -88,7 +89,10 @@
     "empty": "Chưa có MCP server nào.",
     "name": "Tên (chữ thường, số, - _)",
     "type": "Loại",
-    "types": { "stdio": "Chạy lệnh (stdio)", "http": "URL (HTTP)" },
+    "types": {
+      "stdio": "Chạy lệnh (stdio)",
+      "http": "URL (HTTP)"
+    },
     "command": "Lệnh",
     "args": "Tham số (mỗi dòng một tham số)",
     "env": "Biến môi trường bí mật (KEY=VALUE, mỗi dòng một cặp)",
@@ -102,7 +106,9 @@
       "reserved_name": "Tên này app dùng riêng — chọn tên khác.",
       "duplicate_name": "Đã có server trùng tên.",
       "secure_storage_unavailable": "Máy không hỗ trợ mã hoá an toàn — không lưu được giá trị bí mật."
-    }
+    },
+    "on": "Đang bật",
+    "off": "Đang tắt"
   },
   "errors": {
     "hotkey_unavailable": "Không đăng ký được phím dừng khẩn cấp Ctrl+Alt+Q (có thể app khác đang dùng). Chỉ bật được khi phím dừng hoạt động.",

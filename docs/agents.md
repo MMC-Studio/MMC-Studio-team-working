@@ -2,7 +2,7 @@
 
 Cho **Claude Code, Claude Desktop** và agent khác trên cùng máy dùng trợ lý của bạn (gọi tắt là Mizuki — tên hiển thị theo
 trợ lý bạn đặt) như một công cụ, và cho Mizuki dùng **MCP server khác**. Mặc định **tắt**. Bật ở
-*Cài đặt → Tính năng thử nghiệm → Kết nối agent*.
+*Plugin* (thanh bên chat) → dòng **Kết nối agent** → menu ⋯ → **Bật** (hộp cảnh báo); MCP server: *Plugin → Thêm ▾ → Thêm MCP server*.
 
 ## 1. Cho agent khác dùng Mizuki (MCP server)
 

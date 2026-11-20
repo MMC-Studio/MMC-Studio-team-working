@@ -14,6 +14,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input, Label, Select } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { invalid, isError, safeCall, toggleChat, useConnectors } from '../store'
+import { ConfirmButton } from '@renderer/components/ConfirmButton'
 import { ConnectionBadge, ErrorText, SetupSteps } from './shared'
 
 function Credentials({
@@ -270,7 +271,6 @@ function Chats({ status }: { status: TelegramStatus }) {
 export function TelegramSection({ status }: { status: TelegramStatus }) {
   const { t } = useTranslation('connectors')
   const [error, setError] = useState<string | null>(null)
-  const patchTelegram = useConnectors((s) => s.patchTelegram)
   const connected = status.connection === 'connected'
 
   return (
@@ -282,23 +282,8 @@ export function TelegramSection({ status }: { status: TelegramStatus }) {
         </h2>
         {status.enabled && <ConnectionBadge state={status.connection} testId="tg-connection" />}
       </div>
-      <label className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={status.enabled}
-          onChange={(e) => {
-            const on = e.target.checked
-            setError(null)
-            void patchTelegram((s) => ({ ...s, enabled: on }), () => api.telegram.setEnabled(on), setError)
-          }}
-          data-testid="tg-enable"
-        />
-        <span>
-          <span className="block text-sm font-medium">{t('telegram.enable')}</span>
-          <span className="block text-xs text-muted-foreground">{t('telegram.enableHelp')}</span>
-        </span>
-      </label>
+      {/* Bật / tắt Telegram chỉ ở menu ⋯ của trang Plugin (một mục một chỗ) — đây chỉ là phần cấu hình. */}
+      {!status.enabled && <p className="text-sm text-muted-foreground" data-testid="tg-off">{t('telegram.off')}</p>}
 
       {status.enabled && (
         <>
@@ -320,17 +305,14 @@ export function TelegramSection({ status }: { status: TelegramStatus }) {
                   <span className="text-muted-foreground"> · {status.account.phone}</span>
                 )}
               </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  void api.telegram.logout().then((r) => setError(isError(r) ? r.error : null))
-                }
-                data-testid="tg-logout"
-              >
-                <LogOut />
-                {t('telegram.logout')}
-              </Button>
+              {/* Đăng xuất = xoá phiên → bấm hai lần. */}
+              <ConfirmButton
+                icon={<LogOut />}
+                label={t('telegram.logout')}
+                confirmLabel={t('telegram.logoutConfirm')}
+                onConfirm={() => void api.telegram.logout().then((r) => setError(isError(r) ? r.error : null))}
+                testId="tg-logout"
+              />
             </div>
           )}
           <ErrorText error={error} />

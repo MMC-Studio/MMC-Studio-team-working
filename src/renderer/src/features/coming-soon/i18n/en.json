@@ -5,10 +5,6 @@
     "scheduled": {
       "title": "Scheduled",
       "description": "Schedule the assistant to run tasks on its own (e.g. summarise email every morning)."
-    },
-    "plugins": {
-      "title": "Plugins",
-      "description": "See and manage installed skills and MCP connections, plus suggested plugins."
     }
   }
 }
