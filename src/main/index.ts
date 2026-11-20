@@ -643,7 +643,8 @@ async function bootstrap(): Promise<void> {
   const fakeChat =
     !app.isPackaged && process.env.MMC_FAKE_CHAT === '1' ? new FakeChatProvider(
           (name, input, conversationId) => tools.call(name, input, { conversationId }),
-          (conversationId, toolName, input) => approvals.decide(conversationId, toolName, input)
+          (conversationId, toolName, input) => approvals.decide(conversationId, toolName, input),
+          process.env.MMC_FAKE_CLI_SESSIONS === '1'
         )
       : null
 

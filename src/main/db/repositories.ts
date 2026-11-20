@@ -175,6 +175,7 @@ export class ConversationRepository {
   ):
     | (Conversation & {
         cliSessionId: string | null
+        cliSessionPromptKey: string | null
         memoryExtractedAt: number | null
         titleSource: TitleSource
         forkedFromMessageId: string | null
@@ -185,6 +186,7 @@ export class ConversationRepository {
       ? {
           ...toConversation(row),
           cliSessionId: row.cliSessionId,
+          cliSessionPromptKey: row.cliSessionPromptKey,
           memoryExtractedAt: row.memoryExtractedAt,
           titleSource: row.titleSource,
           forkedFromMessageId: row.forkedFromMessageId
@@ -343,8 +345,13 @@ export class ConversationRepository {
     this.db.update(conversations).set({ updatedAt: Date.now() }).where(eq(conversations.id, id)).run()
   }
 
-  setSession(id: string, cliSessionId: string | null): void {
-    this.db.update(conversations).set({ cliSessionId }).where(eq(conversations.id, id)).run()
+  /** `promptKey`: khoá phần dự án của system prompt lúc tạo session (xem cột cli_session_prompt_key). */
+  setSession(id: string, cliSessionId: string | null, promptKey: string | null = null): void {
+    this.db
+      .update(conversations)
+      .set({ cliSessionId, cliSessionPromptKey: cliSessionId ? promptKey : null })
+      .where(eq(conversations.id, id))
+      .run()
   }
 
   /** Bảo trì nội bộ (mọi tài khoản): hội thoại có tiêu đề kiểu lệnh tạo artifact của bản cũ. */

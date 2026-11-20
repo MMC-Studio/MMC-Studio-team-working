@@ -76,6 +76,12 @@ export const conversations = sqliteTable(
     pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
     provider: text('provider').notNull().default('claude-cli'),
     cliSessionId: text('cli_session_id'),
+    /**
+     * Khoá phần "Dự án" của system prompt lúc tạo session CLI. CLI khi `--resume` giữ system prompt của lượt đầu và
+     * bỏ qua file mới → phần dự án đổi (sửa hướng dẫn / file) thì phải mở session mới. null = session tạo trước khi
+     * có cột này.
+     */
+    cliSessionPromptKey: text('cli_session_prompt_key'),
     cwd: text('cwd'),
     /** Lần cuối trích đề xuất memory từ hội thoại này (tin sau mốc này là "mới"). */
     memoryExtractedAt: integer('memory_extracted_at'),

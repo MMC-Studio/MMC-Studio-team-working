@@ -36,6 +36,8 @@ test.beforeAll(async () => {
       ...process.env,
       TEAM_WORKING_USER_DATA: userData,
       MMC_FAKE_CHAT: '1',
+      // Trợ lý giả có session như Claude CLI: lượt --resume giữ system prompt của lượt tạo session.
+      MMC_FAKE_CLI_SESSIONS: '1',
       MMC_FAKE_PROJECT_FILES: paths.join('|')
     }
   })
@@ -108,6 +110,17 @@ test('gửi trong dự án → cuộc mới thuộc dự án; trợ lý nhận h
   await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
 })
 
+test('cùng cuộc, không đổi gì → giữ session (không gửi lại lịch sử)', async () => {
+  await box().fill('tin thứ hai')
+  await box().press('Enter')
+  await expect(page.getByTestId('message-assistant')).toHaveCount(2, { timeout: 20_000 })
+  await expect(lastReply()).toContainText('hướng dẫn: Luôn trả lời bằng C#', { timeout: 20_000 })
+  await expect(lastReply()).not.toContainText('[kèm lịch sử]')
+  await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
+})
+
+// Lỗi thật (test tay #30 với Claude): CLI khi --resume giữ system prompt cũ → hướng dẫn mới không có hiệu lực
+// trong cuộc đang dở. App phải mở session mới (kèm lịch sử) khi phần dự án của prompt đổi.
 test('sửa hướng dẫn giữa chừng → có hiệu lực từ tin tiếp theo trong cùng cuộc', async () => {
   await page.getByTestId('chat-project').click()
   await expect(page.getByTestId('project-conversation')).toHaveCount(1, FAST)
@@ -116,9 +129,34 @@ test('sửa hướng dẫn giữa chừng → có hiệu lực từ tin tiếp t
   await page.getByTestId('instructions-save').click()
   await expect(page.getByTestId('project-instructions')).toHaveText('Trả lời bằng Python', FAST)
   await page.getByTestId('project-conversation').first().click()
-  await box().fill('tin thứ hai')
+  await box().fill('tin thứ ba')
   await box().press('Enter')
+  await expect(page.getByTestId('message-assistant')).toHaveCount(3, { timeout: 20_000 })
   await expect(lastReply()).toContainText('hướng dẫn: Trả lời bằng Python', { timeout: 20_000 })
+  // Session mới nên gửi kèm lịch sử để trợ lý vẫn nắm ngữ cảnh cuộc trò chuyện.
+  await expect(lastReply()).toContainText('[kèm lịch sử]')
+  await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
+
+  // Lượt sau nữa không đổi gì → dùng tiếp session mới, vẫn hướng dẫn mới.
+  await box().fill('tin thứ tư')
+  await box().press('Enter')
+  await expect(page.getByTestId('message-assistant')).toHaveCount(4, { timeout: 20_000 })
+  await expect(lastReply()).toContainText('hướng dẫn: Trả lời bằng Python', { timeout: 20_000 })
+  await expect(lastReply()).not.toContainText('[kèm lịch sử]')
+  await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
+})
+
+test('thêm / gỡ file ngữ cảnh giữa chừng cũng có hiệu lực ở lượt tiếp theo', async () => {
+  await page.getByTestId('chat-project').click()
+  const huge = page.getByTestId('project-file').filter({ hasText: 'huge.md' })
+  await huge.hover()
+  await huge.getByTestId('project-file-remove').click()
+  await expect(page.getByTestId('project-file')).toHaveCount(2, FAST)
+  await page.getByTestId('project-conversation').first().click()
+  await box().fill('tin thứ năm')
+  await box().press('Enter')
+  await expect(page.getByTestId('message-assistant')).toHaveCount(5, { timeout: 20_000 })
+  await expect(lastReply()).toContainText('file: gdd.md, big.md]', { timeout: 20_000 })
   await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
 })
 
@@ -163,7 +201,7 @@ test('xoá dự án: hộp xác nhận đếm file + trí nhớ; cuộc trò chu
   await page.getByTestId('project-page').getByTestId('project-menu').first().click()
   await page.getByTestId('project-menu-delete').click()
   const counts = page.getByTestId('project-delete-counts')
-  await expect(counts).toContainText('3 file ngữ cảnh')
+  await expect(counts).toContainText('2 file ngữ cảnh')
   await expect(counts).toContainText('0 trí nhớ của dự án')
   await expect(page.getByTestId('project-delete-dialog')).toContainText('1 cuộc trò chuyện được giữ lại')
   await page.getByTestId('project-delete-confirm').click()

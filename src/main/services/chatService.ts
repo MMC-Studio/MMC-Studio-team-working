@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { ChatEvent, ChatMode, ChatUsage } from '@shared/ai'
 import type { AssistantProfile } from '@shared/schemas'
 import {
@@ -101,6 +101,20 @@ export function titleFromText(text: string): string {
 }
 
 /** Dựng lại ngữ cảnh khi session CLI bị mất (ví dụ người dùng xóa ~/.claude). */
+/** Khoá phần "Dự án" của system prompt ('' = cuộc không thuộc dự án). */
+export function projectPromptKey(section: string): string {
+  return section ? createHash('sha256').update(section).digest('hex').slice(0, 16) : ''
+}
+
+/**
+ * Session CLI còn dùng được không. CLI khi `--resume` GIỮ system prompt của lượt tạo session và bỏ qua
+ * `--system-prompt-file` mới (kiểm chứng CLI 2.1.329) → phần dự án đổi thì phải mở session mới.
+ * `stored = null`: session tạo trước khi app lưu khoá — cuộc thường thì giữ, cuộc trong dự án thì làm mới cho chắc.
+ */
+export function sessionStale(stored: string | null, current: string): boolean {
+  return stored === null ? current !== '' : stored !== current
+}
+
 export function promptWithHistory(history: Message[], text: string): string {
   const lines = history
     .filter((m) => !m.recalledAt && m.content.trim())
@@ -286,6 +300,7 @@ export class ChatService {
       messageId: assistantMessage.id,
       mode: conversation.mode,
       sessionId: conversation.cliSessionId ?? undefined,
+      sessionPromptKey: conversation.cliSessionPromptKey,
       // Chỉ gửi ảnh/file không kèm chữ → vẫn cần một câu nhắc cho Claude.
       text: withReplyQuote(
         this.promptText(conversationId, voice ? `${VOICE_NOTE}\n${text}` : text, media, attachments.length > 0),
@@ -422,6 +437,8 @@ export class ChatService {
     messageId: string
     mode: ChatMode
     sessionId?: string
+    /** Khoá phần dự án lúc tạo session hiện tại (xem sessionStale). */
+    sessionPromptKey?: string | null
     text: string
     userMessageId: string
     plan: TurnPlan | null
@@ -449,6 +466,7 @@ export class ChatService {
 
     const provider = deps.getProvider()
     const memory = deps.getMemoryContext(args.text)
+    const projectSection = deps.projectPromptFor?.(conversationId) ?? ''
     const userSkills = deps.userSkillsFor
       ? await deps.userSkillsFor(args.text).catch((e: unknown) => {
           deps.log.error(`Chọn skill lỗi: ${String(e)}`)
@@ -463,7 +481,7 @@ export class ChatService {
       userSkills: userSkills.section,
       user: memory.user,
       memories: memory.memories,
-      project: deps.projectPromptFor?.(conversationId) ?? '',
+      project: projectSection,
       extraContext: [
         args.options.context,
         args.plan && deps.expressive ? await deps.expressive.promptFor(args.plan) : '',
@@ -479,7 +497,16 @@ export class ChatService {
     })
     // Provider có session (CLI) tự nhớ hội thoại; provider không session (API) cần lịch sử.
     const history = provider.stateful ? undefined : toHistory(args.history)
-    const initialSession = provider.stateful ? args.sessionId : undefined
+    let initialSession = provider.stateful ? args.sessionId : undefined
+    // Sửa hướng dẫn / file dự án giữa cuộc: CLI resume sẽ giữ system prompt cũ → mở session mới (kèm lịch sử dạng chữ).
+    const promptKey = projectPromptKey(projectSection)
+    let promptChanged = false
+    if (initialSession && sessionStale(args.sessionPromptKey ?? null, promptKey)) {
+      deps.log.info(`Phần dự án của system prompt đã đổi → session CLI mới cho ${conversationId}`)
+      deps.conversations.setSession(conversationId, null)
+      initialSession = undefined
+      promptChanged = true
+    }
 
     const attempt = async (prompt: string, sessionId: string | undefined): Promise<void> => {
       error = null
@@ -503,7 +530,7 @@ export class ChatService {
       for await (const event of stream) {
         switch (event.type) {
           case 'session':
-            deps.conversations.setSession(conversationId, event.sessionId)
+            deps.conversations.setSession(conversationId, event.sessionId, promptKey)
             continue // chi tiết nội bộ, renderer không cần
           case 'text':
             content += event.delta
@@ -529,9 +556,10 @@ export class ChatService {
       }
     }
 
-    // Nhánh tách từ cuộc khác: chưa có session CLI nhưng đã có tin cũ → lượt đầu gửi kèm lịch sử.
+    // Nhánh tách từ cuộc khác, hoặc vừa bỏ session vì phần dự án đổi: chưa có session CLI nhưng đã có tin cũ
+    // → lượt đầu gửi kèm lịch sử.
     const firstPrompt =
-      provider.stateful && !initialSession && args.forked && args.history.length > 0
+      provider.stateful && !initialSession && (args.forked || promptChanged) && args.history.length > 0
         ? promptWithHistory(args.history, args.text)
         : args.text
     try {
