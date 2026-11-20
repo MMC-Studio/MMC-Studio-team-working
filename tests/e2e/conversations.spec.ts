@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { goTo, waitForStartup } from './helpers'
 
-// Sắp xếp cuộc trò chuyện ở thanh bên: nhóm, ghim, kéo thả, gợi ý nhóm, nhánh, tiêu đề tự động, tìm kiếm.
+// Sắp xếp cuộc trò chuyện ở thanh bên: nhóm, ghim, kéo thả, gợi ý nhóm, nhánh, tiêu đề tự động, tìm kiếm (Ctrl+K).
 // Mỗi thao tác → thanh bên đổi trong 1 GIÂY (cơ chế đồng bộ chung). Chạy được khi KHÔNG có Claude CLI:
 // chat + đặt tiêu đề (model rẻ) đều giả lập bằng MMC_FAKE_CHAT.
 test.describe.configure({ mode: 'serial' })
@@ -149,76 +149,40 @@ test('tách nhánh từ một tin → cuộc mới có sẵn ngữ cảnh, thụ
   await expect(page.getByTestId('message-assistant')).toHaveCount(2, { timeout: 20_000 })
 })
 
-/** Ô tìm chỉ hiện khi bấm mục "Tìm kiếm" trên thanh bên (PR 3 thay bằng cửa sổ nổi). */
-async function openSearch(): Promise<ReturnType<Page['getByRole']>> {
-  const search = page.getByRole('textbox', { name: 'Tìm cuộc trò chuyện' })
-  if (!(await search.isVisible())) await page.getByTestId('nav-search').click()
-  await expect(search).toBeVisible(FAST)
+/** Tìm kiếm ở cửa sổ nổi Ctrl+K (chi tiết: search.spec.ts) — ở đây chỉ kiểm dữ liệu tìm theo nhóm / nội dung. */
+async function openSearch(): Promise<ReturnType<Page['getByTestId']>> {
+  const search = page.getByTestId('palette-input')
+  if (!(await search.isVisible())) await page.keyboard.press('Control+k')
+  await expect(search).toBeFocused(FAST)
+  await page.getByTestId('palette-tab-chats').click()
   return search
 }
+const results = () => page.getByTestId('search-palette').getByTestId('palette-item')
 
 test('tìm kiếm: theo tiêu đề và theo tên nhóm', async () => {
   const search = await openSearch()
   await search.fill('unity')
-  await expect(page.getByTestId('conversation-item')).toHaveCount(2)
-  // Nhóm không có kết quả bị ẩn khi tìm.
-  await expect(groupSection('Tâm sự')).toHaveCount(0)
+  await expect(results()).toHaveCount(2)
   await search.fill('âm nhạc')
-  await expect(page.getByTestId('conversation-item')).toHaveCount(0)
+  await expect(page.getByTestId('palette-empty')).toBeVisible()
   await search.fill('tối nay')
-  await expect(page.getByTestId('conversation-item')).toHaveCount(1)
-  await search.fill('')
-  await expect(groupSection('Tâm sự')).toBeVisible()
-})
-
-test('đang tìm: nhóm có kết quả tự mở, vẫn thu gọn được, hiện số kết quả; xoá ô tìm → về trạng thái cũ', async () => {
-  const search = await openSearch()
-  const unity = groupSection('Unity')
-  const toggle = unity.getByTestId('group-toggle')
-  // Trước khi tìm: Unity đang thu gọn (đã lưu).
-  await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false', FAST)
-
-  await search.fill('unity')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  await expect(unity.getByTestId('group-count')).toHaveText('2')
-  await expect(unity.getByTestId('conversation-item')).toHaveCount(2)
-  await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false', FAST)
-  await expect(unity.getByTestId('conversation-item')).toHaveCount(0, FAST)
-  await expect(unity.getByTestId('group-count')).toHaveText('2')
-  await toggle.click()
-  await expect(unity.getByTestId('conversation-item')).toHaveCount(2, FAST)
-  await toggle.click()
-
-  // Xoá ô tìm → về trạng thái đã lưu trước khi tìm (thu gọn). Nhóm rỗng hiện lại = đã hết tìm thật.
-  await search.fill('')
-  await expect(groupSection('Tâm sự')).toBeVisible()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  // Tìm lại → lại tự mở.
-  await search.fill('unity')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  await search.fill('')
-  await expect(groupSection('Tâm sự')).toBeVisible()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true', FAST)
+  await expect(results()).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('search-palette')).toHaveCount(0, FAST)
 })
 
 test('khớp nội dung tin nhắn (không phải tiêu đề) → dòng trích đoạn, chữ khớp tô đậm', async () => {
   const search = await openSearch()
   // Tiêu đề "Chủ đề: tối nay nghe" không có "chill" — chỉ tin nhắn có.
   await search.fill('chill')
-  const row = item(/Chủ đề: tối nay nghe/)
-  await expect(page.getByTestId('conversation-item')).toHaveCount(1)
-  const snippet = row.getByTestId('search-snippet')
+  await expect(results()).toHaveCount(1)
+  const snippet = results().first().getByTestId('search-snippet')
   await expect(snippet).toContainText('tối nay nghe gì cho chill')
   await expect(snippet.locator('strong').first()).toHaveText('chill')
   // Khớp ngay ở tiêu đề → không cần trích đoạn.
   await search.fill('tối nay')
-  await expect(item(/Chủ đề: tối nay nghe/).getByTestId('search-snippet')).toHaveCount(0)
-  await search.fill('')
-  await expect(page.getByTestId('search-snippet')).toHaveCount(0)
+  await expect(results().filter({ hasText: /Chủ đề: tối nay nghe/ }).getByTestId('search-snippet')).toHaveCount(0)
+  await page.keyboard.press('Escape')
 })
 
 test('xoá nhóm: cuộc trò chuyện vẫn còn, ra khỏi nhóm', async () => {

@@ -7,7 +7,7 @@ import { AssistantAvatar } from '@renderer/components/AssistantAvatar'
 import { Button } from '@renderer/components/ui/button'
 import { useCliStatus } from '@renderer/stores/cli'
 import { usePreferences } from '@renderer/stores/preferences'
-import { dragHasFiles, useDraft } from '../draft'
+import { dragHasFiles, useComposeText, useDraft } from '../draft'
 import { useChat } from '../store'
 import { ChatHeader } from './ChatHeader'
 import { CodeBar } from './CodeBar'
@@ -41,6 +41,17 @@ export function ChatPage() {
   const messages = useChat((s) => (activeId ? (s.messages[activeId] ?? EMPTY) : EMPTY))
   const active = conversations.find((c) => c.id === activeId)
   const [draftMode, setDraftMode] = useState<ChatMode>('free')
+  // Cửa sổ tìm kiếm → "Cuộc trò chuyện Code mới": cuộc mới (chưa tạo) ở chế độ Code.
+  useEffect(() => {
+    const take = (): void => {
+      const m = useComposeText.getState().takeMode()
+      if (m) setDraftMode(m)
+    }
+    take()
+    return useComposeText.subscribe((s) => {
+      if (s.mode !== null) take()
+    })
+  }, [])
   const mode = active?.mode ?? draftMode
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)

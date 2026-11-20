@@ -84,19 +84,18 @@ test('Ctrl+B / nút ẩn thanh bên → ẩn hẳn, đầu khung chat có nút m
   await expect(sidebar()).toBeVisible(FAST)
 })
 
-test('Tìm kiếm: ô tìm hiện trên đầu danh sách, lọc ngay; Esc đóng và xoá', async () => {
+test('Tìm kiếm: mục trên thanh bên mở cửa sổ nổi (chi tiết ở search.spec.ts)', async () => {
   await chat('Lỗi Unity nhân vật xuyên tường')
   await chat('Ôn thi cơ sở dữ liệu')
-  await expect(page.getByTestId('conversation-item')).toHaveCount(2)
-  const search = page.getByRole('textbox', { name: 'Tìm cuộc trò chuyện' })
-  await expect(search).toHaveCount(0)
   await page.getByTestId('nav-search').click()
-  await expect(search).toBeFocused(FAST)
+  const input = page.getByTestId('palette-input')
+  await expect(input).toBeFocused(FAST)
   await expect(page.getByTestId('nav-search')).toHaveAttribute('aria-current', 'page')
-  await search.fill('unity')
-  await expect(page.getByTestId('conversation-item')).toHaveCount(1)
-  await search.press('Escape')
-  await expect(search).toHaveCount(0, FAST)
+  await input.fill('unity')
+  await expect(page.getByTestId('search-palette').getByTestId('palette-item')).toHaveCount(1)
+  await input.press('Escape')
+  await expect(input).toHaveCount(0, FAST)
+  // Thanh bên luôn đủ danh sách (không lọc theo ô tìm).
   await expect(page.getByTestId('conversation-item')).toHaveCount(2)
 })
 

@@ -23,7 +23,6 @@ const continueAfterRun = new Map<string, string>()
 type ChatState = {
   conversations: Conversation[]
   groups: ConversationGroup[]
-  query: string
   activeId: string | null
   messages: Record<string, Message[]>
   streaming: Record<string, Streaming>
@@ -32,7 +31,6 @@ type ChatState = {
   loadConversations(): Promise<void>
   /** Hỏi lại danh sách + nhóm (gộp các lần gọi dồn dập) — dùng cho sync 'conversations'. */
   refreshSidebar(): Promise<void>
-  setQuery(query: string): Promise<void>
   select(id: string | null): Promise<void>
   create(mode?: ChatMode): Promise<Conversation>
   rename(id: string, title: string): Promise<void>
@@ -136,7 +134,7 @@ export const useChat = create<ChatState>((set, get) => {
   }
   const refresh = coalesce(async () => {
     const [conversations, groups] = await Promise.all([
-      api.conversations.list(get().query || undefined),
+      api.conversations.list(),
       api.conversationGroups.list()
     ])
     set({ conversations, groups })
@@ -145,7 +143,6 @@ export const useChat = create<ChatState>((set, get) => {
   return {
     conversations: [],
     groups: [],
-    query: '',
     activeId: null,
     messages: {},
     streaming: {},
@@ -157,11 +154,6 @@ export const useChat = create<ChatState>((set, get) => {
     },
 
     refreshSidebar: () => refresh(),
-
-    async setQuery(query) {
-      set({ query })
-      await get().loadConversations()
-    },
 
     async select(id) {
       const previous = get().activeId
@@ -484,7 +476,6 @@ export const useChat = create<ChatState>((set, get) => {
       set({
         conversations: [],
         groups: [],
-        query: '',
         activeId: null,
         messages: {},
         streaming: {},

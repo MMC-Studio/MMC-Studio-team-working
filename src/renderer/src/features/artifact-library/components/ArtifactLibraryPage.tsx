@@ -1,8 +1,7 @@
-import { ChartBar, FileCode2, FileText, GitFork, Presentation, Search, Shapes, Table2, type LucideIcon } from 'lucide-react'
+import { Search, Shapes } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import type { ArtifactType } from '@shared/artifacts'
 import { Input } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { useSyncedState } from '@renderer/lib/sync'
@@ -10,15 +9,7 @@ import { useArtifacts } from '@renderer/features/chat/artifacts/store'
 import { ChatLayout, SidebarToggle } from '@renderer/features/chat/layout/ChatLayout'
 import { useChat } from '@renderer/features/chat/store'
 import { filterArtifacts } from '../filter'
-
-const TYPE_ICON: Record<ArtifactType, LucideIcon> = {
-  doc: FileText,
-  slides: Presentation,
-  sheet: Table2,
-  chart: ChartBar,
-  mermaid: GitFork,
-  html: FileCode2
-}
+import { ARTIFACT_TYPE_ICON } from '../typeIcon'
 
 /** Trang Artifacts: mọi artifact của mọi cuộc trò chuyện; bấm → mở cuộc trò chuyện chứa nó + panel artifact. */
 export function ArtifactLibraryPage() {
@@ -66,7 +57,7 @@ export function ArtifactLibraryPage() {
             ) : (
               <ul className="divide-y rounded-lg border" data-testid="artifact-library-list">
                 {list.map((a) => {
-                  const Icon = TYPE_ICON[a.type] ?? Shapes
+                  const Icon = ARTIFACT_TYPE_ICON[a.type] ?? Shapes
                   return (
                     <li key={a.id}>
                       <button

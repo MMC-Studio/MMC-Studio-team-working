@@ -1,10 +1,8 @@
 {
   "title": "Chat",
   "newChat": "New chat",
-  "search": "Search chats…",
   "untitled": "Untitled",
   "noConversations": "No chats yet",
-  "noResults": "No results",
   "pin": "Pin",
   "unpin": "Unpin",
   "pinned": "Pinned",
@@ -335,8 +333,7 @@
     "errors": {
       "group_name_taken": "A group with this name already exists.",
       "invalid_input": "Invalid group name."
-    },
-    "matchedIn": "Matched in messages"
+    }
   },
   "folderAccess": {
     "title": "The assistant asks to read a folder",
@@ -399,7 +396,7 @@
     "navLabel": "Chat navigation",
     "listLabel": "Conversations",
     "search": "Search",
-    "closeSearch": "Close search",
+    "searchHint": "Search (Ctrl+K)",
     "projects": "Projects",
     "artifacts": "Artifacts",
     "scheduled": "Scheduled",
@@ -408,5 +405,52 @@
     "show": "Show sidebar (Ctrl+B)",
     "localAccount": "On this computer",
     "resize": "Drag to resize the sidebar · double-click to reset"
+  },
+  "palette": {
+    "title": "Search",
+    "placeholder": "Search",
+    "close": "Close",
+    "tabs": {
+      "all": "All",
+      "artifacts": "Artifacts",
+      "chats": "Chats",
+      "code": "Code",
+      "projects": "Projects",
+      "scheduled": "Scheduled"
+    },
+    "sections": {
+      "recent": "Recents",
+      "results": "Results",
+      "actions": "Actions",
+      "filters": "Filter by type",
+      "itemActions": "Actions · {{title}}"
+    },
+    "actions": {
+      "new-chat": "New chat",
+      "new-code": "New Code chat",
+      "open": "Open",
+      "openConversation": "Open the chat containing it",
+      "pin": "Pin",
+      "unpin": "Unpin"
+    },
+    "time": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "Past week",
+      "month": "Past month"
+    },
+    "noResultsIn": "No results in {{tab}}",
+    "noResults": "No results",
+    "searchAll": "Search all",
+    "more": "More actions (Alt+Enter)",
+    "hints": {
+      "close": "Close",
+      "changeType": "Change type",
+      "filters": "Filters",
+      "actions": "Actions",
+      "compose": "Compose"
+    },
+    "previewLoading": "Loading preview…",
+    "previewEmpty": "(Empty)"
   }
 }
