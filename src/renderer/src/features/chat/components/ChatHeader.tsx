@@ -1,4 +1,4 @@
-import { LoaderCircle, PanelRight, Sparkles } from 'lucide-react'
+import { ChevronRight, FolderKanban, LoaderCircle, PanelRight, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -8,6 +8,8 @@ import { api } from '@renderer/lib/api'
 import { useArtifacts } from '../artifacts/store'
 import { SidebarToggle } from '../layout/ChatLayout'
 import { errorCode } from '../store'
+import { useProjects } from '@renderer/features/projects/store'
+import { projectPath } from '@renderer/features/projects/view'
 
 type Status = { kind: 'idle' } | { kind: 'running' } | { kind: 'done'; added: number } | { kind: 'error'; code: string }
 
@@ -28,6 +30,8 @@ export function ChatHeader({
   const { t } = useTranslation('chat')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const artifactsOpen = useArtifacts((s) => s.open)
+  // Cuộc thuộc dự án → "Dự án ›" ở đầu, bấm để về trang dự án.
+  const project = useProjects((s) => s.projects.find((p) => p.id === conversation?.projectId))
   const setArtifactsOpen = useArtifacts((s) => s.setOpen)
 
   const suggest = async (): Promise<void> => {
@@ -46,6 +50,18 @@ export function ChatHeader({
     <header className="@container/header border-b" data-testid="chat-header">
       <div className="flex min-h-11 items-center gap-2 px-4 py-1.5">
         <SidebarToggle when="hidden" />
+        {project && (
+          <Link
+            to={projectPath(project.id)}
+            className="flex max-w-[40%] shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            title={project.name}
+            data-testid="chat-project"
+          >
+            <FolderKanban className="size-4 shrink-0" />
+            <span className="truncate">{project.name}</span>
+            <ChevronRight className="size-3.5 shrink-0" />
+          </Link>
+        )}
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium" data-testid="chat-title" title={conversation?.title}>
           {conversation ? conversation.title || t('untitled') : ''}
         </h2>

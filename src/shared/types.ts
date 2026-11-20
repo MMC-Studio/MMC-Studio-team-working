@@ -1,5 +1,6 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
+import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
 import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
@@ -86,6 +87,8 @@ export type Conversation = {
   parentId: string | null
   /** Trợ lý gợi ý xếp vào nhóm này — chờ người dùng đồng ý. */
   suggestedGroupId: string | null
+  /** Dự án chứa cuộc này (null = cuộc thường). */
+  projectId: string | null
   /**
    * Chỉ khi đang tìm kiếm và khớp nội dung tin nhắn (không phải tiêu đề): trích đoạn, chữ khớp nằm giữa
    * SNIPPET_OPEN / SNIPPET_CLOSE (`@shared/search`).
@@ -258,13 +261,25 @@ export interface TeamWorkingApi {
   }
   conversations: {
     list(query?: string): Promise<Conversation[]>
-    create(mode?: ChatMode): Promise<Conversation>
+    create(mode?: ChatMode, projectId?: string): Promise<Conversation>
     update(input: ConversationUpdate): Promise<Conversation>
     remove(id: string): Promise<void>
     /** Tách nhánh từ một tin nhắn: hội thoại mới có sẵn các tin tới tin đó. */
     fork(messageId: string): Promise<Conversation>
     /** Trả lời gợi ý nhóm của trợ lý: đồng ý → chuyển vào nhóm; không → bỏ gợi ý. */
     answerSuggestion(id: string, accept: boolean): Promise<Conversation>
+  }
+  /** Dự án cá nhân (hướng dẫn + file ngữ cảnh gửi kèm trợ lý trong mọi cuộc của dự án). */
+  projects: {
+    list(): Promise<Project[]>
+    get(id: string): Promise<ProjectDetail | null>
+    create(input: { name: string; description?: string }): Promise<Project>
+    update(input: ProjectUpdate): Promise<Project>
+    deleteInfo(id: string): Promise<ProjectDeleteInfo | null>
+    remove(id: string): Promise<boolean>
+    /** Mở hộp thoại chọn file chữ (main) rồi thêm vào dự án. */
+    addFiles(id: string): Promise<ProjectAddFilesResult>
+    removeFile(fileId: string): Promise<void>
   }
   conversationGroups: {
     list(): Promise<ConversationGroup[]>

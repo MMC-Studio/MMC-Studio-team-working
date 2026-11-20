@@ -35,11 +35,21 @@ const api: TeamWorkingApi = {
   },
   conversations: {
     list: (query) => ipcRenderer.invoke(IPC.conversationsList, { query }),
-    create: (mode) => ipcRenderer.invoke(IPC.conversationsCreate, { mode }),
+    create: (mode, projectId) => ipcRenderer.invoke(IPC.conversationsCreate, { mode, projectId }),
     update: (input) => ipcRenderer.invoke(IPC.conversationsUpdate, input),
     remove: (id) => ipcRenderer.invoke(IPC.conversationsRemove, id),
     fork: (messageId) => ipcRenderer.invoke(IPC.conversationsFork, messageId),
     answerSuggestion: (id, accept) => ipcRenderer.invoke(IPC.conversationsAnswerSuggestion, { id, accept })
+  },
+  projects: {
+    list: () => ipcRenderer.invoke(IPC.projectsList),
+    get: (id) => ipcRenderer.invoke(IPC.projectsGet, id),
+    create: (input) => ipcRenderer.invoke(IPC.projectsCreate, input),
+    update: (input) => ipcRenderer.invoke(IPC.projectsUpdate, input),
+    deleteInfo: (id) => ipcRenderer.invoke(IPC.projectsDeleteInfo, id),
+    remove: (id) => ipcRenderer.invoke(IPC.projectsRemove, id),
+    addFiles: (id) => ipcRenderer.invoke(IPC.projectsAddFiles, id),
+    removeFile: (fileId) => ipcRenderer.invoke(IPC.projectsRemoveFile, fileId)
   },
   conversationGroups: {
     list: () => ipcRenderer.invoke(IPC.conversationGroupsList),

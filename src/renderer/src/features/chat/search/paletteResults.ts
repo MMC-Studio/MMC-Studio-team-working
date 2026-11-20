@@ -1,11 +1,13 @@
 import type { ArtifactSummary, ArtifactType } from '@shared/artifacts'
 import type { ChatMode } from '@shared/ai'
 import type { Conversation } from '@shared/types'
+import type { Project } from '@shared/projects'
+import { matchesAllWords } from '@shared/text'
 import { filterArtifacts } from '@renderer/features/artifact-library/filter'
 
 /**
  * Cửa sổ tìm kiếm (Ctrl+K): các tab lọc. "Code" = cuộc trò chuyện chế độ Code, "Cuộc trò chuyện" = các chế độ khác.
- * Dự án / Lịch hẹn chưa có dữ liệu (PR 5 / PR 7) — tab vẫn hiện, luôn "Không có kết quả".
+ * Lịch hẹn chưa có dữ liệu (PR 7) — tab vẫn hiện, luôn "Không có kết quả".
  */
 export const PALETTE_TABS = ['all', 'artifacts', 'chats', 'code', 'projects', 'scheduled'] as const
 export type PaletteTab = (typeof PALETTE_TABS)[number]
@@ -32,6 +34,7 @@ export type PaletteItem =
       conversationTitle: string
       updatedAt: number
     }
+  | { kind: 'project'; id: string; title: string; pinned: boolean; updatedAt: number }
   | { kind: 'action'; id: PaletteAction }
 
 export type PaletteSection = { key: 'recent' | 'results' | 'actions'; items: PaletteItem[] }
@@ -73,16 +76,24 @@ export function buildPalette(input: {
   query: string
   conversations: Conversation[]
   artifacts: ArtifactSummary[]
+  /** Dự án cá nhân — lọc ở đây (không dấu, theo tên + mô tả). */
+  projects?: Project[]
 }): PaletteSection[] {
   const { tab } = input
   const searching = input.query.trim().length > 0
   const convs = input.conversations.map(conversationItem)
   const arts = filterArtifacts(input.artifacts, input.query).map(artifactItem)
+  const projs: PaletteItem[] = (input.projects ?? [])
+    .filter((p) => matchesAllWords(`${p.name} ${p.description}`, input.query))
+    .map((p) => ({ kind: 'project', id: p.id, title: p.name, pinned: p.pinned, updatedAt: p.updatedAt }))
 
   let items: PaletteItem[]
   switch (tab) {
     case 'all':
-      items = [...convs, ...arts]
+      items = [...convs, ...arts, ...projs]
+      break
+    case 'projects':
+      items = projs
       break
     case 'artifacts':
       items = arts

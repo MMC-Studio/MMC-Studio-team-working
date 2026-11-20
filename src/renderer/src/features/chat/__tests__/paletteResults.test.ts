@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ArtifactSummary } from '@shared/artifacts'
+import type { Project } from '@shared/projects'
 import type { Conversation } from '@shared/types'
 import { buildPalette, flatItems, itemKey, nextTab, previewText, RECENT_LIMIT, timeBucket } from '../search/paletteResults'
 
@@ -13,6 +14,7 @@ const conv = (id: string, extra: Partial<Conversation> = {}): Conversation => ({
   groupId: null,
   parentId: null,
   suggestedGroupId: null,
+  projectId: null,
   createdAt: 0,
   updatedAt: 0,
   ...extra
@@ -84,6 +86,19 @@ describe('buildPalette', () => {
   it('giữ trích đoạn FTS của cuộc trò chuyện', () => {
     const s = buildPalette({ tab: 'chats', query: 'chill', conversations: [conv('x', { searchSnippet: 'nghe \u0001chill\u0002' })], artifacts: [] })
     expect(flatItems(s)[0]).toMatchObject({ kind: 'conversation', snippet: 'nghe \u0001chill\u0002' })
+  })
+})
+
+describe('buildPalette — dự án', () => {
+  const projects: Project[] = [
+    { id: 'p1', name: 'Đồ án Unity', description: 'game 2D', instructions: '', pinned: true, fileCount: 0, createdAt: 0, updatedAt: 50 },
+    { id: 'p2', name: 'Ôn thi', description: '', instructions: '', pinned: false, fileCount: 0, createdAt: 0, updatedAt: 1 }
+  ]
+  it('tab Dự án: lọc không dấu theo tên + mô tả; tab Tất cả có cả dự án', () => {
+    expect(keys(buildPalette({ tab: 'projects', query: '', conversations: [], artifacts: [], projects }))).toEqual(['project:p1', 'project:p2'])
+    expect(keys(buildPalette({ tab: 'projects', query: 'do an', conversations: [], artifacts: [], projects }))).toEqual(['project:p1'])
+    expect(keys(buildPalette({ tab: 'projects', query: 'GAME', conversations: [], artifacts: [], projects }))).toEqual(['project:p1'])
+    expect(keys(buildPalette({ tab: 'all', query: 'on thi', conversations: [], artifacts: [], projects }))).toEqual(['project:p2'])
   })
 })
 

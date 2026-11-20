@@ -22,6 +22,11 @@ export type SystemPromptInput = {
   memories?: string[]
   /** Dữ liệu ngữ cảnh thêm (task đang được giao…). */
   extraContext?: string
+  /**
+   * Phần "Dự án" (hướng dẫn + file ngữ cảnh, đã giới hạn PROJECT_PROMPT_CHARS ở projects/prompt.ts). Có ngân sách
+   * riêng cộng thêm vào `maxChars` và không bao giờ bị cắt ở đây.
+   */
+  project?: string
   maxChars?: number
 }
 
@@ -38,7 +43,8 @@ const MODE_TEXT: Record<ChatMode, string> = {
   free: 'Tự do — trò chuyện và hỗ trợ chung.',
   study: 'Học tập — đóng vai gia sư.',
   code: 'Code — hỗ trợ lập trình.',
-  project: 'Quản lý dự án — lập kế hoạch, giao việc, theo dõi tiến độ.'
+  // Mã giữ là `project` (dữ liệu cũ); chữ đổi để không lẫn với tính năng Dự án.
+  project: 'Quản lý công việc — lập kế hoạch, giao việc, theo dõi tiến độ.'
 }
 
 export const DEFAULT_MAX_CHARS = 12_000
@@ -54,11 +60,12 @@ function clip(text: string, max: number): string {
 }
 
 /**
- * Ghép system prompt theo thứ tự ưu tiên: danh tính → hồ sơ → memory → chế độ.
- * Khi vượt giới hạn, cắt bớt phần ít quan trọng trước (ngữ cảnh thêm, skill, memory cũ).
+ * Ghép system prompt theo thứ tự ưu tiên: danh tính → hồ sơ → dự án → memory → chế độ.
+ * Khi vượt giới hạn, cắt bớt phần ít quan trọng trước (ngữ cảnh thêm, skill, memory cũ). Phần dự án không bị cắt.
  */
 export function buildSystemPrompt(input: SystemPromptInput): string {
-  const maxChars = input.maxChars ?? DEFAULT_MAX_CHARS
+  const project = input.project?.trim() ?? ''
+  const maxChars = (input.maxChars ?? DEFAULT_MAX_CHARS) + (project ? project.length + 2 : 0)
   const { assistant } = input
 
   const identity = [
@@ -92,6 +99,7 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
     [
       identity,
       userSection,
+      project,
       mem.length ? `## Điều bạn đã biết về người dùng\n${mem.map((m) => `- ${m}`).join('\n')}` : '',
       mode,
       ctx

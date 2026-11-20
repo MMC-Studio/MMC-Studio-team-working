@@ -158,9 +158,11 @@ test('trang Artifacts: mọi artifact của mọi cuộc, lọc không dấu, b�
   await expect(library.getByTestId('artifact-library-item').filter({ hasText: 'GDD' })).toContainText('Thiết kế game', FAST)
 })
 
-test('Dự án / Lịch hẹn / Plugin: trang "Sắp có", mục đang mở được tô', async () => {
+test('Lịch hẹn / Plugin: trang "Sắp có"; Dự án là trang thật; mục đang mở được tô', async () => {
+  await page.getByTestId('nav-projects').click()
+  await expect(page.getByTestId('projects-page')).toBeVisible(FAST)
+  await expect(page.getByTestId('nav-projects')).toHaveAttribute('aria-current', 'page')
   for (const [nav, section, title] of [
-    ['nav-projects', 'projects', 'Dự án'],
     ['nav-scheduled', 'scheduled', 'Lịch hẹn'],
     ['nav-plugins', 'plugins', 'Plugin']
   ]) {

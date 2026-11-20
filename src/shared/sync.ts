@@ -20,6 +20,7 @@ export const SYNC_TOPICS = [
   'assistant',
   'workday',
   'conversations',
+  'projects',
   'expressiveRecent',
   'memory',
   'messages',

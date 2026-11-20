@@ -28,6 +28,8 @@ export type ChatServiceDeps = {
   getAssistant(): AssistantProfile
   /** Hồ sơ + memory liên quan tới câu hỏi để chèn vào system prompt. */
   getMemoryContext(query: string): { user: UserProfileContext; memories: string[] }
+  /** Phần "Dự án" của system prompt ('' = cuộc không thuộc dự án). Dựng lại mỗi lượt → sửa hướng dẫn có hiệu lực ngay. */
+  projectPromptFor?(conversationId: string): string
   loadModeSkill(mode: ChatMode): Promise<string | undefined>
   /** Skill người dùng cài, chọn theo câu hỏi (my-style + gọi đích danh + vài skill liên quan). */
   userSkillsFor?(text: string): Promise<{ section: string; used: string[] }>
@@ -461,6 +463,7 @@ export class ChatService {
       userSkills: userSkills.section,
       user: memory.user,
       memories: memory.memories,
+      project: deps.projectPromptFor?.(conversationId) ?? '',
       extraContext: [
         args.options.context,
         args.plan && deps.expressive ? await deps.expressive.promptFor(args.plan) : '',

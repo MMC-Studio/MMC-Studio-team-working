@@ -2,10 +2,6 @@
   "title": "Sắp có",
   "unknown": "Trang này chưa có.",
   "sections": {
-    "projects": {
-      "title": "Dự án",
-      "description": "Gom các cuộc trò chuyện theo dự án, kèm hướng dẫn, ngữ cảnh và trí nhớ riêng cho từng dự án."
-    },
     "scheduled": {
       "title": "Lịch hẹn",
       "description": "Hẹn giờ cho trợ lý tự làm việc định kỳ (vd tóm tắt email mỗi sáng)."

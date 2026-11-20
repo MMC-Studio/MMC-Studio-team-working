@@ -1,0 +1,86 @@
+{
+  "title": "Projects",
+  "search": "Search projects",
+  "closeSearch": "Close search",
+  "sort": "Sort",
+  "sorts": {
+    "updated": "Recently edited",
+    "name": "Name",
+    "created": "Date created"
+  },
+  "new": "New project",
+  "empty": "No projects yet",
+  "emptyHint": "Create a project for work you repeat — the assistant remembers its instructions and documents in every chat.",
+  "noMatch": "No projects match.",
+  "pin": "Pin",
+  "unpin": "Unpin",
+  "options": "Project options",
+  "edit": "Rename & description",
+  "delete": "Delete project",
+  "files": "{{count}} files",
+  "create": {
+    "title": "New project",
+    "name": "Project name",
+    "namePlaceholder": "e.g. Pixel Quest game",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "What is this project for?",
+    "submit": "Create project"
+  },
+  "editDialog": {
+    "title": "Rename & description",
+    "submit": "Save"
+  },
+  "deleteDialog": {
+    "title": "Delete project “{{name}}”?",
+    "lose": "This permanently deletes:",
+    "files": "{{count}} context files",
+    "memories": "{{count}} project memories",
+    "keep": "{{count}} chats are kept and become regular chats.",
+    "confirm": "Delete project"
+  },
+  "detail": {
+    "back": "Projects",
+    "composer": "New chat in {{name}}…",
+    "conversations": "Chats in this project",
+    "noConversations": "The assistant uses the same instructions and documents every time you chat in this project.",
+    "notFound": "Project not found (it may have been deleted).",
+    "private": "Stored only on this computer, under your account."
+  },
+  "panel": {
+    "instructions": "Instructions",
+    "instructionsEmpty": "None yet. e.g. \"Always answer in C#, keep it short\".",
+    "editInstructions": "Edit",
+    "context": "Context",
+    "addFiles": "Add",
+    "noFiles": "Add text files (.md, .txt, .json, code…) for the assistant to always read.",
+    "usage": "Sent with every message: {{used}} / {{max}} characters",
+    "clipped": "Clipped",
+    "omitted": "Name only",
+    "clippedHelp": "Out of room, so the assistant only reads the start of this file.",
+    "omittedHelp": "Out of room, so the assistant only knows this file name. Remove some files or shorten them.",
+    "limitWarning": "Some files are clipped or sent by name only because they exceed the {{max}}-character limit.",
+    "removeFile": "Remove file {{name}}",
+    "memory": "Memory",
+    "scheduled": "Scheduled",
+    "soon": "Coming soon"
+  },
+  "instructionsDialog": {
+    "title": "Project instructions",
+    "description": "The assistant always follows these in every chat of this project — from the next message on.",
+    "placeholder": "e.g. This is a 2D game in Unity 6, URP. Always answer in C#, explain briefly for beginners.",
+    "counter": "{{count}} / {{max}}"
+  },
+  "addResult": {
+    "rejected": "Could not add:",
+    "reasons": {
+      "not_text": "not a text file",
+      "too_large": "larger than 512 KB",
+      "too_many": "the project already has 20 files",
+      "unreadable": "could not be read"
+    }
+  },
+  "errors": {
+    "project_not_found": "This project no longer exists.",
+    "generic": "Could not save. Try again."
+  }
+}

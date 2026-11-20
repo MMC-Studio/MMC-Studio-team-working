@@ -32,6 +32,10 @@ import { usePreferences } from '@renderer/stores/preferences'
 import { SidebarToggle } from '../layout/ChatLayout'
 import { useSidebar, type SidebarSectionKey } from '../layout/sidebarStore'
 import { usePalette } from '../search/paletteStore'
+import type { Project } from '@shared/projects'
+import { ProjectMenu } from '@renderer/features/projects/components/ProjectMenu'
+import { useProjects } from '@renderer/features/projects/store'
+import { pinnedProjects, PROJECTS_ROUTE, projectPath } from '@renderer/features/projects/view'
 import { buildSidebar, DRAG_TYPE, type SidebarRow, type SidebarSection } from '../sidebarTree'
 import { useChat } from '../store'
 
@@ -72,7 +76,15 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   const [deletingGroup, setDeletingGroup] = useState<ConversationGroup | null>(null)
   const [over, setOver] = useState<string | null>(null)
 
-  const sections = useMemo(() => buildSidebar(conversations, groups), [conversations, groups])
+  const projects = useProjects((s) => s.projects)
+  const pinnedProj = useMemo(() => pinnedProjects(projects), [projects])
+  // Dự án ghim nằm đầu mục "Đã ghim" — mục này hiện cả khi chưa ghim cuộc trò chuyện nào.
+  const sections = useMemo(() => {
+    const built = buildSidebar(conversations, groups)
+    return pinnedProj.length && !built.some((s) => s.kind === 'pinned')
+      ? [{ kind: 'pinned' as const, rows: [] }, ...built]
+      : built
+  }, [conversations, groups, pinnedProj.length])
   const groupName = (id: string | null): string | undefined => groups.find((g) => g.id === id)?.name
 
   // ---- Kéo thả ----
@@ -128,6 +140,9 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         >
           <span className="flex w-full min-w-0 items-center gap-1.5">
             {streaming[c.id] && <span className="inline-block size-1.5 shrink-0 animate-pulse rounded-full bg-primary" />}
+            {c.projectId && (
+              <FolderKanban className="size-3.5 shrink-0 text-muted-foreground" aria-label={t('sidebar.inProject')} />
+            )}
             {c.parentId && (
               <GitBranch className="size-3.5 shrink-0 text-muted-foreground" aria-label={t('organize.fork')} />
             )}
@@ -185,13 +200,49 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
     )
   }
 
+  /** Dự án ghim: bấm → trang dự án; ⋯ khi rê chuột (đổi tên, bỏ ghim, xoá). */
+  const renderProjectRow = (p: Project) => {
+    const path = projectPath(p.id)
+    return (
+      <li key={`project:${p.id}`}>
+        <div
+          className={cn('group flex items-center gap-1 rounded-md pr-1 text-sm hover:bg-muted', pathname === path && 'bg-muted font-medium')}
+          data-testid="pinned-project"
+          data-name={p.name}
+        >
+          <button
+            className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left"
+            onClick={() => {
+              if (variant === 'overlay') setOverlay('none')
+              void navigate(path)
+            }}
+            title={p.name}
+          >
+            <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{p.name}</span>
+          </button>
+          <ProjectMenu
+            project={p}
+            onDeleted={() => pathname === path && void navigate(PROJECTS_ROUTE)}
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+          />
+        </div>
+      </li>
+    )
+  }
+
   const renderSection = (s: SidebarSection) => {
     if (s.kind === 'pinned')
       return zone(
         { kind: 'pinned' },
         <>
           {sectionHeader('pinned', t('pinned'))}
-          {!sectionCollapsed.pinned && <ul>{s.rows.map(renderRow)}</ul>}
+          {!sectionCollapsed.pinned && (
+            <ul>
+              {pinnedProj.map(renderProjectRow)}
+              {s.rows.map(renderRow)}
+            </ul>
+          )}
         </>,
         'section-pinned'
       )
@@ -309,8 +360,8 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <SidebarItem
           icon={FolderKanban}
           label={t('sidebar.projects')}
-          active={pathname === '/soon/projects'}
-          onClick={() => void navigate('/soon/projects')}
+          active={pathname.startsWith(PROJECTS_ROUTE)}
+          onClick={() => void navigate(PROJECTS_ROUTE)}
           testId="nav-projects"
         />
         <SidebarItem

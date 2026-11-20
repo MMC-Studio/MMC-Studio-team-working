@@ -124,6 +124,9 @@ import { ExpressiveService } from './expressive/service'
 import { StickerLibrary } from './expressive/stickers'
 import { registerExpressiveIpc } from './ipc/expressive'
 import { registerSkillsIpc } from './ipc/skills'
+import { registerProjectsIpc } from './ipc/projects'
+import { ProjectRepository } from './projects/repository'
+import { ProjectService } from './projects/service'
 import { SkillStore } from './skills/store'
 import { learnStyle } from './skills/style'
 import { DEFAULT_SKILLS_SETTINGS, skillsSettingsSchema } from '@shared/skills'
@@ -227,6 +230,8 @@ async function bootstrap(): Promise<void> {
   const getOwner = (): string => scope?.current ?? LOCAL_OWNER
   const conversations = new ConversationRepository(db, getOwner)
   const conversationGroups = new ConversationGroupRepository(db, getOwner)
+  const projectRepo = new ProjectRepository(db, getOwner)
+  const projects = new ProjectService({ repo: projectRepo, projectOf: (id) => conversations.get(id)?.projectId ?? null })
   const messages = new MessageRepository(db)
   const memories = new MemoryRepository(db, getOwner)
   const suggestions = new SuggestionRepository(db, getOwner)
@@ -704,6 +709,7 @@ async function bootstrap(): Promise<void> {
     getProvider,
     getAssistant: () => accountScope.getAssistant(),
     getMemoryContext: (query) => memory.contextFor(query),
+    projectPromptFor: (conversationId) => projects.promptFor(conversationId),
     loadModeSkill: (mode) => loadModeSkill(skillsDir, mode),
     userSkillsFor: (text) => skillStore.promptFor(text),
     workspaceDir,
@@ -873,6 +879,14 @@ async function bootstrap(): Promise<void> {
       exe: process.execPath,
       script: resourcePath('mizuki-mcp-bridge.cjs', 'resources/mizuki-mcp-bridge.cjs')
     }
+  })
+  registerProjectsIpc({
+    handle,
+    repo: projectRepo,
+    service: projects,
+    getWindow,
+    // e2e: MMC_FAKE_PROJECT_FILES="đường dẫn 1|đường dẫn 2" thay hộp thoại chọn file.
+    fakePick: devOverride('MMC_FAKE_PROJECT_FILES') ? () => devOverride('MMC_FAKE_PROJECT_FILES')!.split('|') : undefined
   })
   registerSkillsIpc({
     handle,

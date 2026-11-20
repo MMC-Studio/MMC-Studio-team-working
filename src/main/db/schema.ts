@@ -30,6 +30,41 @@ export const conversationGroups = sqliteTable(
   (t) => [index('conversation_groups_owner_idx').on(t.owner, t.createdAt)]
 )
 
+/**
+ * Dự án cá nhân (khác "Dự án team" trên Supabase): hướng dẫn + file ngữ cảnh luôn gửi kèm cho trợ lý trong mọi cuộc
+ * trò chuyện của dự án. Chỉ trên máy, theo tài khoản như lịch sử chat.
+ */
+export const projects = sqliteTable(
+  'projects',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull().default('local'),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    instructions: text('instructions').notNull().default(''),
+    pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at').notNull().default(now),
+    updatedAt: integer('updated_at').notNull().default(now)
+  },
+  (t) => [index('projects_owner_idx').on(t.owner, t.updatedAt)]
+)
+
+/** File ngữ cảnh của dự án — chỉ chữ, chép nội dung vào DB lúc thêm (sửa file gốc sau đó không ảnh hưởng). */
+export const projectFiles = sqliteTable(
+  'project_files',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    content: text('content').notNull(),
+    size: integer('size').notNull(),
+    createdAt: integer('created_at').notNull().default(now)
+  },
+  (t) => [index('project_files_project_idx').on(t.projectId, t.createdAt)]
+)
+
 export const conversations = sqliteTable(
   'conversations',
   {
@@ -54,6 +89,8 @@ export const conversations = sqliteTable(
     titleSource: text('title_source').$type<TitleSource>().notNull().default('fixed'),
     /** Nhóm trợ lý gợi ý, chờ người dùng đồng ý (null = không có / đã trả lời). */
     suggestedGroupId: text('suggested_group_id').references(() => conversationGroups.id, { onDelete: 'set null' }),
+    /** Dự án chứa cuộc này. Xoá dự án → thành cuộc thường (không xoá cuộc). */
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
     createdAt: integer('created_at').notNull().default(now),
     updatedAt: integer('updated_at').notNull().default(now)
   },
@@ -98,6 +135,8 @@ export const memories = sqliteTable(
     content: text('content').notNull(),
     category: text('category').$type<MemoryCategory>().notNull().default('other'),
     sourceConversationId: text('source_conversation_id'),
+    /** Trí nhớ riêng của dự án (null = trí nhớ chung). Xoá dự án → xoá theo. */
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     createdAt: integer('created_at').notNull().default(now),
     updatedAt: integer('updated_at').notNull().default(now),
     lastUsedAt: integer('last_used_at')
@@ -133,6 +172,8 @@ export const memorySuggestions = sqliteTable(
     content: text('content').notNull().default(''),
     category: text('category').$type<MemoryCategory>().notNull().default('other'),
     status: text('status').$type<SuggestionStatus>().notNull().default('pending'),
+    /** Đề xuất cho trí nhớ dự án (null = trí nhớ chung). Xoá dự án → xoá theo. */
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     createdAt: integer('created_at').notNull().default(now)
   },
   (t) => [index('memory_suggestions_status_idx').on(t.status, t.createdAt)]

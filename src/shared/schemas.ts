@@ -12,7 +12,9 @@ export const conversationListSchema = z.object({
 })
 
 export const conversationCreateSchema = z.object({
-  mode: chatModeSchema.default('free')
+  mode: chatModeSchema.default('free'),
+  /** Tạo trong dự án (chỉ dự án của tài khoản hiện tại). */
+  projectId: z.uuid().optional()
 })
 
 export const conversationUpdateSchema = z.object({

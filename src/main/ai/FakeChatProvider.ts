@@ -144,7 +144,14 @@ export class FakeChatProvider implements AIProvider {
     }
     const artifact = FAKE_ARTIFACTS[/FAKE_ARTIFACT:([\w-]+)/.exec(req.prompt)?.[1] ?? ''] ?? ''
     const used = skills.length ? ` [skill: ${skills.join(', ')}]` : ''
-    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${tags}${artifact}`
+    // Cuộc thuộc dự án: báo lại tên dự án, dòng đầu hướng dẫn, file đọc được → e2e kiểm phần dự án trong prompt.
+    const projectName = /^## Dự án: (.+)$/m.exec(req.systemPrompt)?.[1]
+    const project = projectName
+      ? ` [dự án: ${projectName} | hướng dẫn: ${/### Hướng dẫn của dự án\n(.*)/.exec(req.systemPrompt)?.[1]?.slice(0, 60) ?? '-'} | file: ${
+          [...req.systemPrompt.matchAll(/<file name="([^"]+)">/g)].map((m) => m[1]).join(', ') || '-'
+        }]`
+      : ''
+    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${project}${tags}${artifact}`
     for (const part of reply.match(/.{1,12}/gsu) ?? []) {
       if (signal.aborted) return
       yield { type: 'text', delta: part }

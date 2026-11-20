@@ -1,0 +1,86 @@
+{
+  "title": "Dự án",
+  "search": "Tìm dự án",
+  "closeSearch": "Đóng tìm kiếm",
+  "sort": "Sắp xếp",
+  "sorts": {
+    "updated": "Mới sửa",
+    "name": "Tên",
+    "created": "Ngày tạo"
+  },
+  "new": "Dự án mới",
+  "empty": "Chưa có dự án nào",
+  "emptyHint": "Tạo dự án cho việc bạn làm lặp lại — trợ lý nhớ hướng dẫn và tài liệu của dự án trong mọi cuộc trò chuyện.",
+  "noMatch": "Không có dự án nào khớp.",
+  "pin": "Ghim",
+  "unpin": "Bỏ ghim",
+  "options": "Tuỳ chọn dự án",
+  "edit": "Đổi tên & mô tả",
+  "delete": "Xoá dự án",
+  "files": "{{count}} file",
+  "create": {
+    "title": "Dự án mới",
+    "name": "Tên dự án",
+    "namePlaceholder": "Ví dụ: Game Pixel Quest",
+    "description": "Mô tả (không bắt buộc)",
+    "descriptionPlaceholder": "Dự án này để làm gì?",
+    "submit": "Tạo dự án"
+  },
+  "editDialog": {
+    "title": "Đổi tên & mô tả",
+    "submit": "Lưu"
+  },
+  "deleteDialog": {
+    "title": "Xoá dự án “{{name}}”?",
+    "lose": "Sẽ xoá vĩnh viễn:",
+    "files": "{{count}} file ngữ cảnh",
+    "memories": "{{count}} trí nhớ của dự án",
+    "keep": "{{count}} cuộc trò chuyện được giữ lại và thành cuộc trò chuyện thường.",
+    "confirm": "Xoá dự án"
+  },
+  "detail": {
+    "back": "Dự án",
+    "composer": "Cuộc trò chuyện mới trong {{name}}…",
+    "conversations": "Cuộc trò chuyện trong dự án",
+    "noConversations": "Trợ lý dùng cùng hướng dẫn và tài liệu mỗi lần bạn trò chuyện trong dự án này.",
+    "notFound": "Không tìm thấy dự án (có thể đã bị xoá).",
+    "private": "Chỉ lưu trên máy này, theo tài khoản của bạn."
+  },
+  "panel": {
+    "instructions": "Hướng dẫn",
+    "instructionsEmpty": "Chưa có. Ví dụ: \"Luôn trả lời bằng C#, giải thích ngắn gọn\".",
+    "editInstructions": "Sửa",
+    "context": "Ngữ cảnh",
+    "addFiles": "Thêm",
+    "noFiles": "Thêm file chữ (.md, .txt, .json, code…) để trợ lý luôn đọc kèm.",
+    "usage": "Gửi kèm mỗi tin: {{used}} / {{max}} ký tự",
+    "clipped": "Bị cắt bớt",
+    "omitted": "Chỉ gửi tên",
+    "clippedHelp": "Hết chỗ nên trợ lý chỉ đọc được phần đầu file này.",
+    "omittedHelp": "Hết chỗ nên trợ lý chỉ biết tên file này, không đọc được nội dung. Gỡ bớt file hoặc rút ngắn nội dung.",
+    "limitWarning": "Một số file bị cắt hoặc chỉ gửi tên vì vượt giới hạn {{max}} ký tự.",
+    "removeFile": "Gỡ file {{name}}",
+    "memory": "Trí nhớ",
+    "scheduled": "Lịch hẹn",
+    "soon": "Sắp có"
+  },
+  "instructionsDialog": {
+    "title": "Hướng dẫn cho dự án",
+    "description": "Trợ lý luôn làm theo hướng dẫn này trong mọi cuộc trò chuyện của dự án — có hiệu lực từ tin tiếp theo.",
+    "placeholder": "Ví dụ: Đây là game 2D làm bằng Unity 6, URP. Luôn trả lời bằng C#, giải thích ngắn gọn cho người mới.",
+    "counter": "{{count}} / {{max}}"
+  },
+  "addResult": {
+    "rejected": "Không thêm được:",
+    "reasons": {
+      "not_text": "không phải file chữ",
+      "too_large": "lớn hơn 512 KB",
+      "too_many": "dự án đã đủ 20 file",
+      "unreadable": "không đọc được"
+    }
+  },
+  "errors": {
+    "project_not_found": "Dự án không còn nữa.",
+    "generic": "Không lưu được. Thử lại."
+  }
+}

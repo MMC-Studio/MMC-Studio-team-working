@@ -139,7 +139,17 @@ export function registerIpc(deps: IpcDeps): void {
     deps.conversations.list(query)
   )
   const conv = { changes: 'conversations' } as const
-  handle(deps, IPC.conversationsCreate, conversationCreateSchema, ({ mode }) => deps.conversations.create(mode), conv)
+  handle(
+    deps,
+    IPC.conversationsCreate,
+    conversationCreateSchema,
+    ({ mode, projectId }) => {
+      const created = projectId ? deps.conversations.createInProject(mode, projectId) : deps.conversations.create(mode)
+      if (!created) throw new Error('project_not_found')
+      return created
+    },
+    conv
+  )
   handle(
     deps,
     IPC.conversationsUpdate,

@@ -19,8 +19,8 @@ const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf'
 }
 
-/** File chữ gửi được (code, tài liệu, dữ liệu). */
-const TEXT_EXTS = [
+/** File chữ gửi được (code, tài liệu, dữ liệu) — cũng là loại file ngữ cảnh dự án nhận. */
+export const TEXT_EXTS = [
   '.txt', '.md', '.csv', '.json', '.yaml', '.yml', '.xml', '.log', '.html', '.css', '.sql',
   '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.h', '.cpp', '.cs', '.go', '.rs', '.php', '.rb', '.kt', '.swift', '.sh', '.ps1'
 ]
