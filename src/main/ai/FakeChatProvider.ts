@@ -21,8 +21,11 @@ export type FakeToolCaller = (name: string, input: unknown, conversationId: stri
 export class FakeChatProvider implements AIProvider {
   readonly id = 'fake'
   readonly stateful: boolean
-  /** sessionId → system prompt lúc tạo session (mô phỏng CLI: resume giữ prompt cũ, bỏ qua prompt mới). */
-  private readonly sessions = new Map<string, string>()
+  /**
+   * sessionId → những gì "model" của session đã thấy: system prompt lúc tạo session (resume giữ bản này, bỏ qua bản
+   * mới — như CLI), trí nhớ / skill tích luỹ từ các khối đầu tin nhắn, trạng thái mới nhất của từng mục.
+   */
+  private readonly sessions = new Map<string, { system: string; items: string[]; states: Map<string, string> }>()
 
   /**
    * Gọi tool của app như CLI thật (qua registry) — để e2e đi được luồng duyệt nháp Gmail / Telegram.
@@ -43,13 +46,30 @@ export class FakeChatProvider implements AIProvider {
 
   async *chat(input: ChatRequest, signal: AbortSignal): AsyncIterable<ChatEvent> {
     let req = input
+    let seen: { memories: string[]; access: string } | null = null
     if (this.stateful) {
-      const stored = input.sessionId ? this.sessions.get(input.sessionId) : undefined
-      if (stored !== undefined) req = { ...input, systemPrompt: stored }
-      else {
+      let session = input.sessionId ? this.sessions.get(input.sessionId) : undefined
+      if (!session) {
         const sessionId = randomUUID()
-        this.sessions.set(sessionId, input.systemPrompt)
+        session = { system: input.systemPrompt, items: [], states: new Map() }
+        this.sessions.set(sessionId, session)
         yield { type: 'session', sessionId }
+      }
+      // Khối ngữ cảnh theo lượt CHỈ khi nằm ở đầu tin nhắn (thẻ giả giữa lời người dùng đã bị app vô hiệu).
+      const head = /^<ngu-canh-luot>\n([\s\S]*?)\n<\/ngu-canh-luot>\n\n/.exec(input.prompt)
+      let ephemeral = ''
+      for (const m of head?.[1].matchAll(/<muc ten="([\w-]+)">\n([\s\S]*?)\n<\/muc>/g) ?? []) {
+        const [, name, body] = m
+        if (name === 'tri-nho' || name === 'skill-dung') session.items.push(body)
+        else if (name === 'giong-noi') ephemeral = body
+        else if (body === '(Không còn áp dụng từ lượt này.)') session.states.delete(name)
+        else session.states.set(name, body)
+      }
+      const effective = [session.system, ...session.items, ...session.states.values(), ephemeral].filter(Boolean).join('\n\n')
+      req = { ...input, systemPrompt: effective, prompt: head ? input.prompt.slice(head[0].length) : input.prompt }
+      seen = {
+        memories: session.items.flatMap((b) => [...b.matchAll(/^- (.+)$/gm)].map((x) => x[1])),
+        access: session.states.get('quyen-truy-cap') ?? ''
       }
     }
     // Học phong cách: trả JSON giả để e2e kiểm tra được luồng đề xuất → duyệt.
@@ -110,7 +130,10 @@ export class FakeChatProvider implements AIProvider {
     }
     // FAKE_EDIT:<file>: xin sửa file trong thư mục dự án qua thẻ duyệt diff (như CLI). Từ chối kèm góp ý → đề xuất
     // lại nội dung mới có chứa góp ý (tối đa 3 lần); đồng ý → ghi file.
-    const edit = /FAKE_EDIT:(\S+)/.exec(req.prompt)
+    // Chế độ session: lượt mở session mới gửi kèm lịch sử dạng chữ ("…\n---\n<tin mới>") — lệnh FAKE_* trong lịch sử
+    // là của lượt cũ, chỉ đọc lệnh trong tin mới (như model thật không làm lại việc cũ).
+    const latest = this.stateful ? (req.prompt.split('\n---\n').pop() ?? '') : req.prompt
+    const edit = /FAKE_EDIT:(\S+)/.exec(latest)
     if (edit && this.decideEdit && req.approval) {
       const file = join(req.cwd, edit[1])
       let content = 'phiên bản 1\n'
@@ -143,7 +166,7 @@ export class FakeChatProvider implements AIProvider {
         ? ' [[react:🥰]] [[sticker:local/vui]]'
         : ' [[react:❤️]] [[gif:happy cat]]'
     // FAKE_TOOL:<tên> <json>: gọi tool của app nếu lượt chat này được cấp tool đó, rồi in kết quả.
-    const toolCall = /FAKE_TOOL:([a-z_]+)\s+(\{.*\})/.exec(req.prompt)
+    const toolCall = /FAKE_TOOL:([a-z_]+)\s+(\{.*\})/.exec(latest)
     if (toolCall && this.callTool && req.appTools?.names.includes(toolCall[1])) {
       const input: unknown = JSON.parse(toolCall[2])
       yield { type: 'tool', name: `mcp__mmc__${toolCall[1]}`, input }
@@ -155,7 +178,7 @@ export class FakeChatProvider implements AIProvider {
     }
     // FAKE_TOOLS:<n>: giả n lần đọc / tìm file (Read, Grep xen kẽ), công cụ cuối "chạy" 1,5 giây → e2e thấy dòng
     // "Đang …" rồi về dòng tóm tắt gộp.
-    const fakeTools = Math.min(30, Number(/FAKE_TOOLS:(\d+)/.exec(req.prompt)?.[1] ?? 0))
+    const fakeTools = Math.min(30, Number(/FAKE_TOOLS:(\d+)/.exec(latest)?.[1] ?? 0))
     for (let i = 0; i < fakeTools; i++) {
       if (signal.aborted) return
       yield i % 2 === 0
@@ -163,7 +186,7 @@ export class FakeChatProvider implements AIProvider {
         : { type: 'tool', name: 'Grep', input: { pattern: `tukhoa${i + 1}`, path: 'C:\\du-an\\src' } }
       await new Promise((r) => setTimeout(r, i === fakeTools - 1 ? 1500 : 50))
     }
-    const artifact = FAKE_ARTIFACTS[/FAKE_ARTIFACT:([\w-]+)/.exec(req.prompt)?.[1] ?? ''] ?? ''
+    const artifact = FAKE_ARTIFACTS[/FAKE_ARTIFACT:([\w-]+)/.exec(latest)?.[1] ?? ''] ?? ''
     const used = skills.length ? ` [skill: ${skills.join(', ')}]` : ''
     // Cuộc thuộc dự án: báo lại tên dự án, dòng đầu hướng dẫn, file đọc được → e2e kiểm phần dự án trong prompt.
     const projectName = /^## Dự án: (.+)$/m.exec(req.systemPrompt)?.[1]
@@ -174,7 +197,13 @@ export class FakeChatProvider implements AIProvider {
       : ''
     // Chế độ session: lượt mở session mới kèm lịch sử dạng chữ → e2e biết app đã làm mới session.
     const withHistory = this.stateful && req.prompt.startsWith('Đoạn hội thoại trước đó') ? ' [kèm lịch sử]' : ''
-    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${project}${withHistory}${tags}${artifact}`
+    // Chế độ session: báo lại những gì "model" đang thấy → e2e kiểm phần đổi theo lượt có tới được không.
+    const state = seen
+      ? ` [tên: ${/^Bạn là ([^.]+)\./m.exec(req.systemPrompt)?.[1] ?? '-'} | trí nhớ: ${seen.memories.join('; ') || '-'} | quyền: ${
+          /ĐƯỢC SỬA FILE/.test(seen.access) ? 'sửa' : /CHỈ ĐỌC/.test(seen.access) ? 'đọc' : 'không'
+        } | tools: ${req.tools?.join(',') || '-'}]`
+      : ''
+    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${project}${state}${withHistory}${tags}${artifact}`
     for (const part of reply.match(/.{1,12}/gsu) ?? []) {
       if (signal.aborted) return
       yield { type: 'text', delta: part }

@@ -16,6 +16,7 @@ import type { AIProvider, HistoryMessage } from '../ai/AIProvider'
 import type { TurnPlan } from '../expressive/affinity'
 import type { FinalizedReply } from '../expressive/service'
 import { buildSystemPrompt, type UserProfileContext } from '../ai/systemPrompt'
+import { buildTurnBlock, TURN_CONTEXT_RULE, withTurnBlock, type SessionMemo, type TurnContextInput } from '../ai/turnContext'
 import { titleFromPrompt } from '../chat/organize'
 import type { ConversationRepository, MessageRepository } from '../db/repositories'
 import { detectProject, projectNotes } from '../code/projectProfile'
@@ -101,15 +102,15 @@ export function titleFromText(text: string): string {
 }
 
 /** Dựng lại ngữ cảnh khi session CLI bị mất (ví dụ người dùng xóa ~/.claude). */
-/** Khoá phần "Dự án" của system prompt ('' = cuộc không thuộc dự án). */
-export function projectPromptKey(section: string): string {
-  return section ? createHash('sha256').update(section).digest('hex').slice(0, 16) : ''
+/** Khoá phần ỔN ĐỊNH của system prompt gắn với session CLI ('' = không có). */
+export function promptKeyOf(systemPrompt: string): string {
+  return systemPrompt ? createHash('sha256').update(systemPrompt).digest('hex').slice(0, 16) : ''
 }
 
 /**
  * Session CLI còn dùng được không. CLI khi `--resume` GIỮ system prompt của lượt tạo session và bỏ qua
- * `--system-prompt-file` mới (kiểm chứng CLI 2.1.329) → phần dự án đổi thì phải mở session mới.
- * `stored = null`: session tạo trước khi app lưu khoá — cuộc thường thì giữ, cuộc trong dự án thì làm mới cho chắc.
+ * `--system-prompt-file` mới (kiểm chứng CLI 2.1.329) → phần ổn định của system prompt đổi thì phải mở session mới.
+ * `stored = null`: session tạo trước khi app lưu khoá (hoặc trước khi tách phần theo lượt) → làm mới một lần.
  */
 export function sessionStale(stored: string | null, current: string): boolean {
   return stored === null ? current !== '' : stored !== current
@@ -224,6 +225,8 @@ type ActiveRequest = { controller: AbortController; conversationId: string }
 
 export class ChatService {
   private active = new Map<string, ActiveRequest>()
+  /** sessionId CLI → ngữ cảnh theo lượt đã gửi (trí nhớ, skill, trạng thái). Mất khi tắt app → lượt đầu gửi lại đủ. */
+  private turnMemos = new Map<string, SessionMemo>()
   /** Cảm xúc người dùng thả vào câu trả lời của trợ lý — báo cho trợ lý ở lượt sau. */
   private notes = new Map<string, string[]>()
   /** Vừa "sửa & gửi lại" → lượt kế tiếp dựng lại ngữ cảnh từ lịch sử (session CLI cũ còn nhớ phần đã xoá). */
@@ -474,35 +477,57 @@ export class ChatService {
         })
       : { section: '', used: [] }
     if (userSkills.used.length) deps.log.info(`Skill dùng cho lượt này: ${userSkills.used.join(', ')}`)
-    const systemPrompt = buildSystemPrompt({
-      assistant: deps.getAssistant(),
-      mode: args.mode,
-      modeSkill: await deps.loadModeSkill(args.mode),
-      userSkills: userSkills.section,
-      user: memory.user,
+    const assistant = deps.getAssistant()
+    const modeSkill = await deps.loadModeSkill(args.mode)
+    const artifactRules = deps.artifacts ? await deps.artifacts.prompt() : ''
+    const expressivePrompt = args.plan && deps.expressive ? await deps.expressive.promptFor(args.plan) : ''
+    // Chỉ trêu lỗi chép lời khi đang chat vui (biểu cảm bật, không nghiêm túc / buồn).
+    const voiceNote =
+      args.voice && deps.voicePrompt
+        ? await deps.voicePrompt(!!args.plan && args.plan.level !== 'off' && args.plan.mood === 'normal')
+        : ''
+    const artifactState = deps.artifacts?.contextFor(conversationId) ?? ''
+
+    // Provider có session (CLI): `--resume` giữ system prompt của lượt tạo session → system prompt chỉ gồm phần
+    // ỔN ĐỊNH (danh tính, hồ sơ, chế độ, dự án, luật artifact); phần đổi theo lượt đi trong khối đầu tin nhắn
+    // (turnContext.ts). Provider không session (API): mỗi lượt dựng lại toàn bộ như cũ.
+    const sessions = provider.stateful
+    const systemPrompt = sessions
+      ? buildSystemPrompt({
+          assistant,
+          mode: args.mode,
+          modeSkill,
+          user: memory.user,
+          project: projectSection,
+          extraContext: [artifactRules, TURN_CONTEXT_RULE].filter(Boolean).join('\n\n')
+        })
+      : buildSystemPrompt({
+          assistant,
+          mode: args.mode,
+          modeSkill,
+          userSkills: userSkills.section,
+          user: memory.user,
+          memories: memory.memories,
+          project: projectSection,
+          extraContext: [args.options.context, expressivePrompt, voiceNote, artifactRules, artifactState]
+            .filter(Boolean)
+            .join('\n\n')
+        })
+    const turnInput: TurnContextInput = {
       memories: memory.memories,
-      project: projectSection,
-      extraContext: [
-        args.options.context,
-        args.plan && deps.expressive ? await deps.expressive.promptFor(args.plan) : '',
-        // Chỉ trêu lỗi chép lời khi đang chat vui (biểu cảm bật, không nghiêm túc / buồn).
-        args.voice && deps.voicePrompt
-          ? await deps.voicePrompt(!!args.plan && args.plan.level !== 'off' && args.plan.mood === 'normal')
-          : '',
-        deps.artifacts ? await deps.artifacts.prompt() : '',
-        deps.artifacts?.contextFor(conversationId) ?? ''
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-    })
+      skillsSection: userSkills.section,
+      states: { access: args.options.context ?? '', expressive: expressivePrompt, artifacts: artifactState },
+      ephemeral: voiceNote
+    }
     // Provider có session (CLI) tự nhớ hội thoại; provider không session (API) cần lịch sử.
-    const history = provider.stateful ? undefined : toHistory(args.history)
-    let initialSession = provider.stateful ? args.sessionId : undefined
-    // Sửa hướng dẫn / file dự án giữa cuộc: CLI resume sẽ giữ system prompt cũ → mở session mới (kèm lịch sử dạng chữ).
-    const promptKey = projectPromptKey(projectSection)
+    const history = sessions ? undefined : toHistory(args.history)
+    let initialSession = sessions ? args.sessionId : undefined
+    // Phần ổn định đổi giữa cuộc (sửa hướng dẫn dự án, đổi tên / tính cách trợ lý, đổi chế độ…): CLI resume sẽ giữ
+    // system prompt cũ → mở session mới (kèm lịch sử dạng chữ).
+    const promptKey = sessions ? promptKeyOf(systemPrompt) : ''
     let promptChanged = false
     if (initialSession && sessionStale(args.sessionPromptKey ?? null, promptKey)) {
-      deps.log.info(`Phần dự án của system prompt đã đổi → session CLI mới cho ${conversationId}`)
+      deps.log.info(`System prompt (phần ổn định) đã đổi → session CLI mới cho ${conversationId}`)
       deps.conversations.setSession(conversationId, null)
       initialSession = undefined
       promptChanged = true
@@ -510,9 +535,13 @@ export class ChatService {
 
     const attempt = async (prompt: string, sessionId: string | undefined): Promise<void> => {
       error = null
+      // Khối ngữ cảnh theo lượt: chỉ phần mới / đổi so với những gì session này đã nhận (session mới → đủ).
+      const turn = sessions ? buildTurnBlock(turnInput, (sessionId && this.turnMemos.get(sessionId)) || null) : null
+      let currentSession = sessionId
+      let compacted = false
       const stream = provider.chat(
         {
-          prompt,
+          prompt: turn ? withTurnBlock(turn.block, prompt) : prompt,
           systemPrompt,
           mode: args.mode,
           sessionId,
@@ -531,7 +560,12 @@ export class ChatService {
         switch (event.type) {
           case 'session':
             deps.conversations.setSession(conversationId, event.sessionId, promptKey)
+            currentSession = event.sessionId
             continue // chi tiết nội bộ, renderer không cần
+          case 'compact':
+            // CLI vừa tóm tắt session: trí nhớ / skill gửi ở các lượt trước có thể đã mất → lượt sau gửi lại đủ.
+            compacted = true
+            continue
           case 'text':
             content += event.delta
             if (Date.now() - lastPersist > PERSIST_INTERVAL_MS) {
@@ -554,9 +588,14 @@ export class ChatService {
         }
         emit(event)
       }
+      // Ghi nhớ đã gửi gì cho session này — chỉ khi lượt chạy xong; lỗi / vừa compact → quên, lượt sau gửi lại đủ.
+      if (turn && currentSession) {
+        if (error || compacted) this.turnMemos.delete(currentSession)
+        else this.turnMemos.set(currentSession, turn.next)
+      }
     }
 
-    // Nhánh tách từ cuộc khác, hoặc vừa bỏ session vì phần dự án đổi: chưa có session CLI nhưng đã có tin cũ
+    // Nhánh tách từ cuộc khác, hoặc vừa bỏ session vì phần ổn định của system prompt đổi: chưa có session CLI nhưng đã có tin cũ
     // → lượt đầu gửi kèm lịch sử.
     const firstPrompt =
       provider.stateful && !initialSession && (args.forked || promptChanged) && args.history.length > 0

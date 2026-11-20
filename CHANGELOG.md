@@ -5,6 +5,8 @@
 ## [Unreleased]
 
 ### Tóm tắt
+- **Sửa lỗi: trợ lý "không cập nhật" giữa cuộc trò chuyện.** Trước đây, trong một cuộc đang dở, trợ lý chỉ nhận đúng những gì có ở tin nhắn đầu tiên: thêm trí nhớ, cài skill, đổi mức biểu cảm, đổi tên / tính cách trợ lý, cấp hoặc gỡ quyền thư mục… thì phải mở cuộc mới mới có tác dụng. Giờ mọi thay đổi có hiệu lực ngay từ tin tiếp theo.
+- Sau khi cập nhật, **mỗi cuộc trò chuyện cũ sẽ "làm mới" một lần** ở tin nhắn đầu tiên bạn gửi tiếp: trợ lý được gửi kèm lịch sử cuộc trò chuyện dạng chữ nên vẫn nhớ nội dung, nhưng không còn thấy lại các lần đọc file / dùng công cụ trước đó. Từ tin sau trở đi như bình thường.
 - **Dự án**: tạo dự án cho việc bạn làm lặp lại (vd một đồ án, một game). Trong dự án có **Hướng dẫn** (vd "Luôn trả lời bằng C#") và **Ngữ cảnh** (file .md, .txt, .json, code…) — trợ lý luôn đọc kèm trong mọi cuộc trò chuyện của dự án, sửa xong là có hiệu lực từ tin tiếp theo. Mỗi tin gửi kèm tối đa 16.000 ký tự của dự án; file nào bị cắt bớt hoặc chỉ gửi tên thì app ghi rõ. Ghim dự án để hiện trong "Đã ghim"; tìm dự án bằng Ctrl+K. Xoá dự án thì các cuộc trò chuyện vẫn giữ lại.
 - **Cài đặt** giờ là cửa sổ nổi chia tab (Giao diện, Trợ lý của bạn, Trò chuyện & AI, Khả năng, Kết nối, Cập nhật, Hỗ trợ), có ô tìm không cần gõ dấu — bấm kết quả là nhảy tới đúng dòng.
 - **Tìm kiếm Ctrl+K**: cửa sổ tìm nhanh cuộc trò chuyện, artifact, dự án; chưa gõ thì hiện "Gần đây"; Tab để biến chữ đang gõ thành tin nhắn mới.

@@ -2,7 +2,7 @@
 name: claude-bridge
 description: Quy ước gọi Claude từ app (ClaudeCliProvider / AnthropicApiProvider) — spawn Claude Code CLI headless, parse stream-json, resume session, chèn system prompt (tên trợ lý, tính cách, memory). Dùng khi viết hoặc sửa bất kỳ code nào gọi AI.
 metadata:
-  last_verified: 2026-11-05
+  last_verified: 2026-11-20
   review_every_days: 14
   depends_on:
     - file:src/main/ai/claudeCli.ts
@@ -49,7 +49,12 @@ Renderer chỉ thấy `ChatEvent` qua IPC `chat:event` — không bao giờ th�
 - Windows: tìm bằng `where.exe claude`, ưu tiên `.exe`; shim `.cmd` chạy qua `cmd.exe /d /s /c` với `buildCmdLine()` (từ chối ký tự đặc biệt). Abort dùng `taskkill /T /F` để dừng cả cây tiến trình.
 - Parser `StreamJsonParser` (fixture thật trong `src/main/ai/__fixtures__/`): `system/init` → session; `stream_event` text_delta → text; `assistant` tool_use → tool (text của assistant chỉ dùng khi message đó không có delta); `result` → done/error (`errors[]`). Bỏ qua thinking, `rate_limit_event`, message subagent (`parent_tool_use_id` ≠ null), dòng hỏng.
 - CLI còn chạy một lúc sau `result`: `ChatService` chỉ phát done/error **sau khi tiến trình thoát** và đã nhả khóa hội thoại.
-- Session mất (`No conversation found`) → xóa `cli_session_id`, thử lại 1 lần kèm 12 tin gần nhất.
+- Session mất (`No conversation found`) → xóa `cli_session_id`, thử lại 1 lần kèm tối đa 30 tin gần nhất (`HISTORY_LIMIT`).
+- `--resume` giữ system prompt của lượt tạo session và bỏ qua `--system-prompt-file` mới (kiểm chứng CLI 2.1.329):
+  phần nào của system prompt có thể đổi giữa cuộc thì phải đưa vào tin nhắn của lượt (stdin) hoặc mở session mới
+  (vd phần dự án: khoá `cli_session_prompt_key` + `sessionStale()`), vì app vẫn gửi prompt mới nhưng Claude thật không thấy.
+- Test phần prompt bằng trợ lý giả thì bật chế độ session như CLI (`MMC_FAKE_CLI_SESSIONS=1`: lượt resume dùng prompt
+  lúc tạo session), vì FakeChat mặc định đọc prompt mới mỗi lượt nên test vẫn xanh dù Claude thật không nhận (lỗi ở #30).
 - `cwd`: thường = `<userData>/workspace` (`%APPDATA%/Team Working/workspace`, giữ tên thư mục cũ); chế độ Code = thư mục dự án người dùng chọn.
 - Quyền tool: chat thường → `--tools ""`. Code chỉ đọc → `Read,Grep,Glob`. Cho sửa file chỉ khi người dùng bật rõ ràng.
 - `isAvailable`/`checkClaudeCli`: `claude --version` + `claude auth status` (JSON; chỉ giữ `loggedIn`, `subscriptionType`). Không đọc, sao chép hay truyền đi file credential của Claude Code.
@@ -91,5 +96,6 @@ Nguồn sự thật là code; bảng này để health-check so khớp và biế
 | `--system-prompt-file`, `--append-system-prompt-file` | cờ **ẩn** khỏi `claude --help` nhưng vẫn chạy | `claudeCli.ts` | 2026-11-05, chạy thật với `-p --restricted --tools ""` |
 | Format stream-json | fixture trong `src/main/ai/__fixtures__/` | `streamJsonParser.ts` | 2026-10-28 (theo git log fixture) |
 | Phản hồi permission-prompt-tool `{behavior, updatedInput}` | như trên | `permission-mcp.cjs` | CLI 2.1.312 |
+| `--resume` giữ system prompt của lượt tạo session (bỏ qua file mới) | CLI 2.1.329 | `chatService.ts` `sessionStale()` | 2026-11-20, chạy thật 4 lượt Haiku |
 | Model API | `claude-opus-5-5` | `ANTHROPIC_MODEL` | chưa gọi thật (giá trị đọc từ code 2026-11-05) |
 | Beta fallback | `server-side-fallback-2026-07-01`, `effort: 'medium'` | `AnthropicApiProvider.ts` | chưa gọi thật (giá trị đọc từ code 2026-11-05) |
