@@ -1,10 +1,8 @@
 {
   "title": "Trò chuyện",
   "newChat": "Cuộc trò chuyện mới",
-  "search": "Tìm cuộc trò chuyện…",
   "untitled": "Chưa có tiêu đề",
   "noConversations": "Chưa có cuộc trò chuyện nào",
-  "noResults": "Không tìm thấy kết quả",
   "pin": "Ghim",
   "unpin": "Bỏ ghim",
   "pinned": "Đã ghim",
@@ -335,8 +333,7 @@
     "errors": {
       "group_name_taken": "Đã có nhóm tên này.",
       "invalid_input": "Tên nhóm không hợp lệ."
-    },
-    "matchedIn": "Khớp trong tin nhắn"
+    }
   },
   "folderAccess": {
     "title": "Trợ lý xin quyền đọc một thư mục",
@@ -399,7 +396,7 @@
     "navLabel": "Điều hướng chat",
     "listLabel": "Danh sách cuộc trò chuyện",
     "search": "Tìm kiếm",
-    "closeSearch": "Đóng tìm kiếm",
+    "searchHint": "Tìm kiếm (Ctrl+K)",
     "projects": "Dự án",
     "artifacts": "Artifacts",
     "scheduled": "Lịch hẹn",
@@ -408,5 +405,52 @@
     "show": "Hiện thanh bên (Ctrl+B)",
     "localAccount": "Dùng trên máy này",
     "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định"
+  },
+  "palette": {
+    "title": "Tìm kiếm",
+    "placeholder": "Tìm kiếm",
+    "close": "Đóng",
+    "tabs": {
+      "all": "Tất cả",
+      "artifacts": "Artifacts",
+      "chats": "Cuộc trò chuyện",
+      "code": "Code",
+      "projects": "Dự án",
+      "scheduled": "Lịch hẹn"
+    },
+    "sections": {
+      "recent": "Gần đây",
+      "results": "Kết quả",
+      "actions": "Hành động",
+      "filters": "Lọc theo loại",
+      "itemActions": "Hành động · {{title}}"
+    },
+    "actions": {
+      "new-chat": "Cuộc trò chuyện mới",
+      "new-code": "Cuộc trò chuyện Code mới",
+      "open": "Mở",
+      "openConversation": "Mở cuộc trò chuyện chứa artifact",
+      "pin": "Ghim",
+      "unpin": "Bỏ ghim"
+    },
+    "time": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "week": "Tuần trước",
+      "month": "Tháng trước"
+    },
+    "noResultsIn": "Không có kết quả trong {{tab}}",
+    "noResults": "Không có kết quả",
+    "searchAll": "Tìm tất cả",
+    "more": "Hành động khác (Alt+Enter)",
+    "hints": {
+      "close": "Đóng",
+      "changeType": "Đổi loại",
+      "filters": "Lọc",
+      "actions": "Hành động",
+      "compose": "Soạn"
+    },
+    "previewLoading": "Đang tải xem trước…",
+    "previewEmpty": "(Trống)"
   }
 }

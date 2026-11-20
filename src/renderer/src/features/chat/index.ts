@@ -9,6 +9,7 @@ import { setupVoice } from './voice/store'
 import { setupRecent } from './expressive/recentStore'
 import { setupApprovals } from './approvals/store'
 import { setupSidebarShortcut } from './layout/sidebarStore'
+import { setupPaletteShortcut } from './search/paletteStore'
 import en from './i18n/en.json'
 import vi from './i18n/vi.json'
 
@@ -35,6 +36,8 @@ export const chatFeature: FeatureDefinition = {
     const offApprovals = setupApprovals()
     // Ctrl+B: ẩn / hiện thanh bên chat.
     const offSidebarKey = setupSidebarShortcut()
+    // Ctrl+K: cửa sổ tìm kiếm.
+    const offPaletteKey = setupPaletteShortcut()
     return () => {
       offChat()
       offSidebar()
@@ -43,6 +46,7 @@ export const chatFeature: FeatureDefinition = {
       offRecent()
       offApprovals()
       offSidebarKey()
+      offPaletteKey()
     }
   },
   overlay: ChatOverlays

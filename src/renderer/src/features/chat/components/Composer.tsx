@@ -8,7 +8,7 @@ import { Select, Textarea } from '@renderer/components/ui/input'
 import { ScreenAccessToggle } from '@renderer/features/computer/components/ScreenAccessToggle'
 import { usePreferences } from '@renderer/stores/preferences'
 import { extractEmojis, type MediaItem } from '@shared/expressive'
-import { pasteKind, useDraft } from '../draft'
+import { pasteKind, useComposeText, useDraft } from '../draft'
 import { ExpressPicker } from '../expressive/ExpressPicker'
 import { useRecent } from '../expressive/recentStore'
 import { useVoice } from '../voice/store'
@@ -60,6 +60,24 @@ export function Composer({
       }),
     []
   )
+
+  // Cửa sổ tìm kiếm → "Soạn" (Tab): chữ đang gõ thành tin nhắn mới trong ô nhập (chưa gửi).
+  useEffect(() => {
+    const fill = (): void => {
+      const value = useComposeText.getState().takeText()
+      if (value === null) return
+      setText(value)
+      requestAnimationFrame(() => {
+        const el = box.current
+        el?.focus()
+        el?.setSelectionRange(value.length, value.length)
+      })
+    }
+    fill()
+    return useComposeText.subscribe((s) => {
+      if (s.text !== null) fill()
+    })
+  }, [])
 
   // Emoji chọn trong bộ chọn: tính vào Gần đây ngay (như bàn phím điện thoại) và nhớ lại để lúc gửi không tính trùng.
   const recordEmoji = useRecent((s) => s.recordEmoji)

@@ -87,8 +87,6 @@ type SidebarState = {
   width: number
   panelWidth: number
   overlay: SidebarOverlay
-  /** Ô tìm trên đầu danh sách (mục "Tìm kiếm"; PR sau thay bằng cửa sổ nổi Ctrl+K). */
-  searchOpen: boolean
   collapsed: Record<SidebarSectionKey, boolean>
   /** Đo từ ChatLayout (để Ctrl+B biết đang thiếu chỗ hay không). */
   containerWidth: number
@@ -102,7 +100,6 @@ type SidebarState = {
   setPanelWidth(width: number): void
   resetPanelWidth(): void
   setMetrics(m: { containerWidth?: number; panelOpen?: boolean }): void
-  setSearchOpen(open: boolean): void
   toggleSection(key: SidebarSectionKey): void
 }
 
@@ -111,7 +108,6 @@ export const useSidebar = create<SidebarState>((set, get) => ({
   width: clamp(readNumber(KEYS.width, SIDEBAR_WIDTH.default), SIDEBAR_WIDTH.min, SIDEBAR_WIDTH.max),
   panelWidth: Math.max(PANEL_WIDTH.min, readNumber(KEYS.panelWidth, PANEL_WIDTH.default)),
   overlay: 'none',
-  searchOpen: false,
   collapsed: { pinned: read(KEYS.section('pinned')) === '1', recent: read(KEYS.section('recent')) === '1' },
   containerWidth: typeof window === 'undefined' ? 1280 : window.innerWidth,
   panelOpen: false,
@@ -153,11 +149,6 @@ export const useSidebar = create<SidebarState>((set, get) => ({
   },
   setMetrics(m) {
     set(m)
-  },
-  setSearchOpen(searchOpen) {
-    // Mở ô tìm khi thanh bên đang ẩn → hiện thanh bên (cố định nếu đủ chỗ, không thì dạng nổi).
-    if (searchOpen && layoutOf(get()).sidebar !== 'inline' && get().overlay === 'none') get().toggle()
-    set({ searchOpen })
   },
   toggleSection(key) {
     const value = !get().collapsed[key]

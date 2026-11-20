@@ -15,15 +15,13 @@ import {
   Shapes,
   Sparkles,
   Trash2,
-  X,
   type LucideIcon
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
+import { useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router'
 import type { Conversation, ConversationGroup } from '@shared/types'
 import { GROUP_NAME_MAX } from '@shared/schemas'
-import { snippetParts } from '@shared/search'
 import { Button } from '@renderer/components/ui/button'
 import { Dialog, DialogClose, DialogContent } from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
@@ -33,30 +31,9 @@ import { useAuth } from '@renderer/stores/auth'
 import { usePreferences } from '@renderer/stores/preferences'
 import { SidebarToggle } from '../layout/ChatLayout'
 import { useSidebar, type SidebarSectionKey } from '../layout/sidebarStore'
+import { usePalette } from '../search/paletteStore'
 import { buildSidebar, DRAG_TYPE, type SidebarRow, type SidebarSection } from '../sidebarTree'
 import { useChat } from '../store'
-
-/** Dòng trích đoạn dưới tiêu đề: vì sao cuộc này khớp (chữ khớp tô đậm). */
-function SearchSnippet({ snippet }: { snippet: string }) {
-  const { t } = useTranslation('chat')
-  return (
-    <span
-      className="mt-0.5 line-clamp-2 w-full text-xs font-normal text-muted-foreground"
-      data-testid="search-snippet"
-    >
-      <span className="sr-only">{t('organize.matchedIn')}: </span>
-      {snippetParts(snippet).map((p, i) =>
-        p.hit ? (
-          <strong key={i} className="font-semibold text-foreground">
-            {p.text}
-          </strong>
-        ) : (
-          <span key={i}>{p.text}</span>
-        )
-      )}
-    </span>
-  )
-}
 
 type Drop = { kind: 'pinned' } | { kind: 'group'; groupId: string } | { kind: 'recent' }
 const dropKey = (d: Drop): string => (d.kind === 'group' ? `group:${d.groupId}` : d.kind)
@@ -69,9 +46,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
     conversations,
     groups,
     activeId,
-    query,
     streaming,
-    setQuery,
     select,
     togglePin,
     rename,
@@ -84,12 +59,11 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   } = useChat()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const searchOpen = useSidebar((s) => s.searchOpen)
-  const setSearchOpen = useSidebar((s) => s.setSearchOpen)
+  const paletteOpen = usePalette((s) => s.open)
+  const showPalette = usePalette((s) => s.show)
   const sectionCollapsed = useSidebar((s) => s.collapsed)
   const toggleSection = useSidebar((s) => s.toggleSection)
   const setOverlay = useSidebar((s) => s.setOverlay)
-  const [search, setSearch] = useState(query)
   const [renaming, setRenaming] = useState<Conversation | null>(null)
   const [deleting, setDeleting] = useState<Conversation | null>(null)
   const [moving, setMoving] = useState<Conversation | null>(null)
@@ -98,27 +72,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   const [deletingGroup, setDeletingGroup] = useState<ConversationGroup | null>(null)
   const [over, setOver] = useState<string | null>(null)
 
-  const searching = !!query.trim()
-  // Thu gọn trong lúc tìm: chỉ tạm thời (không lưu); bắt đầu tìm → nhóm có kết quả mở hết; xoá ô tìm →
-  // về đúng trạng thái thu gọn / mở đã lưu trước khi tìm.
-  const [searchCollapsed, setSearchCollapsed] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Bắt đầu / kết thúc một lượt tìm → bỏ các lần thu gọn tạm của lượt trước.
-      if (!!search.trim() !== searching) setSearchCollapsed({})
-      void setQuery(search)
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [search, searching, setQuery])
-  const sections = useMemo(
-    () => buildSidebar(conversations, groups, searching, searchCollapsed),
-    [conversations, groups, searching, searchCollapsed]
-  )
-  const onToggleGroup = (id: string, collapsed: boolean): void => {
-    if (searching) setSearchCollapsed((s) => ({ ...s, [id]: !collapsed }))
-    else void toggleGroup(id)
-  }
+  const sections = useMemo(() => buildSidebar(conversations, groups), [conversations, groups])
   const groupName = (id: string | null): string | undefined => groups.find((g) => g.id === id)?.name
 
   // ---- Kéo thả ----
@@ -185,7 +139,6 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
               />
             )}
           </span>
-          {c.searchSnippet && <SearchSnippet snippet={c.searchSnippet} />}
         </button>
         <div className="hidden shrink-0 group-hover:flex">
           <Button variant="ghost" size="icon-sm" title={c.pinned ? t('unpin') : t('pin')} onClick={() => void togglePin(c.id)}>
@@ -216,9 +169,9 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
     </div>
   )
 
-  /** Tiêu đề mục (Đã ghim / Gần đây): bấm để thu gọn / mở — lưu trên máy này. Đang tìm thì luôn mở. */
+  /** Tiêu đề mục (Đã ghim / Gần đây): bấm để thu gọn / mở — lưu trên máy này. */
   const sectionHeader = (key: SidebarSectionKey, label: string) => {
-    const collapsed = !searching && sectionCollapsed[key]
+    const collapsed = sectionCollapsed[key]
     return (
       <button
         className="flex w-full items-center gap-1 px-2.5 pt-3 pb-1 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
@@ -238,7 +191,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         { kind: 'pinned' },
         <>
           {sectionHeader('pinned', t('pinned'))}
-          {(searching || !sectionCollapsed.pinned) && <ul>{s.rows.map(renderRow)}</ul>}
+          {!sectionCollapsed.pinned && <ul>{s.rows.map(renderRow)}</ul>}
         </>,
         'section-pinned'
       )
@@ -247,7 +200,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         { kind: 'recent' },
         <>
           {sectionHeader('recent', groups.length ? t('organize.ungrouped') : t('recent'))}
-          {(searching || !sectionCollapsed.recent) && <ul>{s.rows.map(renderRow)}</ul>}
+          {!sectionCollapsed.recent && <ul>{s.rows.map(renderRow)}</ul>}
         </>,
         'section-recent'
       )
@@ -258,7 +211,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <div className="group flex items-center gap-1 pt-2 pr-1">
           <button
             className="flex min-w-0 flex-1 items-center gap-1 px-2.5 py-1 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
-            onClick={() => onToggleGroup(g.id, s.collapsed)}
+            onClick={() => void toggleGroup(g.id)}
             aria-expanded={!s.collapsed}
             data-testid="group-toggle"
           >
@@ -338,7 +291,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <SidebarItem
           icon={Plus}
           label={t('newChat')}
-          active={pathname === '/' && !activeId && !searchOpen}
+          active={pathname === '/' && !activeId && !paletteOpen}
           onClick={() => {
             void select(null)
             if (pathname !== '/') void navigate('/')
@@ -348,11 +301,9 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <SidebarItem
           icon={Search}
           label={t('sidebar.search')}
-          active={searchOpen}
-          onClick={() => {
-            if (searchOpen) setSearch('')
-            setSearchOpen(!searchOpen)
-          }}
+          title={t('sidebar.searchHint')}
+          active={paletteOpen}
+          onClick={() => showPalette()}
           testId="nav-search"
         />
         <SidebarItem
@@ -385,41 +336,10 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         />
       </div>
 
-      {/* Tạm thời: ô tìm trên đầu danh sách (PR 3 thay bằng cửa sổ nổi Ctrl+K). */}
-      {searchOpen && (
-        <div className="relative px-2 pb-2">
-          <Search className="pointer-events-none absolute top-2.5 left-4.5 size-4 text-muted-foreground" />
-          <Input
-            className="h-9 pr-8 pl-8"
-            placeholder={t('search')}
-            aria-label={t('search')}
-            value={search}
-            autoFocus
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Escape') return
-              setSearch('')
-              setSearchOpen(false)
-            }}
-          />
-          <button
-            className="absolute top-2 right-4 rounded p-0.5 text-muted-foreground hover:text-foreground"
-            title={t('sidebar.closeSearch')}
-            aria-label={t('sidebar.closeSearch')}
-            onClick={() => {
-              setSearch('')
-              setSearchOpen(false)
-            }}
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      )}
-
       <nav className="thin-scroll min-h-0 flex-1 space-y-1 overflow-y-auto border-t px-2 pb-3" aria-label={t('sidebar.listLabel')} data-testid="sidebar-list">
         {!hasAny && (
           <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-            {query ? t('noResults') : t('noConversations')}
+            {t('noConversations')}
           </p>
         )}
         {sections.map((s) => (
@@ -564,10 +484,12 @@ function SidebarItem({
   label,
   active,
   onClick,
-  testId
+  testId,
+  title
 }: {
   icon: LucideIcon
   label: string
+  title?: string
   active: boolean
   onClick(): void
   testId: string
@@ -579,6 +501,7 @@ function SidebarItem({
         active && 'bg-muted font-medium text-foreground'
       )}
       aria-current={active ? 'page' : undefined}
+      title={title}
       onClick={onClick}
       data-testid={testId}
     >
