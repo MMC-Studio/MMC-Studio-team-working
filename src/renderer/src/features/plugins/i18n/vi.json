@@ -1,0 +1,94 @@
+{
+  "title": "Plugin",
+  "intro": "Skill và kết nối giúp trợ lý làm được nhiều việc hơn. Mọi thứ bật ở đây vẫn qua bước duyệt như cũ — trợ lý chỉ đề xuất, bạn quyết định.",
+  "search": "Tìm plugin…",
+  "tabs": {
+    "all": "Tất cả",
+    "connectors": "Kết nối",
+    "skills": "Skill"
+  },
+  "filter": {
+    "label": "Lọc theo trạng thái",
+    "all": "Mọi trạng thái",
+    "on": "Đang bật",
+    "off": "Đang tắt",
+    "attention": "Cần chú ý"
+  },
+  "add": {
+    "button": "Thêm",
+    "skillFolder": "Cài skill từ thư mục",
+    "skillZip": "Cài skill từ file .zip",
+    "openSkillFolder": "Mở thư mục skill",
+    "mcp": "Thêm MCP server",
+    "gmail": "Kết nối Gmail",
+    "telegram": "Kết nối Telegram",
+    "agents": "Kết nối agent (Claude Code / Desktop)"
+  },
+  "sections": {
+    "yours": "Của bạn",
+    "builtin": "Có sẵn trong app",
+    "builtinHelp": "Skill đi kèm app, tự dùng theo chế độ trò chuyện — luôn bật, chỉ xem.",
+    "suggestions": "Gợi ý",
+    "showAll": "Xem tất cả",
+    "showLess": "Thu gọn"
+  },
+  "empty": {
+    "yours": "Chưa cài plugin nào. Bấm \"Thêm\" hoặc chọn trong Gợi ý.",
+    "results": "Không có plugin nào khớp."
+  },
+  "names": {
+    "agents": "Kết nối agent"
+  },
+  "kind": {
+    "connector": "Kết nối",
+    "skill": "Skill",
+    "mcp": "MCP server"
+  },
+  "meta": {
+    "accounts_one": "{{count}} tài khoản",
+    "accounts_other": "{{count}} tài khoản",
+    "noAccounts": "chưa có tài khoản",
+    "telegramConnected": "đã đăng nhập",
+    "telegramDisconnected": "chưa đăng nhập",
+    "clients_one": "{{count}} agent",
+    "clients_other": "{{count}} agent",
+    "noClients": "chưa có agent",
+    "builtin": "có sẵn trong app",
+    "installedFrom": "cài từ {{source}}",
+    "byApp": "app hỗ trợ sẵn"
+  },
+  "describe": {
+    "gmail": "Trợ lý đọc thư, tóm tắt, soạn nháp trả lời — nháp luôn qua hộp duyệt, không tự gửi.",
+    "telegram": "Trợ lý đọc các chat bạn chọn và soạn nháp tin nhắn — không tự gửi.",
+    "agents": "Cho Claude Code, Claude Desktop hoặc MCP client khác hỏi trợ lý (agent mới cần bạn duyệt lần đầu)."
+  },
+  "state": {
+    "off": "Đang tắt",
+    "attention": "Cần chú ý",
+    "experimental": "Thử nghiệm"
+  },
+  "menu": {
+    "options": "Tuỳ chọn cho {{name}}",
+    "settings": "Cài đặt",
+    "view": "Xem",
+    "enable": "Bật",
+    "disable": "Tắt",
+    "remove": "Gỡ"
+  },
+  "enableDialog": {
+    "title": "Bật {{name}}?",
+    "confirm": "Bật",
+    "confirmSetup": "Bật và thiết lập"
+  },
+  "removeDialog": {
+    "title": "Gỡ {{name}}?",
+    "skill": "Skill sẽ bị xoá khỏi máy. Muốn dùng lại phải cài lại từ thư mục / file .zip.",
+    "mcp": "Server sẽ bị xoá cùng các giá trị bí mật đã lưu và các tool \"luôn cho phép\".",
+    "confirm": "Gỡ"
+  },
+  "detail": {
+    "back": "Plugin",
+    "notFound": "Không tìm thấy plugin này (có thể đã bị gỡ).",
+    "files": "File: {{files}}"
+  }
+}

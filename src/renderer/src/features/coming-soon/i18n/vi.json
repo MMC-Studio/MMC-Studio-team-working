@@ -5,10 +5,6 @@
     "scheduled": {
       "title": "Lịch hẹn",
       "description": "Hẹn giờ cho trợ lý tự làm việc định kỳ (vd tóm tắt email mỗi sáng)."
-    },
-    "plugins": {
-      "title": "Plugin",
-      "description": "Xem và quản lý skill, kết nối MCP đã cài, kèm gợi ý plugin hữu ích."
     }
   }
 }

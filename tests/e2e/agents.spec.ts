@@ -4,9 +4,10 @@ import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { enablePlugin, goTo, pluginMenu, waitForStartup } from './helpers'
 
 // Kết nối agent: test đóng vai Claude Code (SDK MCP client thật) kết nối vào app.
+// Giao diện ở trang Plugin (#/plugins/agents, #/plugins/mcp); bật / tắt qua menu ⋯ (có hộp cảnh báo như công tắc cũ).
 // Cần đăng ký Ctrl+Alt+Q — đóng mọi bản MMC studio khác đang mở trước khi chạy.
 test.describe.configure({ mode: 'serial' })
 
@@ -27,7 +28,7 @@ test.beforeAll(async () => {
   })
   page = await app.firstWindow()
   await waitForStartup(page)
-  await goTo(page, '#/agents', page.getByRole('heading', { name: /Kết nối agent/ }))
+  await goTo(page, '#/plugins/agents', page.getByTestId('plugin-detail-name').filter({ hasText: 'Kết nối agent' }))
 })
 
 test.afterAll(async () => {
@@ -44,10 +45,23 @@ async function connect(t = token): Promise<Client> {
 }
 const textOf = (r: Awaited<ReturnType<Client['callTool']>>): string => (r.content as { text: string }[])[0]?.text ?? ''
 
-test('mặc định tắt; bật → chỉ nghe 127.0.0.1, giữ phím dừng khẩn cấp', async () => {
+test('mặc định tắt; bật qua menu ⋯ → hộp cảnh báo như công tắc cũ; Huỷ thì vẫn tắt', async () => {
+  await expect(page.getByTestId('agents-server-status')).toContainText('Đang tắt')
+  await expect(page.getByTestId('plugin-detail').getByTestId('plugin-off')).toBeVisible()
+  // Trang chi tiết không còn công tắc riêng — chỉ menu ⋯.
+  await expect(page.getByTestId('agents-enable')).toHaveCount(0)
+  await pluginMenu(page, 'agents', 'enable')
+  const dialog = page.getByTestId('plugin-enable-dialog')
+  await expect(dialog).toContainText('Thử nghiệm')
+  await expect(dialog.getByTestId('plugin-enable-warnings')).toContainText('127.0.0.1')
+  await dialog.getByRole('button', { name: 'Hủy' }).click()
+  await expect(dialog).toHaveCount(0)
   await expect(page.getByTestId('agents-server-status')).toContainText('Đang tắt')
   expect(await hotkey()).toBe(false)
-  await page.getByTestId('agents-enable').check()
+})
+
+test('bật → chỉ nghe 127.0.0.1, giữ phím dừng khẩn cấp', async () => {
+  await enablePlugin(page, 'agents')
   await expect(page.getByTestId('agents-server-status')).toContainText(/Đang chạy: http:\/\/127\.0\.0\.1:\d+\/mcp/)
   url = /http:\/\/127\.0\.0\.1:\d+\/mcp/.exec(await page.getByTestId('agents-server-status').innerText())![0]
   expect(await hotkey()).toBe(true)
@@ -119,13 +133,13 @@ test('nút dừng khẩn cấp của Điều khiển máy tính (cùng Ctrl+Alt+
   await page.getByTestId('emergency-stop').click()
   await expect(page.getByTestId('agent-notice-stopped')).toBeVisible()
   await expect(connect()).rejects.toThrow()
-  await goTo(page, '#/agents', page.getByTestId('agents-enable'))
-  await expect(page.getByTestId('agents-enable')).not.toBeChecked()
+  await goTo(page, '#/plugins/agents', page.getByTestId('agents-server-status'))
+  await expect(page.getByTestId('plugin-detail').getByTestId('plugin-off')).toBeVisible()
   await expect(page.getByTestId('agents-server-status')).toContainText('Đang tắt')
 })
 
 test('bật lại; thu hồi quyền → agent bị từ chối; Ngắt tất cả → tắt server', async () => {
-  await page.getByTestId('agents-enable').check()
+  await enablePlugin(page, 'agents')
   await expect(page.getByTestId('agents-server-status')).toContainText('Đang chạy')
   await page.getByTestId('agent-client').getByRole('button', { name: 'Thu hồi quyền' }).click()
   await expect(page.getByTestId('agent-client')).toHaveCount(0)
@@ -134,7 +148,14 @@ test('bật lại; thu hồi quyền → agent bị từ chối; Ngắt tất c�
   await expect(page.getByTestId('agents-server-status')).toContainText('Đang tắt')
 })
 
-test('MCP client: thêm server, giá trị bí mật không hiện lại, bật/tắt, xoá', async () => {
+test('đường dẫn cũ #/agents → trang Plugin › Kết nối agent', async () => {
+  await page.evaluate(() => (window.location.hash = '#/agents'))
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/plugins/agents')
+  await expect(page.getByTestId('agents-server-status')).toBeVisible()
+})
+
+test('MCP client: thêm server, giá trị bí mật không hiện lại; bật/tắt qua menu ⋯ (không hộp cảnh báo, như công tắc cũ)', async () => {
+  await goTo(page, '#/plugins/mcp', page.getByTestId('mcp-servers'))
   await page.getByTestId('mcp-add').click()
   await page.getByLabel(/Tên \(chữ thường/).fill('echo')
   await page.getByLabel('Lệnh').fill(process.execPath)
@@ -153,6 +174,14 @@ test('MCP client: thêm server, giá trị bí mật không hiện lại, bật/
   await page.getByTestId('mcp-save').click()
   await expect(page.getByTestId('mcp-form')).toContainText('app dùng riêng')
   await page.getByTestId('mcp-form').getByRole('button', { name: 'Hủy' }).click()
+
+  const key = `mcp:${await row.getAttribute('id').then((id) => id!.slice('mcp-'.length))}`
+  await expect(row.getByTestId('mcp-server-state')).toHaveText('Đang bật')
+  await pluginMenu(page, key, 'disable')
+  await expect(row.getByTestId('mcp-server-state')).toHaveText('Đang tắt', { timeout: 1_000 })
+  await pluginMenu(page, key, 'enable')
+  await expect(page.getByTestId('plugin-enable-dialog')).toHaveCount(0)
+  await expect(row.getByTestId('mcp-server-state')).toHaveText('Đang bật', { timeout: 1_000 })
 })
 
 // Gọi Claude thật: trợ lý dùng tool echo → app hỏi duyệt → "Luôn cho phép" → lần sau không hỏi nữa.
@@ -169,9 +198,23 @@ test('chat thật: tool MCP phải duyệt; "luôn cho phép" ghi nhớ và thu 
   await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 120_000 })
   expect(await page.locator('.markdown').last().innerText()).toContain('ECHO:xin-chao-42')
 
-  await goTo(page, '#/agents', page.getByTestId('mcp-servers'))
+  await goTo(page, '#/plugins/mcp', page.getByTestId('mcp-servers'))
   const allowed = page.getByTestId('mcp-always-allowed')
   await expect(allowed).toContainText('echo')
   await allowed.getByRole('button', { name: /Thu hồi echo/ }).click()
   await expect(allowed).toHaveCount(0)
+})
+
+test('gỡ MCP server: phải qua hộp xác nhận; Huỷ thì còn', async () => {
+  await goTo(page, '#/plugins/mcp', page.getByTestId('mcp-servers'))
+  const row = page.getByTestId('mcp-server')
+  const key = `mcp:${(await row.getAttribute('id'))!.slice('mcp-'.length)}`
+  await pluginMenu(page, key, 'remove')
+  const dialog = page.getByTestId('plugin-remove-dialog')
+  await expect(dialog).toContainText('Gỡ echo?')
+  await dialog.getByRole('button', { name: 'Hủy' }).click()
+  await expect(row).toHaveCount(1)
+  await pluginMenu(page, key, 'remove')
+  await page.getByTestId('plugin-remove-confirm').click()
+  await expect(row).toHaveCount(0, { timeout: 1_000 })
 })

@@ -207,25 +207,15 @@
         "description": "Nói thay vì gõ (chép lời) và nghe trợ lý đọc câu trả lời.",
         "keywords": "voice micro chep loi doc to tts stt whisper"
       },
-      "skills": {
-        "label": "Skill",
-        "description": "Dạy trợ lý cách làm việc riêng của bạn bằng skill (thư mục có SKILL.md). Skill chỉ là chữ — app không chạy script kèm theo.",
-        "keywords": "skill ky nang cai dat zip"
-      },
       "computer": {
         "label": "Điều khiển máy tính (xem màn hình)",
         "description": "Thử nghiệm, mặc định tắt. Đọc kỹ cảnh báo trước khi bật.",
         "keywords": "computer man hinh dieu khien chup"
       },
-      "connectors": {
-        "label": "Gmail & Telegram",
-        "description": "Trợ lý đọc thư / tin nhắn và soạn nháp — mọi nháp qua hộp duyệt, không tự gửi.",
-        "keywords": "gmail telegram email thu tin nhan nhap"
-      },
-      "agents": {
-        "label": "Kết nối agent",
-        "description": "Cho Claude Code, Claude Desktop hoặc MCP client khác hỏi trợ lý (cần duyệt lần đầu).",
-        "keywords": "agent mcp claude desktop"
+      "plugins": {
+        "label": "Plugin",
+        "description": "Skill, Gmail, Telegram, MCP server và kết nối agent — cài, bật / tắt và cấu hình ở trang Plugin.",
+        "keywords": "plugin skill ky nang cai dat zip gmail telegram email thu tin nhan nhap mcp server agent claude desktop code ket noi"
       },
       "version": {
         "label": "Phiên bản",

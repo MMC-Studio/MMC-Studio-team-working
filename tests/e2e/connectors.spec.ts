@@ -8,7 +8,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, openSettings, waitForStartup } from './helpers'
+import { goTo, openSettings, pluginMenu, waitForStartup } from './helpers'
 
 // Gmail / Telegram — chạy được khi KHÔNG có Claude CLI và không có tài khoản thật:
 // MMC_FAKE_GMAIL / MMC_FAKE_TELEGRAM (hộp thư + Telegram giả, chỉ ở bản chưa đóng gói),
@@ -55,11 +55,11 @@ const ask = async (text: string): Promise<void> => {
 const lastReply = (): ReturnType<Page['getByTestId']> =>
   page.getByTestId('message-assistant').last()
 
-test('mặc định tắt: trợ lý không có tool Gmail / Telegram', async () => {
-  await openSettings(page, 'connections', page.getByTestId('open-connectors'))
-  await page.getByTestId('open-connectors').click()
-  await expect(page.getByTestId('gmail-enable')).not.toBeChecked()
-  await expect(page.getByTestId('tg-enable')).not.toBeChecked()
+test('mặc định tắt: Gmail / Telegram ở Gợi ý của trang Plugin; trợ lý không có tool', async () => {
+  await openSettings(page, 'connections', page.getByTestId('open-plugins'))
+  await page.getByTestId('open-plugins').click()
+  await expect(page.getByTestId('plugin-suggestion-gmail')).toBeVisible()
+  await expect(page.getByTestId('plugin-suggestion-telegram')).toBeVisible()
 
   await ask('FAKE_TOOL:gmail_search {}')
   const reply = lastReply()
@@ -70,9 +70,25 @@ test('mặc định tắt: trợ lý không có tool Gmail / Telegram', async ()
 const gmailAccount = (email: string): ReturnType<Page['locator']> =>
   page.locator(`[data-testid="gmail-account"][data-email="${email}"]`)
 
+test('Gmail: bật từ Gợi ý → hộp cảnh báo (Riêng tư) → Huỷ thì vẫn tắt; bật → mở trang cấu hình', async () => {
+  await goTo(page, '#/plugins', page.getByTestId('plugin-suggestion-gmail'))
+  await page.getByTestId('plugin-suggestion-gmail').click()
+  const dialog = page.getByTestId('plugin-enable-dialog')
+  await expect(dialog).toContainText('Bật Gmail?')
+  await expect(dialog).toContainText('Riêng tư')
+  await expect(dialog).toContainText('mã hoá bằng Windows')
+  await dialog.getByRole('button', { name: 'Hủy' }).click()
+  await expect(page.getByTestId('plugin-suggestion-gmail')).toBeVisible()
+  await page.getByTestId('plugin-suggestion-gmail').click()
+  await page.getByTestId('plugin-enable-confirm').click()
+  await expect(page.getByTestId('gmail-section')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/plugins/gmail')
+})
+
 test('Gmail: nhập OAuth client, thêm 2 tài khoản, đặt tên gọi, thư OTP bị ẩn', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('gmail-enable'))
-  await page.getByTestId('gmail-enable').check()
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-section'))
+  // Trang cấu hình không còn công tắc riêng — bật / tắt chỉ ở menu ⋯.
+  await expect(page.getByTestId('gmail-enable')).toHaveCount(0)
   await expect(page.getByTestId('gmail-add')).toBeDisabled()
   await expect(page.getByTestId('gmail-test-users-hint')).toContainText('Test users')
 
@@ -170,7 +186,7 @@ test('Gmail: nháp trả lời lưu đúng tài khoản chứa thư gốc, phả
 })
 
 test('Gmail: tắt cho trợ lý đọc một tài khoản → tài khoản đó không còn trong kết quả', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('gmail-accounts'))
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-accounts'))
   const school = gmailAccount('sv@truong.example.edu')
   await school.getByTestId('gmail-account-enabled').uncheck()
   await expect(school.getByTestId('gmail-account-enabled')).not.toBeChecked()
@@ -180,7 +196,7 @@ test('Gmail: tắt cho trợ lý đọc một tài khoản → tài khoản đó
 })
 
 test('Gmail: thêm / đổi tên / đăng nhập lỗi / ngắt kết nối → danh sách cập nhật ngay, không cần bật/tắt', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('gmail-accounts'))
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-accounts'))
   await expect(page.getByTestId('gmail-account')).toHaveCount(2)
 
   await page.getByTestId('gmail-add').click()
@@ -198,20 +214,26 @@ test('Gmail: thêm / đổi tên / đăng nhập lỗi / ngắt kết nối → 
   await expect(page.getByTestId('gmail-adding')).toBeHidden()
   await expect(page.getByTestId('gmail-add')).toBeEnabled()
 
+  // Ngắt cần bấm hai lần.
   await work.getByTestId('gmail-disconnect').click()
+  await expect(page.getByTestId('gmail-account')).toHaveCount(3)
+  await work.getByTestId('gmail-disconnect-confirm').click()
   await expect(page.getByTestId('gmail-account')).toHaveCount(2)
   await expect(page.getByTestId('gmail-account-count')).toHaveText('2 tài khoản')
 
   // Rời trang rồi quay lại: trang hỏi lại main, vẫn đúng.
-  await openSettings(page, 'connections', page.getByTestId('open-connectors'))
-  await page.getByTestId('open-connectors').click()
+  await openSettings(page, 'connections', page.getByTestId('open-plugins'))
+  await page.getByTestId('open-plugins').click()
+  await page.locator('[data-testid="plugin-row"][data-key="gmail"]').getByRole('button').first().click()
   await expect(page.getByTestId('gmail-account')).toHaveCount(2)
   await expect(gmailAccount('sv@truong.example.edu').getByTestId('gmail-account-label')).toHaveValue('Trường')
 })
 
 test('Telegram: đăng nhập có mật khẩu 2 bước, chỉ đọc chat đã chọn, chat hệ thống luôn chặn', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('tg-enable'))
-  await page.getByTestId('tg-enable').check()
+  await goTo(page, '#/plugins/telegram', page.getByTestId('tg-off'))
+  await pluginMenu(page, 'telegram', 'enable')
+  await expect(page.getByTestId('plugin-enable-dialog')).toContainText('Riêng tư')
+  await page.getByTestId('plugin-enable-confirm').click()
   await page.getByTestId('tg-api-id').fill('12345')
   await page.getByTestId('tg-api-hash').fill('0123456789abcdef0123456789abcdef')
   await page.getByTestId('tg-save').click()
@@ -241,7 +263,7 @@ test('Telegram: đăng nhập có mật khẩu 2 bước, chỉ đọc chat đã
   await ask('FAKE_TOOL:telegram_read {"chat":"1001"}')
   await expect(lastReply()).toContainText('LỖI TOOL', { timeout: 20_000 })
 
-  await goTo(page, '#/connectors', page.getByTestId('tg-chat-1001'))
+  await goTo(page, '#/plugins/telegram', page.getByTestId('tg-chat-1001'))
   await page.getByTestId('tg-chat-1001').getByRole('checkbox').check()
   await expect(page.getByTestId('tg-chat-1001').getByRole('checkbox')).toBeChecked()
 
@@ -259,14 +281,20 @@ test('Telegram: đăng nhập có mật khẩu 2 bước, chỉ đọc chat đã
 })
 
 test('đăng xuất Telegram + ngắt Gmail: xoá phiên, trợ lý mất tool', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('tg-logout'))
+  await goTo(page, '#/plugins/telegram', page.getByTestId('tg-logout'))
+  // Đăng xuất cần bấm hai lần.
   await page.getByTestId('tg-logout').click()
+  await expect(page.getByTestId('tg-connection')).toHaveAttribute('data-state', 'connected')
+  await page.getByTestId('tg-logout-confirm').click()
   await expect(page.getByTestId('tg-connection')).toHaveAttribute('data-state', 'disconnected')
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-accounts'))
   await expect(page.getByTestId('tg-chats')).toBeHidden()
   await gmailAccount('ban@example.com').getByTestId('gmail-disconnect').click()
+  await gmailAccount('ban@example.com').getByTestId('gmail-disconnect-confirm').click()
   await expect(page.getByTestId('gmail-account')).toHaveCount(1)
   await expect(gmailAccount('sv@truong.example.edu')).toBeVisible()
   await gmailAccount('sv@truong.example.edu').getByTestId('gmail-disconnect').click()
+  await gmailAccount('sv@truong.example.edu').getByTestId('gmail-disconnect-confirm').click()
   await expect(page.getByTestId('gmail-accounts')).toBeHidden()
   await expect(page.getByTestId('gmail-add')).toBeEnabled()
 

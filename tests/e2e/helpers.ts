@@ -31,3 +31,27 @@ export async function openSettings(page: Page, tab: string, ready: Locator): Pro
     await expect(ready).toBeVisible({ timeout: 3_000 })
   }).toPass({ timeout: 30_000 })
 }
+
+/** Dòng của một plugin trên trang Plugin (`key`: `gmail`, `telegram`, `agents`, `mcp:<id>`, `skill:<tên>`, `builtin:<tên>`). */
+export const pluginRow = (page: Page, key: string): Locator => page.locator(`[data-testid="plugin-row"][data-key="${key}"]`)
+
+/**
+ * Chọn một mục trong menu ⋯ của plugin `key` (trên dòng ở trang Plugin, hoặc đầu trang chi tiết).
+ * Không tự bấm qua hộp cảnh báo / xác nhận — test tự kiểm và bấm.
+ */
+export async function pluginMenu(page: Page, key: string, action: 'enable' | 'disable' | 'remove' | 'settings'): Promise<void> {
+  await page.getByTestId(`plugin-menu-${key}`).first().click()
+  await page.getByTestId(`plugin-menu-${action}`).click()
+}
+
+/** Bật plugin qua menu ⋯ và bấm "Bật" trong hộp cảnh báo (Gmail / Telegram / Kết nối agent). */
+export async function enablePlugin(page: Page, key: string): Promise<void> {
+  await pluginMenu(page, key, 'enable')
+  await page.getByTestId('plugin-enable-confirm').click()
+}
+
+/** Mục trong nút "Thêm ▾" của trang Plugin (`skill-folder`, `skill-zip`, `mcp`, `gmail`, `telegram`, `agents`). */
+export async function pluginAdd(page: Page, item: string): Promise<void> {
+  await page.getByTestId('plugins-add').click()
+  await page.getByTestId(`plugins-add-${item}`).click()
+}

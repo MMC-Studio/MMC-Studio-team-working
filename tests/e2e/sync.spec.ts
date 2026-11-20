@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { goTo, openSettings, waitForStartup } from './helpers'
+import { enablePlugin, goTo, openSettings, pluginMenu, pluginRow, waitForStartup } from './helpers'
 
 // Đồng bộ trạng thái toàn app: mỗi thao tác chính → giao diện đổi trong vòng 1 GIÂY, không tải lại trang.
 // Hai loại thay đổi:
@@ -91,38 +91,41 @@ test('Cài đặt › Skill: ghi chú my-style đổi từ nơi khác → tự h
   await expect(saved).toHaveCount(0, FAST)
 })
 
-test('Cài đặt › Skill: chép skill vào thư mục rồi quay lại app → tự hiện; bật/tắt ngay; gỡ từ nơi khác → biến mất', async () => {
-  await page.getByTestId('settings-tab-capabilities').click()
+test('Plugin › Skill: chép skill vào thư mục rồi quay lại app → tự hiện; bật/tắt ngay; gỡ từ nơi khác → biến mất', async () => {
+  await page.keyboard.press('Escape')
+  await goTo(page, '#/plugins', page.getByTestId('plugins-page'))
   const dir = join(userData, 'skills', 'demo-dong-bo')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'SKILL.md'), '---\nname: demo-dong-bo\ndescription: Skill thử đồng bộ\n---\n\n# Demo\n')
   // Không có IPC nào báo — chỉ có lần hỏi lại khi cửa sổ được focus.
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-  const toggle = page.getByTestId('skill-enable-demo-dong-bo')
-  await expect(toggle).toBeChecked(FAST)
-  await toggle.uncheck()
-  await expect(toggle).not.toBeChecked(FAST)
+  const row = pluginRow(page, 'skill:demo-dong-bo')
+  await expect(row).toHaveAttribute('data-enabled', 'true', FAST)
+  await pluginMenu(page, 'skill:demo-dong-bo', 'disable')
+  await expect(row).toHaveAttribute('data-enabled', 'false', FAST)
   await external('skills', 'setEnabled', 'demo-dong-bo', true)
-  await expect(toggle).toBeChecked(FAST)
+  await expect(row).toHaveAttribute('data-enabled', 'true', FAST)
   await external('skills', 'remove', 'demo-dong-bo')
-  await expect(toggle).toHaveCount(0, FAST)
+  await expect(row).toHaveCount(0, FAST)
 })
 
 test('Gmail & Telegram: bật/tắt ngay; đổi từ nơi khác → tự cập nhật', async () => {
-  await goTo(page, '#/connectors', page.getByTestId('gmail-enable'))
-  const gmail = page.getByTestId('gmail-enable')
-  await gmail.check()
-  await expect(gmail).toBeChecked(FAST)
+  // Trang chi tiết: nhãn "Đang tắt" cạnh tên theo trạng thái thật; bật qua menu ⋯ (hộp cảnh báo).
+  const off = (): ReturnType<Page['getByTestId']> => page.getByTestId('plugin-detail').getByTestId('plugin-off')
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-off'))
+  await enablePlugin(page, 'gmail')
+  await expect(off()).toHaveCount(0, FAST)
   await external('gmail', 'setEnabled', false)
-  await expect(gmail).not.toBeChecked(FAST)
+  await expect(off()).toBeVisible(FAST)
   await external('gmail', 'setEnabled', true)
-  await expect(gmail).toBeChecked(FAST)
+  await expect(off()).toHaveCount(0, FAST)
 
-  const tg = page.getByTestId('tg-enable')
-  await tg.check()
-  await expect(tg).toBeChecked(FAST)
+  await goTo(page, '#/plugins/telegram', page.getByTestId('tg-off'))
+  await enablePlugin(page, 'telegram')
+  await expect(off()).toHaveCount(0, FAST)
   await external('telegram', 'setEnabled', false)
-  await expect(tg).not.toBeChecked(FAST)
+  await expect(off()).toBeVisible(FAST)
+  await goTo(page, '#/plugins/gmail', page.getByTestId('gmail-section'))
 })
 
 test('Gmail: đổi tên tài khoản hiện ngay; lưu lỗi (tên trùng) → hoàn tác + báo lỗi', async () => {
@@ -173,9 +176,9 @@ test('Điều khiển máy tính (cần Ctrl+Alt+Q): bật từ nơi khác → t
 })
 
 test('Kết nối agent (cần Ctrl+Alt+Q): bật ngay; lịch sử trao đổi hiện ngay khi agent gọi vào (không đợi làm mới 5 giây)', async () => {
-  await goTo(page, '#/agents', page.getByTestId('agents-enable'))
-  await page.getByTestId('agents-enable').check()
-  await expect(page.getByTestId('agents-enable')).toBeChecked(FAST)
+  await goTo(page, '#/plugins/agents', page.getByTestId('agents-server-status'))
+  await enablePlugin(page, 'agents')
+  await expect(page.getByTestId('plugin-detail').getByTestId('plugin-off')).toHaveCount(0, FAST)
   await expect(page.getByTestId('agents-server-status')).toContainText(/Đang chạy: http:\/\/127\.0\.0\.1:\d+\/mcp/)
   const url = /http:\/\/127\.0\.0\.1:\d+\/mcp/.exec(await page.getByTestId('agents-server-status').innerText())![0]
 
@@ -201,12 +204,12 @@ test('Kết nối agent (cần Ctrl+Alt+Q): bật ngay; lịch sử trao đổi 
   // Thu hồi: biến mất ngay.
   await page.getByTestId('agent-revoke').click()
   await expect(page.getByTestId('agent-client')).toHaveCount(0, FAST)
-  await page.getByTestId('agents-enable').uncheck()
-  await expect(page.getByTestId('agents-enable')).not.toBeChecked(FAST)
+  await pluginMenu(page, 'agents', 'disable')
+  await expect(page.getByTestId('plugin-detail').getByTestId('plugin-off')).toBeVisible(FAST)
 })
 
 test('MCP server: thêm từ nơi khác → hiện ngay; bật/tắt, xoá ngay', async () => {
-  await goTo(page, '#/agents', page.getByTestId('mcp-servers'))
+  await goTo(page, '#/plugins/mcp', page.getByTestId('mcp-servers'))
   await external('mcp', 'save', {
     name: 'echo-dong-bo',
     type: 'http',
@@ -217,12 +220,13 @@ test('MCP server: thêm từ nơi khác → hiện ngay; bật/tắt, xoá ngay'
   })
   const row = page.getByTestId('mcp-server').filter({ hasText: 'echo-dong-bo' })
   await expect(row).toBeVisible(FAST)
-  await row.getByTestId('mcp-server-enabled').uncheck()
-  await expect(row.getByTestId('mcp-server-enabled')).not.toBeChecked(FAST)
+  const [listed] = (await external('mcp', 'list')) as { id: string }[]
+  await pluginMenu(page, `mcp:${listed.id}`, 'disable')
+  await expect(row.getByTestId('mcp-server-state')).toHaveText('Đang tắt', FAST)
   const [server] = (await external('mcp', 'list')) as { id: string; enabled: boolean }[]
   expect(server.enabled).toBe(false)
   await external('mcp', 'setEnabled', server.id, true)
-  await expect(row.getByTestId('mcp-server-enabled')).toBeChecked(FAST)
+  await expect(row.getByTestId('mcp-server-state')).toHaveText('Đang bật', FAST)
   await external('mcp', 'remove', server.id)
   await expect(row).toHaveCount(0, FAST)
 })

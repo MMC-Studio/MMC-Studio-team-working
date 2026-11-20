@@ -66,7 +66,8 @@ test('đổi tab: nội dung đúng tab, cột phải cuộn riêng', async () =
   await page.getByTestId('settings-tab-capabilities').click()
   await expect(dialog()).toHaveAttribute('data-tab', 'capabilities', FAST)
   await expect(page.getByTestId('voice-settings')).toBeVisible()
-  await expect(page.getByTestId('skill-pick-folder')).toBeAttached()
+  // Skill đã chuyển sang trang Plugin (một mục một chỗ).
+  await expect(page.getByTestId('skill-pick-folder')).toHaveCount(0)
   await page.getByTestId('settings-tab-updates').click()
   await expect(dialog().getByRole('heading', { name: 'Cập nhật', exact: true })).toBeVisible(FAST)
   await expect(page.getByTestId('update-auto-check')).toBeVisible()
@@ -121,11 +122,12 @@ test('công tắc: bấm tên dòng cũng bật / tắt; lưu đúng chỗ cũ',
   await expect.poll(async () => ((await external('settings', 'getAi')) as { autoSuggestMemory: boolean }).autoSuggestMemory).toBe(before)
 })
 
-test('"Mở" sang trang riêng (Gmail & Telegram) → cửa sổ tự đóng', async () => {
+test('"Mở" sang trang Plugin → cửa sổ tự đóng', async () => {
   await page.getByTestId('settings-tab-connections').click()
-  await page.getByTestId('open-connectors').click()
+  await page.getByTestId('open-plugins').click()
   await expect(dialog()).toHaveCount(0, FAST)
-  expect(await hash()).toBe('#/connectors')
+  expect(await hash()).toBe('#/plugins')
+  await expect(page.getByTestId('plugins-page')).toBeVisible()
 })
 
 test('link cũ: #/settings → tab Giao diện; #/settings/voice → tab Khả năng, nháy dòng Giọng nói', async () => {

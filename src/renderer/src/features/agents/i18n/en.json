@@ -10,7 +10,8 @@
     "running": "Running: {{url}}",
     "stopped": "Off",
     "hotkey": "Ctrl+Alt+Q to disconnect",
-    "stopAll": "Disconnect all"
+    "stopAll": "Disconnect all",
+    "off": "Agent connection is off. Turn it on from the ⋯ menu above."
   },
   "limits": {
     "perHour": "Requests / hour / agent",
@@ -88,7 +89,10 @@
     "empty": "No MCP servers yet.",
     "name": "Name (lowercase, digits, - _)",
     "type": "Type",
-    "types": { "stdio": "Command (stdio)", "http": "URL (HTTP)" },
+    "types": {
+      "stdio": "Command (stdio)",
+      "http": "URL (HTTP)"
+    },
     "command": "Command",
     "args": "Arguments (one per line)",
     "env": "Secret environment variables (KEY=VALUE, one per line)",
@@ -102,7 +106,9 @@
       "reserved_name": "This name is reserved by the app — pick another.",
       "duplicate_name": "A server with this name already exists.",
       "secure_storage_unavailable": "Secure storage is unavailable — secret values cannot be saved."
-    }
+    },
+    "on": "On",
+    "off": "Off"
   },
   "errors": {
     "hotkey_unavailable": "Could not register the emergency stop hotkey Ctrl+Alt+Q (another app may be using it). This can only be enabled when the stop hotkey works.",

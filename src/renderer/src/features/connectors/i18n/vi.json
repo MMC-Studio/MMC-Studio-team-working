@@ -61,7 +61,9 @@
     "accountCount_other": "{{count}} tài khoản",
     "label": "Tên gọi",
     "accountEnabled": "Cho trợ lý đọc tài khoản này",
-    "privacy": "Lọc riêng tư của tài khoản này"
+    "privacy": "Lọc riêng tư của tài khoản này",
+    "disconnectConfirm": "Ngắt hẳn?",
+    "off": "Gmail đang tắt. Bật ở menu ⋯ phía trên để cấu hình."
   },
   "telegram": {
     "enable": "Bật kết nối Telegram",
@@ -103,7 +105,9 @@
       "bot": "bot",
       "group": "nhóm",
       "channel": "kênh"
-    }
+    },
+    "logoutConfirm": "Đăng xuất hẳn?",
+    "off": "Telegram đang tắt. Bật ở menu ⋯ phía trên để cấu hình."
   },
   "draft": {
     "title": {

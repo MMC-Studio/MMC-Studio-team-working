@@ -21,7 +21,7 @@ import { PRESET_AVATARS, imageFileToAvatar } from '../avatar'
 import type { SettingsTab } from '../catalog'
 import { AiConnectionRows, AutoSuggestRow, OrganizeRows } from './AiSection'
 import { SettingRow, SettingsSection } from './rows'
-import { SkillsSection, StyleNotes } from './SkillsSection'
+import { StyleNotes } from './StyleNotes'
 import { UpdateRows } from './UpdateSection'
 
 /** Nút "Mở" / "Quản lý" dẫn sang trang riêng của tính năng (cửa sổ Cài đặt tự đóng khi đổi trang). */
@@ -248,7 +248,6 @@ function AiTab() {
 }
 
 function CapabilitiesTab() {
-  const { t } = useTranslation('settings')
   const { t: tChat } = useTranslation('chat')
   const name = usePreferences((s) => s.assistant.name)
   return (
@@ -259,9 +258,6 @@ function CapabilitiesTab() {
       <SettingRow id="voice" description={tChat('voice.settings.description', { name })}>
         <VoiceSettings />
       </SettingRow>
-      <SettingRow id="skills" description={t('skills.description', { name })}>
-        <SkillsSection />
-      </SettingRow>
       <SettingRow id="computer" control={<OpenLink to="/computer" testId="open-computer" />} />
     </SettingsSection>
   )
@@ -270,8 +266,8 @@ function CapabilitiesTab() {
 function ConnectionsTab() {
   return (
     <SettingsSection>
-      <SettingRow id="connectors" control={<OpenLink to="/connectors" testId="open-connectors" />} />
-      <SettingRow id="agents" control={<OpenLink to="/agents" testId="open-agents" />} />
+      {/* Skill, Gmail, Telegram, MCP server, kết nối agent: quản lý ở MỘT chỗ — trang Plugin. */}
+      <SettingRow id="plugins" control={<OpenLink to="/plugins" testId="open-plugins" />} />
     </SettingsSection>
   )
 }

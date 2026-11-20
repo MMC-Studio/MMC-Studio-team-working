@@ -158,21 +158,19 @@ test('trang Artifacts: mọi artifact của mọi cuộc, lọc không dấu, b�
   await expect(library.getByTestId('artifact-library-item').filter({ hasText: 'GDD' })).toContainText('Thiết kế game', FAST)
 })
 
-test('Lịch hẹn / Plugin: trang "Sắp có"; Dự án là trang thật; mục đang mở được tô', async () => {
+test('Lịch hẹn: trang "Sắp có"; Dự án, Plugin là trang thật; mục đang mở được tô', async () => {
   await page.getByTestId('nav-projects').click()
   await expect(page.getByTestId('projects-page')).toBeVisible(FAST)
   await expect(page.getByTestId('nav-projects')).toHaveAttribute('aria-current', 'page')
-  for (const [nav, section, title] of [
-    ['nav-scheduled', 'scheduled', 'Lịch hẹn'],
-    ['nav-plugins', 'plugins', 'Plugin']
-  ]) {
-    await page.getByTestId(nav).click()
-    const soon = page.getByTestId('coming-soon')
-    await expect(soon).toHaveAttribute('data-section', section, FAST)
-    await expect(soon.getByRole('heading', { level: 1 })).toHaveText(title)
-    await expect(soon).toContainText('Sắp có')
-    await expect(page.getByTestId(nav)).toHaveAttribute('aria-current', 'page')
-  }
+  await page.getByTestId('nav-plugins').click()
+  await expect(page.getByTestId('plugins-page')).toBeVisible(FAST)
+  await expect(page.getByTestId('nav-plugins')).toHaveAttribute('aria-current', 'page')
+  await page.getByTestId('nav-scheduled').click()
+  const soon = page.getByTestId('coming-soon')
+  await expect(soon).toHaveAttribute('data-section', 'scheduled', FAST)
+  await expect(soon.getByRole('heading', { level: 1 })).toHaveText('Lịch hẹn')
+  await expect(soon).toContainText('Sắp có')
+  await expect(page.getByTestId('nav-scheduled')).toHaveAttribute('aria-current', 'page')
   // Bấm một cuộc trò chuyện ở thanh bên → về trang chat.
   await page.getByTestId('conversation-item').first().locator('button').first().click()
   await expect(box()).toBeVisible(FAST)

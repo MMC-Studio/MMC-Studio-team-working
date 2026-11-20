@@ -207,25 +207,15 @@
         "description": "Talk instead of typing (transcription) and hear replies read aloud.",
         "keywords": "voice microphone transcription tts stt whisper"
       },
-      "skills": {
-        "label": "Skills",
-        "description": "Teach the assistant your own way of working with skills (folders with SKILL.md). Skills are text only — scripts are never run.",
-        "keywords": "skill install zip"
-      },
       "computer": {
         "label": "Computer control (view screen)",
         "description": "Experimental, off by default. Read the warning before turning it on.",
         "keywords": "computer screen control"
       },
-      "connectors": {
-        "label": "Gmail & Telegram",
-        "description": "The assistant reads mail / messages and writes drafts — every draft needs your approval, nothing is sent.",
-        "keywords": "gmail telegram email messages drafts"
-      },
-      "agents": {
-        "label": "Agent connections",
-        "description": "Let Claude Code, Claude Desktop or another MCP client ask the assistant (approval needed the first time).",
-        "keywords": "agent mcp claude desktop"
+      "plugins": {
+        "label": "Plugins",
+        "description": "Skills, Gmail, Telegram, MCP servers and agent connections — install, turn on / off and configure on the Plugins page.",
+        "keywords": "plugin skill install zip gmail telegram email message draft mcp server agent claude desktop code connect connector"
       },
       "version": {
         "label": "Version",

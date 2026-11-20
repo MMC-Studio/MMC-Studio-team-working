@@ -9,7 +9,6 @@ import { api } from '@renderer/lib/api'
 import { useSync } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
 import { hhmm, useAgents } from '../store'
-import { McpServersSection } from './McpServersSection'
 
 function Card({ title, description, children, testId }: { title: string; description?: string; children: ReactNode; testId?: string }) {
   return (
@@ -50,9 +49,13 @@ function CopyBlock({ label, value, testId }: { label: string; value: string; tes
   )
 }
 
-export function AgentsPage() {
+/**
+ * Cấu hình "Kết nối agent" (trang Plugin › Kết nối agent). Bật / tắt server chỉ ở menu ⋯ của trang Plugin;
+ * MCP server (app dùng server khác) là mục riêng trên trang Plugin.
+ */
+export function AgentsPanel() {
   const { t } = useTranslation('agents')
-  const { status, exchanges, error, refreshStatus, refreshExchanges, setError, patchStatus } = useAgents()
+  const { status, exchanges, error, refreshStatus, refreshExchanges, patchStatus } = useAgents()
   const [name, setName] = useState('')
   const [created, setCreated] = useState<NewAgentToken | null>(null)
   const [limits, setLimits] = useState<{ perHour: number; concurrency: number } | null>(null)
@@ -65,10 +68,6 @@ export function AgentsPage() {
   if (!status) return null
   const currentLimits = limits ?? status.limits
 
-  const toggle = async (on: boolean): Promise<void> => {
-    setError(null)
-    await patchStatus((s) => ({ ...s, enabled: on }), () => api.agents.setEnabled(on))
-  }
   const create = async (): Promise<void> => {
     if (!name.trim()) return
     setCreated(await api.agents.createClient(name.trim()))
@@ -76,26 +75,10 @@ export function AgentsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl space-y-5 px-6 py-8">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            {t('title')}
-            <span className="rounded bg-orange-500/15 px-1.5 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-300">
-              {t('experimental')}
-            </span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
-        </div>
-
+    <>
+      <div className="space-y-5">
         <Card title={t('server.heading')} description={t('server.help')} testId="agents-server">
-          <label className="flex items-start gap-3">
-            <input type="checkbox" className="mt-1" checked={status.enabled} onChange={(e) => void toggle(e.target.checked)} data-testid="agents-enable" />
-            <span>
-              <span className="block text-sm font-medium">{t('server.enable')}</span>
-              <span className="block text-xs text-muted-foreground">{t('server.enableHelp')}</span>
-            </span>
-          </label>
+          {!status.enabled && <p className="text-sm text-muted-foreground" data-testid="agents-off">{t('server.off')}</p>}
           {(error || status.error) && (
             <p className="text-sm text-destructive" role="alert" data-testid="agents-error">
               {t(`errors.${error ?? status.error}`, { defaultValue: error ?? status.error ?? '', port: status.port })}
@@ -234,8 +217,6 @@ export function AgentsPage() {
             </ul>
           )}
         </Card>
-
-        <McpServersSection />
       </div>
 
       <Dialog open={!!created} onOpenChange={(o) => !o && setCreated(null)}>
@@ -251,6 +232,6 @@ export function AgentsPage() {
           </DialogContent>
         )}
       </Dialog>
-    </div>
+    </>
   )
 }

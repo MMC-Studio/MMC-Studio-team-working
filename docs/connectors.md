@@ -1,7 +1,7 @@
 # Gmail & Telegram (thử nghiệm, GĐ 4)
 
 Trợ lý đọc email / tin nhắn **của chính người dùng** để tóm tắt, nhắc việc, soạn trả lời.
-**Chỉ đọc + soạn nháp** — app không có hàm gửi thư / gửi tin. Mặc định tắt; vào Cài đặt → Tính năng thử nghiệm → Gmail & Telegram.
+**Chỉ đọc + soạn nháp** — app không có hàm gửi thư / gửi tin. Mặc định tắt; bật ở *Plugin* (thanh bên chat) → Gmail / Telegram → **Bật** (hộp cảnh báo kèm phần Riêng tư), cấu hình ở trang chi tiết của từng mục.
 
 ## Nguyên tắc
 
@@ -60,7 +60,7 @@ AppToolRegistry ◀── GmailService ── GmailBackend (GoogleGmailBackend |
 ```
 
 - `src/main/connectors/` — `filters.ts` (lọc riêng tư, thuần), `approvals.ts`, `gmail/`, `telegram/`.
-- `src/renderer/src/features/connectors/` — trang cài đặt + hộp duyệt nháp (overlay luôn gắn trong app).
+- `src/renderer/src/features/connectors/` — khối cấu hình Gmail / Telegram (hiện trong trang Plugin, `features/plugins`) + hộp duyệt nháp. `/connectors` chỉ chuyển hướng.
 
 ## Test
 
