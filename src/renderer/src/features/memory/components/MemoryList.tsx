@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMORY_CATEGORIES, type MemoryCategory } from '@shared/schemas'
 import type { Memory } from '@shared/types'
@@ -80,9 +80,11 @@ function MemoryRow({ memory }: { memory: Memory }) {
   )
 }
 
-export function MemoryList() {
+/** Danh sách theo MỘT phạm vi: projectId null = trí nhớ chung, id = trí nhớ của dự án đó (thêm mới cũng vào đó). */
+export function MemoryList({ projectId = null }: { projectId?: string | null }) {
   const { t } = useTranslation('memory')
-  const { memories, query, setQuery, create } = useMemory()
+  const { memories: all, query, setQuery, create } = useMemory()
+  const memories = useMemo(() => all.filter((m) => m.projectId === projectId), [all, projectId])
   const [search, setSearch] = useState(query)
   const [content, setContent] = useState('')
   const [category, setCategory] = useState<MemoryCategory>('other')
@@ -95,7 +97,7 @@ export function MemoryList() {
   const onAdd = async (e: FormEvent): Promise<void> => {
     e.preventDefault()
     if (!content.trim()) return
-    await create(content.trim(), category)
+    await create(content.trim(), category, projectId)
     setContent('')
   }
 

@@ -36,7 +36,8 @@
     "files": "{{count}} file ngữ cảnh",
     "memories": "{{count}} trí nhớ của dự án",
     "keep": "{{count}} cuộc trò chuyện được giữ lại và thành cuộc trò chuyện thường.",
-    "confirm": "Xoá dự án"
+    "confirm": "Xoá dự án",
+    "suggestions": "{{count}} đề xuất trí nhớ đang chờ duyệt"
   },
   "detail": {
     "back": "Dự án",

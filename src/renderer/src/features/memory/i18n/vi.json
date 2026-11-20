@@ -33,7 +33,13 @@
     "collapse": "Thu gọn",
     "category": "Loại",
     "filter": "Lọc theo loại",
-    "all": "Tất cả"
+    "all": "Tất cả",
+    "scopeFilter": "Lọc theo phạm vi",
+    "scopeUser": "Chung",
+    "scopeProject": "Dự án: {{name}}",
+    "scope": "Phạm vi",
+    "scopeToUser": "Lưu thành trí nhớ chung",
+    "scopeToProject": "Lưu vào dự án {{name}}"
   },
   "profile": {
     "heading": "Hồ sơ cá nhân",
@@ -69,6 +75,24 @@
     "addPlaceholder": "Thêm điều trợ lý nên nhớ…",
     "add": "Thêm",
     "edit": "Sửa",
-    "lastUsed": "Dùng lần cuối {{date}}"
+    "lastUsed": "Dùng lần cuối {{date}}",
+    "scope": "Xem trí nhớ",
+    "scopeUser": "Trí nhớ chung",
+    "scopeProject": "Dự án: {{name}}",
+    "scopeHelpProject": "Chỉ dùng trong các cuộc trò chuyện của dự án này."
+  },
+  "project": {
+    "pending": "Chờ duyệt ({{count}})",
+    "empty": "Chưa có trí nhớ nào cho dự án. Sau mỗi cuộc trò chuyện trong dự án, trợ lý sẽ đề xuất điều nên nhớ — chỉ dùng trong dự án này.",
+    "add": "Thêm",
+    "addPlaceholder": "Điều trợ lý nên nhớ trong dự án…",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "edit": "Sửa",
+    "remove": "Xoá",
+    "openAll": "Mở trên trang Trí nhớ",
+    "scopeUser": "Chung",
+    "scopeProject": "Dự án",
+    "toggleScope": "Đổi phạm vi (bấm để chuyển Chung ↔ Dự án)"
   }
 }

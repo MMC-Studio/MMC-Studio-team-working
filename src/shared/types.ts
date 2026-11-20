@@ -186,6 +186,8 @@ export type Memory = {
   content: string
   category: MemoryCategory
   sourceConversationId: string | null
+  /** Trí nhớ riêng của dự án (null = trí nhớ chung). */
+  projectId: string | null
   createdAt: number
   updatedAt: number
   lastUsedAt: number | null
@@ -201,6 +203,12 @@ export type MemorySuggestion = {
   content: string
   category: MemoryCategory
   status: SuggestionStatus
+  /** Đề xuất cho trí nhớ dự án (null = trí nhớ chung) + tên dự án để hiện nhãn. */
+  projectId: string | null
+  projectName: string | null
+  /** Dự án của cuộc trò chuyện sinh ra đề xuất — để đổi Chung ↔ Dự án trước khi duyệt. */
+  sourceProjectId: string | null
+  sourceProjectName: string | null
   createdAt: number
 }
 
@@ -387,8 +395,9 @@ export interface TeamWorkingApi {
   memory: {
     getProfile(): Promise<UserProfile>
     setProfile(profile: UserProfile): Promise<UserProfile>
-    list(query?: string): Promise<Memory[]>
-    create(content: string, category: MemoryCategory): Promise<Memory>
+    /** Bỏ `projectId` = mọi phạm vi, null = chỉ trí nhớ chung, id = chỉ của dự án đó. */
+    list(filter?: { query?: string; projectId?: string | null }): Promise<Memory[]>
+    create(content: string, category: MemoryCategory, projectId?: string | null): Promise<Memory>
     update(id: string, content: string, category: MemoryCategory): Promise<Memory>
     remove(id: string): Promise<void>
     suggestions(): Promise<MemorySuggestion[]>
@@ -397,6 +406,7 @@ export interface TeamWorkingApi {
       accept: boolean
       content?: string
       category?: MemoryCategory
+      projectId?: string | null
     }): Promise<void>
     /** Duyệt nhiều đề xuất một lần; trả về số đề xuất đã xử lý (đề xuất không còn chờ thì bỏ qua). */
     resolveMany(

@@ -689,7 +689,8 @@ async function bootstrap(): Promise<void> {
     workspaceDir,
     emit: (payload) => mainWindow?.webContents.send(IPC.memoryEvent, payload),
     log,
-    getOwner
+    getOwner,
+    getProject: (id) => projectRepo.get(id)
   })
   // Tiêu đề ngắn + gợi ý nhóm cho cuộc trò chuyện mới (từ khoá ngay; model rẻ sau lượt trả lời đầu).
   const organizer = new ConversationOrganizer({
@@ -709,7 +710,7 @@ async function bootstrap(): Promise<void> {
     messages,
     getProvider,
     getAssistant: () => accountScope.getAssistant(),
-    getMemoryContext: (query) => memory.contextFor(query),
+    getMemoryContext: (query, conversationId) => memory.contextFor(query, conversationId),
     projectPromptFor: (conversationId) => projects.promptFor(conversationId),
     loadModeSkill: (mode) => loadModeSkill(skillsDir, mode),
     userSkillsFor: (text) => skillStore.promptFor(text),

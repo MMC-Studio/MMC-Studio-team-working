@@ -36,7 +36,8 @@
     "files": "{{count}} context files",
     "memories": "{{count}} project memories",
     "keep": "{{count}} chats are kept and become regular chats.",
-    "confirm": "Delete project"
+    "confirm": "Delete project",
+    "suggestions": "{{count}} pending memory suggestions"
   },
   "detail": {
     "back": "Projects",

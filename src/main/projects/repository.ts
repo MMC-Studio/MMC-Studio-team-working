@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import type { Project, ProjectDeleteInfo, ProjectUpdate } from '@shared/projects'
 import type { AppDatabase } from '../db/client'
-import { conversations, memories, projectFiles, projects } from '../db/schema'
+import { conversations, memories, memorySuggestions, projectFiles, projects } from '../db/schema'
 
 type ProjectRow = typeof projects.$inferSelect
 export type ProjectFileRow = typeof projectFiles.$inferSelect
@@ -85,6 +85,13 @@ export class ProjectRepository {
     return {
       files: count(this.db.select({ n: sql<number>`count(*)` }).from(projectFiles).where(eq(projectFiles.projectId, id)).get()),
       memories: count(this.db.select({ n: sql<number>`count(*)` }).from(memories).where(eq(memories.projectId, id)).get()),
+      suggestions: count(
+        this.db
+          .select({ n: sql<number>`count(*)` })
+          .from(memorySuggestions)
+          .where(and(eq(memorySuggestions.projectId, id), eq(memorySuggestions.status, 'pending')))
+          .get()
+      ),
       conversations: count(
         this.db.select({ n: sql<number>`count(*)` }).from(conversations).where(eq(conversations.projectId, id)).get()
       )

@@ -28,6 +28,7 @@ import {
   externalUrlSchema,
   idSchema,
   memoryCreateSchema,
+  memoryListSchema,
   memoryUpdateSchema,
   suggestionResolveSchema,
   suggestionResolveManySchema,
@@ -291,11 +292,9 @@ export function registerIpc(deps: IpcDeps): void {
   const mem = { changes: 'memory' } as const
   handle(deps, IPC.memoryGetProfile, none, () => deps.memory.getProfile())
   handle(deps, IPC.memorySetProfile, userProfileSchema, (p) => deps.memory.setProfile(p))
-  handle(deps, IPC.memoryList, z.string().trim().max(200).optional(), (query) =>
-    deps.memories.list(query)
-  )
-  handle(deps, IPC.memoryCreate, memoryCreateSchema, ({ content, category }) =>
-    deps.memories.create(content, category)
+  handle(deps, IPC.memoryList, memoryListSchema, (filter) => deps.memories.list(filter?.query, filter?.projectId))
+  handle(deps, IPC.memoryCreate, memoryCreateSchema, ({ content, category, projectId }) =>
+    deps.memory.create(content, category, projectId)
   , mem)
   handle(deps, IPC.memoryUpdate, memoryUpdateSchema, ({ id, content, category }) => {
     const updated = deps.memories.update(id, content, category)

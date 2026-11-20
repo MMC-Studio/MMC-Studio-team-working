@@ -25,7 +25,10 @@ export class FakeChatProvider implements AIProvider {
    * sessionId → những gì "model" của session đã thấy: system prompt lúc tạo session (resume giữ bản này, bỏ qua bản
    * mới — như CLI), trí nhớ / skill tích luỹ từ các khối đầu tin nhắn, trạng thái mới nhất của từng mục.
    */
-  private readonly sessions = new Map<string, { system: string; items: string[]; states: Map<string, string> }>()
+  private readonly sessions = new Map<
+    string,
+    { system: string; items: string[]; projectItems: string[]; states: Map<string, string> }
+  >()
 
   /**
    * Gọi tool của app như CLI thật (qua registry) — để e2e đi được luồng duyệt nháp Gmail / Telegram.
@@ -46,12 +49,12 @@ export class FakeChatProvider implements AIProvider {
 
   async *chat(input: ChatRequest, signal: AbortSignal): AsyncIterable<ChatEvent> {
     let req = input
-    let seen: { memories: string[]; access: string } | null = null
+    let seen: { memories: string[]; projectMemories: string[]; access: string } | null = null
     if (this.stateful) {
       let session = input.sessionId ? this.sessions.get(input.sessionId) : undefined
       if (!session) {
         const sessionId = randomUUID()
-        session = { system: input.systemPrompt, items: [], states: new Map() }
+        session = { system: input.systemPrompt, items: [], projectItems: [], states: new Map() }
         this.sessions.set(sessionId, session)
         yield { type: 'session', sessionId }
       }
@@ -61,14 +64,16 @@ export class FakeChatProvider implements AIProvider {
       for (const m of head?.[1].matchAll(/<muc ten="([\w-]+)">\n([\s\S]*?)\n<\/muc>/g) ?? []) {
         const [, name, body] = m
         if (name === 'tri-nho' || name === 'skill-dung') session.items.push(body)
+        else if (name === 'tri-nho-du-an') session.projectItems.push(body)
         else if (name === 'giong-noi') ephemeral = body
         else if (body === '(Không còn áp dụng từ lượt này.)') session.states.delete(name)
         else session.states.set(name, body)
       }
-      const effective = [session.system, ...session.items, ...session.states.values(), ephemeral].filter(Boolean).join('\n\n')
+      const effective = [session.system, ...session.items, ...session.projectItems, ...session.states.values(), ephemeral].filter(Boolean).join('\n\n')
       req = { ...input, systemPrompt: effective, prompt: head ? input.prompt.slice(head[0].length) : input.prompt }
       seen = {
         memories: session.items.flatMap((b) => [...b.matchAll(/^- (.+)$/gm)].map((x) => x[1])),
+        projectMemories: session.projectItems.flatMap((b) => [...b.matchAll(/^- (.+)$/gm)].map((x) => x[1])),
         access: session.states.get('quyen-truy-cap') ?? ''
       }
     }
@@ -93,6 +98,15 @@ export class FakeChatProvider implements AIProvider {
             ? `Ghi nhớ dài số ${i + 1}: ` + 'đang làm đồ án game Unity nhiều màn chơi, cần nhắc deadline và cách tối ưu hiệu năng. '.repeat(5)
             : `Ghi nhớ số ${i + 1}`
       }))
+      // FAKE_MEM:<user|project|none>:<nội dung> (tới ";" hoặc hết dòng) → một đề xuất có scope (none = bỏ trống
+      // scope). Chỉ đọc lời NGƯỜI DÙNG (trợ lý giả có nhắc lại một đoạn tin → tránh đề xuất cụt).
+      const userText = req.prompt
+        .split('\n')
+        .filter((line) => line.startsWith('NGƯỜI DÙNG:'))
+        .join('\n')
+      for (const m of userText.matchAll(/FAKE_MEM:(user|project|none):([^\n;]+)/g)) {
+        items.push({ action: 'add', category: 'other', content: m[2].trim(), ...(m[1] === 'none' ? {} : { scope: m[1] }) })
+      }
       yield { type: 'text', delta: '```json\n' + JSON.stringify({ type: 'memory_suggestions', items }) + '\n```' }
       yield { type: 'done' }
       return
@@ -199,7 +213,7 @@ export class FakeChatProvider implements AIProvider {
     const withHistory = this.stateful && req.prompt.startsWith('Đoạn hội thoại trước đó') ? ' [kèm lịch sử]' : ''
     // Chế độ session: báo lại những gì "model" đang thấy → e2e kiểm phần đổi theo lượt có tới được không.
     const state = seen
-      ? ` [tên: ${/^Bạn là ([^.]+)\./m.exec(req.systemPrompt)?.[1] ?? '-'} | trí nhớ: ${seen.memories.join('; ') || '-'} | quyền: ${
+      ? ` [tên: ${/^Bạn là ([^.]+)\./m.exec(req.systemPrompt)?.[1] ?? '-'} | trí nhớ: ${seen.memories.join('; ') || '-'} | trí nhớ dự án: ${seen.projectMemories.join('; ') || '-'} | quyền: ${
           /ĐƯỢC SỬA FILE/.test(seen.access) ? 'sửa' : /CHỈ ĐỌC/.test(seen.access) ? 'đọc' : 'không'
         } | tools: ${req.tools?.join(',') || '-'}]`
       : ''

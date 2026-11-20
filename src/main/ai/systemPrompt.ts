@@ -20,6 +20,8 @@ export type SystemPromptInput = {
   userSkills?: string
   user?: UserProfileContext
   memories?: string[]
+  /** Trí nhớ riêng của dự án đang mở (chỉ đúng trong dự án). */
+  projectMemories?: string[]
   /** Dữ liệu ngữ cảnh thêm (task đang được giao…). */
   extraContext?: string
   /**
@@ -48,6 +50,8 @@ const MODE_TEXT: Record<ChatMode, string> = {
 }
 
 export const DEFAULT_MAX_CHARS = 12_000
+/** Tiêu đề phần trí nhớ dự án (dùng chung cho system prompt API và khối theo lượt của CLI). */
+export const PROJECT_MEMORY_HEADING = 'Trí nhớ của dự án này (chỉ đúng trong dự án, không áp dụng ở nơi khác)'
 const MAX_MEMORIES = 30
 
 function personaText(a: AssistantProfile): string {
@@ -86,6 +90,7 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
   const userSection = userLines.length ? `## Người dùng\n${userLines.join('\n')}` : ''
 
   const memories = (input.memories ?? []).slice(0, MAX_MEMORIES)
+  const projectMemories = (input.projectMemories ?? []).slice(0, MAX_MEMORIES)
   const modeSection = [
     `## Chế độ: ${MODE_TEXT[input.mode]}`,
     input.modeSkill?.trim() ?? '',
@@ -95,12 +100,14 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
     .join('\n\n')
   const extra = input.extraContext?.trim() ? `## Ngữ cảnh\n${input.extraContext.trim()}` : ''
 
-  const render = (mem: string[], mode: string, ctx: string): string =>
+  const list = (items: string[]): string => items.map((m) => `- ${m}`).join('\n')
+  const render = (mem: string[], mode: string, ctx: string, pmem: string[] = projectMemories): string =>
     [
       identity,
       userSection,
       project,
-      mem.length ? `## Điều bạn đã biết về người dùng\n${mem.map((m) => `- ${m}`).join('\n')}` : '',
+      mem.length ? `## Điều bạn đã biết về người dùng\n${list(mem)}` : '',
+      pmem.length ? `## ${PROJECT_MEMORY_HEADING}\n${list(pmem)}` : '',
       mode,
       ctx
     ]
@@ -119,9 +126,12 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
   const clippedMode = clip(modeSection, Math.max(0, budget(modeSection)))
   result = render(memories, clippedMode, clippedExtra)
   const mem = [...memories]
-  while (result.length > maxChars && mem.length > 0) {
-    mem.pop()
-    result = render(mem, clippedMode, clippedExtra)
+  const pmem = [...projectMemories]
+  // Bỏ dần memory cũ: trí nhớ chung trước, rồi trí nhớ dự án (sát với việc đang làm hơn).
+  while (result.length > maxChars && (mem.length > 0 || pmem.length > 0)) {
+    if (mem.length > 0) mem.pop()
+    else pmem.pop()
+    result = render(mem, clippedMode, clippedExtra, pmem)
   }
   return clip(result, maxChars)
 }

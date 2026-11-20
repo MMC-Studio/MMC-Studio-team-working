@@ -47,10 +47,13 @@ function signedInUser(): string {
   return uid
 }
 
-/** Đẩy toàn bộ trí nhớ trên máy lên (ghi đè), xóa bản trên máy chủ không còn ở máy. */
+/**
+ * Đẩy toàn bộ trí nhớ CHUNG trên máy lên (ghi đè), xóa bản trên máy chủ không còn ở máy.
+ * Trí nhớ dự án không sao lưu: dự án chỉ có trên máy, khôi phục về sẽ thành trí nhớ chung (sai phạm vi).
+ */
 export async function pushBackup(): Promise<number> {
   const uid = signedInUser()
-  const local = await api.memory.list()
+  const local = await api.memory.list({ projectId: null })
   const db = supabase!
   if (local.length) {
     const { error } = await db.from('user_memories').upsert(
@@ -70,7 +73,7 @@ export async function restoreBackup(): Promise<number> {
   const uid = signedInUser()
   const { data, error } = await supabase!.from('user_memories').select('content, category').eq('user_id', uid)
   if (error) throw new Error(dbErrorCode(error))
-  const missing = toRestore(data ?? [], await api.memory.list())
+  const missing = toRestore(data ?? [], await api.memory.list({ projectId: null }))
   for (const m of missing) await api.memory.create(m.content, m.category)
   return missing.length
 }

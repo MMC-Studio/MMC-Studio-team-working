@@ -11,6 +11,7 @@ const mem = (id: string, content: string, category: MemoryCategory = 'other', ag
   content,
   category,
   sourceConversationId: null,
+  projectId: null,
   createdAt: NOW - ageDays * DAY,
   updatedAt: NOW - ageDays * DAY,
   lastUsedAt: null
