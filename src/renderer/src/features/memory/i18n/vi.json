@@ -10,7 +10,7 @@
     "goal": "Mục tiêu",
     "skill": "Kỹ năng",
     "preference": "Sở thích trả lời",
-    "project": "Dự án",
+    "project": "Công việc",
     "deadline": "Deadline",
     "other": "Khác"
   },
@@ -39,7 +39,9 @@
     "scopeProject": "Dự án: {{name}}",
     "scope": "Phạm vi",
     "scopeToUser": "Lưu thành trí nhớ chung",
-    "scopeToProject": "Lưu vào dự án {{name}}"
+    "scopeToProject": "Lưu vào dự án {{name}}",
+    "scopeRow": "Phạm vi:",
+    "categoryRow": "Loại:"
   },
   "profile": {
     "heading": "Hồ sơ cá nhân",

@@ -10,7 +10,7 @@
     "goal": "Goal",
     "skill": "Skill",
     "preference": "Answer preference",
-    "project": "Project",
+    "project": "Work",
     "deadline": "Deadline",
     "other": "Other"
   },
@@ -39,7 +39,9 @@
     "scopeProject": "Project: {{name}}",
     "scope": "Scope",
     "scopeToUser": "Save as general memory",
-    "scopeToProject": "Save to project {{name}}"
+    "scopeToProject": "Save to project {{name}}",
+    "scopeRow": "Scope:",
+    "categoryRow": "Type:"
   },
   "profile": {
     "heading": "Personal profile",

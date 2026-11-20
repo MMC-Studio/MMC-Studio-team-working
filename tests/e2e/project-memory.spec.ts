@@ -92,12 +92,52 @@ test('trang Trí nhớ: cùng các đề xuất đó, nhãn "Dự án: …", l�
   await expect(suggestionRow('Dùng URP').getByTestId('suggestion-scope')).toHaveText('Dự án: Game Pixel')
   await expect(suggestionRow('Thích trả lời ngắn').getByTestId('suggestion-scope')).toHaveCount(0)
 
+  // Loại "project" hiện là "Công việc" — không trùng chữ với nhãn phạm vi "Dự án: …".
+  await expect(suggestionRow('Dùng URP')).toContainText('Công việc')
+  await expect(suggestionRow('Dùng URP').getByTestId('suggestion-row')).not.toContainText(/Dự án(?!:)/)
+
+  // Hai hàng lọc có tên.
   const filter = page.getByTestId('suggestion-scope-filter')
+  const categories = page.getByTestId('suggestion-category-filter')
+  await expect(filter.locator('xpath=..')).toContainText('Phạm vi:')
+  await expect(categories.locator('xpath=..')).toContainText('Loại:')
   await expect(filter.getByRole('tab')).toHaveText(['Tất cả (3)', 'Chung (1)', 'Dự án: Game Pixel (2)'])
+  await expect(categories.getByRole('tab')).toHaveText(['Tất cả (3)', 'Sở thích trả lời (1)', 'Công việc (1)', 'Khác (1)'])
+  await page.screenshot({ path: 'test-results/project-memory-suggestions-light.png' })
+  await page.getByTestId('theme-toggle').click()
+  await page.waitForTimeout(600) // chờ hiệu ứng đổi màu xong, ảnh chụp ngay sẽ thiếu nút ✓ / ✕
+  await page.screenshot({ path: 'test-results/project-memory-suggestions-dark.png' })
+  await page.getByTestId('theme-toggle').click()
+
+  // Số đếm ở hàng Loại theo phạm vi đang chọn.
+  await filter.getByRole('tab', { name: /^Dự án: Game Pixel/ }).click()
+  await expect(suggestionRows()).toHaveCount(2, FAST)
+  await expect(categories.getByRole('tab')).toHaveText(['Tất cả (2)', 'Công việc (1)', 'Khác (1)'], FAST)
   await filter.getByRole('tab', { name: 'Chung (1)' }).click()
   await expect(suggestionRows()).toHaveCount(1, FAST)
+  await expect(categories).toHaveCount(0, FAST) // chỉ một loại → không cần hàng Loại
   await filter.getByRole('tab', { name: /Tất cả/ }).click()
   await expect(suggestionRows()).toHaveCount(3, FAST)
+
+  // Nhóm trong "Những điều đã ghi nhớ" cũng đổi chữ.
+  const add = page.getByRole('textbox', { name: 'Thêm điều trợ lý nên nhớ…' })
+  await add.fill('Đang làm đồ án tốt nghiệp')
+  await page.getByTestId('memory-list-section').getByRole('combobox', { name: 'Khác' }).selectOption('project')
+  await page.getByTestId('memory-list-section').getByRole('button', { name: 'Thêm' }).click()
+  const group = page.getByTestId('memory-group').filter({ has: page.getByTestId('memory-item') })
+  await expect(group.getByTestId('memory-group-toggle')).toContainText('Công việc', FAST)
+  for (const theme of ['light', 'dark'] as const) {
+    if ((await page.evaluate(() => document.documentElement.classList.contains('dark'))) !== (theme === 'dark')) {
+      await page.getByTestId('theme-toggle').click()
+    }
+    await page.getByTestId('memory-list-section').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `test-results/memory-list-${theme}.png` })
+  }
+  await page.getByTestId('theme-toggle').click()
+  const item = memoryItems().filter({ hasText: 'Đang làm đồ án tốt nghiệp' })
+  await item.hover()
+  await item.getByTitle('Xóa').click()
+  await expect(memoryItems()).toHaveCount(0, FAST)
 })
 
 test('duyệt ở trang Trí nhớ → không nằm trong trí nhớ chung, hiện trong trí nhớ dự án; trang dự án bớt đề xuất', async () => {

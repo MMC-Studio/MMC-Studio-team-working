@@ -105,7 +105,9 @@ export class FakeChatProvider implements AIProvider {
         .filter((line) => line.startsWith('NGƯỜI DÙNG:'))
         .join('\n')
       for (const m of userText.matchAll(/FAKE_MEM:(user|project|none):([^\n;]+)/g)) {
-        items.push({ action: 'add', category: 'other', content: m[2].trim(), ...(m[1] === 'none' ? {} : { scope: m[1] }) })
+        // Loại theo phạm vi (project → "project", user → "preference", none → "other") để e2e kiểm số đếm hàng Loại.
+        const category = m[1] === 'project' ? 'project' : m[1] === 'user' ? 'preference' : 'other'
+        items.push({ action: 'add', category, content: m[2].trim(), ...(m[1] === 'none' ? {} : { scope: m[1] }) })
       }
       yield { type: 'text', delta: '```json\n' + JSON.stringify({ type: 'memory_suggestions', items }) + '\n```' }
       yield { type: 'done' }

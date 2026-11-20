@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMORY_CATEGORIES, type MemoryCategory } from '@shared/schemas'
 import type { MemorySuggestion } from '@shared/types'
@@ -211,6 +211,16 @@ function AcceptAllButton({ count, onConfirm }: { count: number; onConfirm(): voi
   )
 }
 
+/** Một hàng lọc có tên ("Phạm vi:", "Loại:") — hai hàng cùng bắt đầu bằng "Tất cả" không bị nhìn như lặp. */
+function FilterRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2 text-xs">
+      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 export function SuggestionList() {
   const { t } = useTranslation('memory')
   const suggestions = useMemory((s) => s.suggestions)
@@ -258,7 +268,8 @@ export function SuggestionList() {
   return (
     <div className="space-y-3" data-testid="suggestion-list">
       {scopes.length > 1 && (
-        <div className="flex flex-wrap gap-1 text-xs" role="tablist" aria-label={t('suggestions.scopeFilter')} data-testid="suggestion-scope-filter">
+        <FilterRow label={t('suggestions.scopeRow')}>
+          <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('suggestions.scopeFilter')} data-testid="suggestion-scope-filter">
           {[{ key: 'all' as const, name: null, count: suggestions.length }, ...scopes].map((s) => (
             <button
               key={s.key}
@@ -282,10 +293,12 @@ export function SuggestionList() {
               ({s.count})
             </button>
           ))}
-        </div>
+          </div>
+        </FilterRow>
       )}
       {categories.length > 1 && (
-        <div className="flex flex-wrap gap-1 text-xs" role="tablist" aria-label={t('suggestions.filter')}>
+        <FilterRow label={t('suggestions.categoryRow')}>
+          <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('suggestions.filter')} data-testid="suggestion-category-filter">
           {(['all', ...categories] as const).map((c) => {
             const n = c === 'all' ? scoped.length : scoped.filter((s) => s.category === c).length
             return (
@@ -307,7 +320,8 @@ export function SuggestionList() {
               </button>
             )
           })}
-        </div>
+          </div>
+        </FilterRow>
       )}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <label className="flex items-center gap-2 px-2">

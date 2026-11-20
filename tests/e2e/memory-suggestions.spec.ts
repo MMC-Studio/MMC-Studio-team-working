@@ -58,7 +58,7 @@ test('dòng gọn: một dòng (cắt …), nhãn loại, ✓ / ✕; chỉ hiệ
   const short = await rows().first().boundingBox()
   const tall = await long.boundingBox()
   expect(Math.abs(tall!.height - short!.height)).toBeLessThan(2)
-  await expect(long).toContainText('Dự án')
+  await expect(long).toContainText('Công việc')
   await expect(long.getByTestId('memory-suggestion-accept')).toBeVisible()
   await expect(long.getByTestId('memory-suggestion-reject')).toBeVisible()
   await page.screenshot({ path: 'test-results/memory-suggestions-compact.png' })
