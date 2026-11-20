@@ -132,8 +132,9 @@ const api: TeamWorkingApi = {
   memory: {
     getProfile: () => ipcRenderer.invoke(IPC.memoryGetProfile),
     setProfile: (profile) => ipcRenderer.invoke(IPC.memorySetProfile, profile),
-    list: (query) => ipcRenderer.invoke(IPC.memoryList, query),
-    create: (content, category) => ipcRenderer.invoke(IPC.memoryCreate, { content, category }),
+    list: (filter) => ipcRenderer.invoke(IPC.memoryList, filter),
+    create: (content, category, projectId) =>
+      ipcRenderer.invoke(IPC.memoryCreate, { content, category, projectId }),
     update: (id, content, category) =>
       ipcRenderer.invoke(IPC.memoryUpdate, { id, content, category }),
     remove: (id) => ipcRenderer.invoke(IPC.memoryRemove, id),

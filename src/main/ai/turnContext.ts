@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { PROJECT_MEMORY_HEADING } from './systemPrompt'
 
 /**
  * Ngữ cảnh theo lượt cho provider có session (Claude CLI).
@@ -25,8 +26,9 @@ export const FULL_RESEND_EVERY = 25
 export const TURN_STATES = ['skills', 'access', 'expressive', 'artifacts'] as const
 export type TurnStateKey = (typeof TURN_STATES)[number]
 
-const SECTION_NAME: Record<TurnStateKey | 'memories' | 'skillItems' | 'voice', string> = {
+const SECTION_NAME: Record<TurnStateKey | 'memories' | 'projectMemories' | 'skillItems' | 'voice', string> = {
   memories: 'tri-nho',
+  projectMemories: 'tri-nho-du-an',
   skillItems: 'skill-dung',
   skills: 'skill',
   access: 'quyen-truy-cap',
@@ -39,6 +41,8 @@ const CLEARED = '(Không còn áp dụng từ lượt này.)'
 export type TurnContextInput = {
   /** Trí nhớ liên quan tới câu hỏi lượt này. */
   memories: string[]
+  /** Trí nhớ của dự án đang mở liên quan tới câu hỏi (cuộc ngoài dự án: rỗng). */
+  projectMemories?: string[]
   /** Phần skill của SkillStore.promptFor (đầu mục + "### Skill: …" từng skill). */
   skillsSection: string
   states: Partial<Record<TurnStateKey, string>>
@@ -89,6 +93,20 @@ export function buildTurnBlock(input: TurnContextInput, memo: SessionMemo | null
     return true
   })
   if (newMemories.length) section(SECTION_NAME.memories, newMemories.map((m) => `- ${m}`).join('\n'))
+
+  // Khoá riêng (`pm:`) — cùng một câu ở trí nhớ chung và trí nhớ dự án là hai mục khác nhau.
+  const newProjectMemories = (input.projectMemories ?? []).filter((m) => {
+    const id = `pm:${hash(m)}`
+    if (next.items.has(id)) return false
+    next.items.add(id)
+    return true
+  })
+  if (newProjectMemories.length) {
+    section(
+      SECTION_NAME.projectMemories,
+      `${PROJECT_MEMORY_HEADING}:\n${newProjectMemories.map((m) => `- ${m}`).join('\n')}`
+    )
+  }
 
   const { header, skills } = splitSkills(input.skillsSection)
   const states: Partial<Record<TurnStateKey, string>> = { ...input.states, skills: header }

@@ -202,6 +202,7 @@ export function DeleteProjectDialog({
               <ul className="list-disc space-y-0.5 pl-5" data-testid="project-delete-counts">
                 <li>{t('deleteDialog.files', { count: info.files })}</li>
                 <li>{t('deleteDialog.memories', { count: info.memories })}</li>
+                {info.suggestions > 0 && <li>{t('deleteDialog.suggestions', { count: info.suggestions })}</li>}
               </ul>
               <p className="text-muted-foreground">{t('deleteDialog.keep', { count: info.conversations })}</p>
             </>

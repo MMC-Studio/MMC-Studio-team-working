@@ -11,6 +11,7 @@ import { useCliStatus } from '@renderer/stores/cli'
 import { ChatLayout, SidebarToggle } from '@renderer/features/chat/layout/ChatLayout'
 import { Composer } from '@renderer/features/chat/components/Composer'
 import { useChat } from '@renderer/features/chat/store'
+import { ProjectMemoryPanel } from '@renderer/features/memory/components/ProjectMemoryPanel'
 import type { MediaItem } from '@shared/expressive'
 import type { MessageVoice } from '@shared/voice'
 import { PROJECTS_ROUTE } from '../view'
@@ -252,7 +253,9 @@ function ProjectSidePanel({ project, onRemoveFile }: { project: ProjectDetail; o
         )}
       </PanelRow>
 
-      <PanelRow icon={Brain} title={t('panel.memory')} action={<span className="text-xs text-muted-foreground">{t('panel.soon')}</span>} testId="panel-memory" />
+      <PanelRow icon={Brain} title={t('panel.memory')} testId="panel-memory">
+        <ProjectMemoryPanel projectId={project.id} />
+      </PanelRow>
       <PanelRow icon={Clock} title={t('panel.scheduled')} action={<span className="text-xs text-muted-foreground">{t('panel.soon')}</span>} testId="panel-scheduled" />
       <p className="pt-4 text-xs text-muted-foreground">{t('detail.private')}</p>
 

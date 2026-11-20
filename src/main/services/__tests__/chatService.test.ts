@@ -5,7 +5,8 @@ import { DEFAULT_ASSISTANT } from '@shared/schemas'
 import type { ChatStreamPayload } from '@shared/types'
 import type { AIProvider, ChatRequest } from '../../ai/AIProvider'
 import { openDatabase } from '../../db/client'
-import { ConversationRepository, MessageRepository } from '../../db/repositories'
+import { ConversationRepository, LOCAL_OWNER, MessageRepository } from '../../db/repositories'
+import { ProjectRepository } from '../../projects/repository'
 import {
   ChatBusyError,
   ChatService,
@@ -60,9 +61,10 @@ describe('ChatService', () => {
       messages: msgs,
       getProvider: () => provider,
       getAssistant: () => ({ ...DEFAULT_ASSISTANT, name: 'Bông' }),
-      getMemoryContext: (query) => ({
+      getMemoryContext: (query, conversationId) => ({
         user: { name: 'An' },
-        memories: query.includes('React') ? ['Đang học React'] : []
+        memories: query.includes('React') ? ['Đang học React'] : [],
+        projectMemories: convs.get(conversationId)?.projectId ? ['Dự án dùng URP'] : []
       }),
       loadModeSkill: async (mode) => (mode === 'study' ? '# Gia sư' : undefined),
       userSkillsFor: async (text) =>
@@ -222,6 +224,21 @@ describe('ChatService', () => {
       expect(second.sessionId).toBe('s1')
       expect(second.prompt).toContain('- Đang học React')
       expect((await turn(service, provider, conv.id, 'React tiếp')).prompt).not.toContain('Đang học React')
+    })
+
+    it('cuộc trong dự án: trí nhớ dự án (theo cuộc trò chuyện) vào mục tri-nho-du-an; cuộc thường thì không', async () => {
+      const provider = sessionProvider()
+      const project = new ProjectRepository(handle.db, () => LOCAL_OWNER).create({ name: 'Game', description: '' })
+      const inProject = convs.createInProject('free', project.id)!
+      const service = makeService(provider)
+      const first = await turn(service, provider, inProject.id, 'chào')
+      expect(first.prompt).toContain('<muc ten="tri-nho-du-an">')
+      expect(first.prompt).toContain('- Dự án dùng URP')
+      expect((await turn(service, provider, inProject.id, 'tiếp')).prompt).not.toContain('Dự án dùng URP')
+
+      const plain = convs.create('free')
+      const other = sessionProvider()
+      expect((await turn(makeService(other), other, plain.id, 'chào')).prompt).not.toContain('tri-nho-du-an')
     })
 
     it('CLI báo compact → lượt sau gửi lại đủ trí nhớ đã gửi', async () => {

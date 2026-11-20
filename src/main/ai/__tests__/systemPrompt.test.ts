@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_ASSISTANT } from '@shared/schemas'
-import { buildSystemPrompt } from '../systemPrompt'
+import { buildSystemPrompt, PROJECT_MEMORY_HEADING } from '../systemPrompt'
 
 describe('buildSystemPrompt', () => {
   it('chèn tên, tính cách và ngôn ngữ của trợ lý', () => {
@@ -84,5 +84,29 @@ ${'p'.repeat(5_000)}`
 
   it('chế độ project hiện là "Quản lý công việc"', () => {
     expect(buildSystemPrompt({ assistant: DEFAULT_ASSISTANT, mode: 'project' })).toContain('Quản lý công việc')
+  })
+})
+
+describe('trí nhớ dự án (provider không session)', () => {
+  it('phần riêng sau trí nhớ chung; không có thì không có tiêu đề', () => {
+    const prompt = buildSystemPrompt({
+      assistant: DEFAULT_ASSISTANT,
+      mode: 'free',
+      memories: ['Thích ví dụ ngắn'],
+      projectMemories: ['Dùng URP']
+    })
+    expect(prompt).toContain(`## ${PROJECT_MEMORY_HEADING}\n- Dùng URP`)
+    expect(prompt.indexOf('Thích ví dụ ngắn')).toBeLessThan(prompt.indexOf('Dùng URP'))
+    expect(buildSystemPrompt({ assistant: DEFAULT_ASSISTANT, mode: 'free' })).not.toContain(PROJECT_MEMORY_HEADING)
+  })
+
+  it('quá dài: bỏ trí nhớ chung trước, rồi mới tới trí nhớ dự án', () => {
+    const memories = Array.from({ length: 10 }, (_, i) => `chung${i}-${'k'.repeat(80)}`)
+    const projectMemories = ['DA-1', 'DA-2']
+    const prompt = buildSystemPrompt({ assistant: DEFAULT_ASSISTANT, mode: 'free', memories, projectMemories, maxChars: 900 })
+    expect(prompt.length).toBeLessThanOrEqual(900)
+    expect(prompt).toContain('DA-1')
+    expect(prompt).toContain('DA-2')
+    expect(prompt).not.toContain('chung9-')
   })
 })

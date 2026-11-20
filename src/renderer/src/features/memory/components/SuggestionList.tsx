@@ -1,11 +1,12 @@
 import { Check, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMORY_CATEGORIES, type MemoryCategory } from '@shared/schemas'
 import type { MemorySuggestion } from '@shared/types'
 import { Button } from '@renderer/components/ui/button'
 import { Select, Textarea } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
+import { projectChoice, scopeKeyOf, suggestionScopes, type ScopeKey } from '../scope'
 import { useMemory } from '../store'
 
 /** Số đề xuất hiện sẵn; còn lại nằm sau "Xem thêm". */
@@ -23,6 +24,8 @@ function SuggestionEditor({ suggestion, onClose }: { suggestion: MemorySuggestio
   const resolve = useMemory((s) => s.resolve)
   const [content, setContent] = useState(suggestion.content)
   const [category, setCategory] = useState<MemoryCategory>(suggestion.category)
+  const choice = projectChoice(suggestion)
+  const [scope, setScope] = useState<string | null>(suggestion.projectId)
   const editable = suggestion.action !== 'delete'
 
   return (
@@ -55,6 +58,18 @@ function SuggestionEditor({ suggestion, onClose }: { suggestion: MemorySuggestio
               </option>
             ))}
           </Select>
+          {choice && (
+            <Select
+              aria-label={t('suggestions.scope')}
+              className="sm:w-48"
+              value={scope ?? ''}
+              onChange={(e) => setScope(e.target.value || null)}
+              data-testid="suggestion-scope-select"
+            >
+              <option value="">{t('suggestions.scopeToUser')}</option>
+              <option value={choice.id}>{t('suggestions.scopeToProject', { name: choice.name })}</option>
+            </Select>
+          )}
         </div>
       ) : (
         <p className="text-sm whitespace-pre-wrap line-through decoration-destructive/60">{suggestion.content}</p>
@@ -70,7 +85,13 @@ function SuggestionEditor({ suggestion, onClose }: { suggestion: MemorySuggestio
         <Button
           size="sm"
           disabled={editable && !content.trim()}
-          onClick={() => void resolve(suggestion.id, true, editable ? { content: content.trim(), category } : {})}
+          onClick={() =>
+            void resolve(
+              suggestion.id,
+              true,
+              editable ? { content: content.trim(), category, ...(choice ? { projectId: scope } : {}) } : {}
+            )
+          }
         >
           <Check />
           {t('suggestions.accept')}
@@ -128,6 +149,15 @@ function SuggestionRow({
           <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
             {t(`categories.${suggestion.category}`)}
           </span>
+          {suggestion.projectId && (
+            <span
+              className="max-w-40 shrink-0 truncate rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary"
+              title={t('suggestions.scopeProject', { name: suggestion.projectName ?? '' })}
+              data-testid="suggestion-scope"
+            >
+              {t('suggestions.scopeProject', { name: suggestion.projectName ?? '' })}
+            </span>
+          )}
         </button>
         <Button
           size="icon-sm"
@@ -181,22 +211,40 @@ function AcceptAllButton({ count, onConfirm }: { count: number; onConfirm(): voi
   )
 }
 
+/** Một hàng lọc có tên ("Phạm vi:", "Loại:") — hai hàng cùng bắt đầu bằng "Tất cả" không bị nhìn như lặp. */
+function FilterRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2 text-xs">
+      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 export function SuggestionList() {
   const { t } = useTranslation('memory')
   const suggestions = useMemory((s) => s.suggestions)
   const resolveMany = useMemory((s) => s.resolveMany)
   const [filter, setFilter] = useState<MemoryCategory | 'all'>('all')
+  const [scopeFilter, setScopeFilter] = useState<ScopeKey | 'all'>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [openId, setOpenId] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
 
+  // Phạm vi: Tất cả / Chung / từng dự án (chỉ hiện khi có từ hai phạm vi). Phạm vi hết đề xuất → về "Tất cả".
+  const scopes = useMemo(() => suggestionScopes(suggestions), [suggestions])
+  const activeScope = scopeFilter !== 'all' && scopes.some((s) => s.key === scopeFilter) ? scopeFilter : 'all'
+  const scoped = useMemo(
+    () => (activeScope === 'all' ? suggestions : suggestions.filter((s) => scopeKeyOf(s) === activeScope)),
+    [suggestions, activeScope]
+  )
   const categories = useMemo(
-    () => MEMORY_CATEGORIES.filter((c) => suggestions.some((s) => s.category === c)),
-    [suggestions]
+    () => MEMORY_CATEGORIES.filter((c) => scoped.some((s) => s.category === c)),
+    [scoped]
   )
   // Loại đang lọc không còn đề xuất nào → về "Tất cả".
   const activeFilter = filter !== 'all' && categories.includes(filter) ? filter : 'all'
-  const filtered = activeFilter === 'all' ? suggestions : suggestions.filter((s) => s.category === activeFilter)
+  const filtered = activeFilter === 'all' ? scoped : scoped.filter((s) => s.category === activeFilter)
   const visible = showAll ? filtered : filtered.slice(0, SUGGESTIONS_SHOWN)
   // Chỉ tính những đề xuất còn chờ và đang hiện theo bộ lọc.
   const chosen = filtered.filter((s) => selected.has(s.id)).map((s) => s.id)
@@ -219,10 +267,40 @@ export function SuggestionList() {
   }
   return (
     <div className="space-y-3" data-testid="suggestion-list">
+      {scopes.length > 1 && (
+        <FilterRow label={t('suggestions.scopeRow')}>
+          <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('suggestions.scopeFilter')} data-testid="suggestion-scope-filter">
+          {[{ key: 'all' as const, name: null, count: suggestions.length }, ...scopes].map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              role="tab"
+              aria-selected={activeScope === s.key}
+              className={cn(
+                'max-w-56 truncate rounded-full border px-2.5 py-0.5',
+                activeScope === s.key ? 'border-primary bg-primary/10 font-medium' : 'text-muted-foreground hover:bg-muted'
+              )}
+              onClick={() => {
+                setScopeFilter(s.key)
+                setShowAll(false)
+              }}
+            >
+              {s.key === 'all'
+                ? t('suggestions.all')
+                : s.key === 'user'
+                  ? t('suggestions.scopeUser')
+                  : t('suggestions.scopeProject', { name: s.name ?? '' })}{' '}
+              ({s.count})
+            </button>
+          ))}
+          </div>
+        </FilterRow>
+      )}
       {categories.length > 1 && (
-        <div className="flex flex-wrap gap-1 text-xs" role="tablist" aria-label={t('suggestions.filter')}>
+        <FilterRow label={t('suggestions.categoryRow')}>
+          <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('suggestions.filter')} data-testid="suggestion-category-filter">
           {(['all', ...categories] as const).map((c) => {
-            const n = c === 'all' ? suggestions.length : suggestions.filter((s) => s.category === c).length
+            const n = c === 'all' ? scoped.length : scoped.filter((s) => s.category === c).length
             return (
               <button
                 key={c}
@@ -242,7 +320,8 @@ export function SuggestionList() {
               </button>
             )
           })}
-        </div>
+          </div>
+        </FilterRow>
       )}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <label className="flex items-center gap-2 px-2">

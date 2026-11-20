@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { PROJECT_FILE_MAX_BYTES, PROJECT_MAX_FILES } from '@shared/projects'
 import { openDatabase } from '../../db/client'
 import { ConversationRepository, MessageRepository } from '../../db/repositories'
-import { memories } from '../../db/schema'
+import { memories, memorySuggestions } from '../../db/schema'
 import { ProjectRepository } from '../repository'
 import { ProjectService, readContextFile } from '../service'
 
@@ -74,11 +74,19 @@ describe('dự án (SQLite in-memory)', () => {
     await service.addFiles(p.id, [file('a.md', '# A'), file('b.txt', 'B')])
     handle.db.insert(memories).values({ id: crypto.randomUUID(), owner, content: 'dùng URP', projectId: p.id }).run()
     handle.db.insert(memories).values({ id: crypto.randomUUID(), owner, content: 'chung' }).run()
-    expect(repo.deleteInfo(p.id)).toEqual({ files: 2, memories: 1, conversations: 1 })
+    const suggestion = (status: 'pending' | 'accepted') =>
+      handle.db
+        .insert(memorySuggestions)
+        .values({ id: crypto.randomUUID(), owner, action: 'add', content: 'x', projectId: p.id, status })
+        .run()
+    suggestion('pending')
+    suggestion('accepted') // đã duyệt → không đếm
+    expect(repo.deleteInfo(p.id)).toEqual({ files: 2, memories: 1, suggestions: 1, conversations: 1 })
 
     expect(repo.remove(p.id)).toBe(true)
     expect(convs.get(c.id)).toMatchObject({ id: c.id, projectId: null })
     expect(handle.db.select().from(memories).all().map((m) => m.content)).toEqual(['chung'])
+    expect(handle.db.select().from(memorySuggestions).all()).toEqual([])
     expect(repo.deleteInfo(p.id)).toBeNull()
   })
 

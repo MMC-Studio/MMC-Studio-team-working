@@ -2,7 +2,7 @@ import type { MessageArtifact } from '@shared/artifacts'
 import type { MessageVoice } from '@shared/voice'
 import type { MessageMedia, Reaction } from '@shared/expressive'
 import { randomUUID } from 'node:crypto'
-import { and, asc, desc, eq, gt, inArray, isNotNull, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { ChatMode, ChatUsage } from '@shared/ai'
 import type { AgentExchange } from '@shared/agents'
@@ -600,6 +600,7 @@ const toMemory = (r: MemoryRow): Memory => ({
   content: r.content,
   category: r.category,
   sourceConversationId: r.sourceConversationId,
+  projectId: r.projectId,
   createdAt: r.createdAt,
   updatedAt: r.updatedAt,
   lastUsedAt: r.lastUsedAt
@@ -622,12 +623,15 @@ export class MemoryRepository {
     return eq(memories.owner, this.getOwner())
   }
 
-  list(query?: string): Memory[] {
+  /** `projectId`: bỏ trống = mọi phạm vi, null = chỉ trí nhớ chung, id = chỉ của dự án đó. */
+  list(query?: string, projectId?: string | null): Memory[] {
     const q = query?.trim()
+    const scope =
+      projectId === undefined ? undefined : projectId === null ? isNull(memories.projectId) : eq(memories.projectId, projectId)
     return this.db
       .select()
       .from(memories)
-      .where(and(this.mine(), q ? sql`${memories.content} LIKE ${likePattern(q)} ESCAPE '\\'` : undefined))
+      .where(and(this.mine(), scope, q ? sql`${memories.content} LIKE ${likePattern(q)} ESCAPE '\\'` : undefined))
       .orderBy(desc(memories.updatedAt))
       .all()
       .map(toMemory)
@@ -638,12 +642,27 @@ export class MemoryRepository {
     return row ? toMemory(row) : null
   }
 
-  create(content: string, category: MemoryCategory, sourceConversationId: string | null = null): Memory {
+  /** `projectId` phải là dự án của người đang đăng nhập — MemoryService kiểm trước khi gọi. */
+  create(
+    content: string,
+    category: MemoryCategory,
+    sourceConversationId: string | null = null,
+    projectId: string | null = null
+  ): Memory {
     const ts = Date.now()
     return toMemory(
       this.db
         .insert(memories)
-        .values({ id: randomUUID(), owner: this.getOwner(), content, category, sourceConversationId, createdAt: ts, updatedAt: ts })
+        .values({
+          id: randomUUID(),
+          owner: this.getOwner(),
+          content,
+          category,
+          sourceConversationId,
+          projectId,
+          createdAt: ts,
+          updatedAt: ts
+        })
         .returning()
         .get()
     )
@@ -685,6 +704,8 @@ export type NewSuggestion = {
   targetMemoryId: string | null
   content: string
   category: MemoryCategory
+  /** null / bỏ trống = trí nhớ chung. */
+  projectId?: string | null
 }
 
 export class SuggestionRepository {
@@ -699,13 +720,32 @@ export class SuggestionRepository {
 
   pending(): MemorySuggestion[] {
     const rows = this.db
-      .select({ s: memorySuggestions, targetContent: memories.content })
+      .select({ s: memorySuggestions, targetContent: memories.content, sourceProjectId: conversations.projectId })
       .from(memorySuggestions)
       .leftJoin(memories, and(eq(memories.id, memorySuggestions.targetMemoryId), eq(memories.owner, memorySuggestions.owner)))
+      .leftJoin(conversations, eq(conversations.id, memorySuggestions.conversationId))
       .where(this.minePending())
       .orderBy(asc(memorySuggestions.createdAt), asc(sql`memory_suggestions.rowid`))
       .all()
-    return rows.map(({ s: { owner: _owner, ...s }, targetContent }) => ({ ...s, targetContent: targetContent ?? null }))
+    // Tên dự án (chỉ dự án của người đang đăng nhập) để hiện nhãn "Dự án: …".
+    const names = new Map(
+      this.db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(eq(projects.owner, this.getOwner()))
+        .all()
+        .map((p) => [p.id, p.name] as const)
+    )
+    return rows.map(({ s: { owner: _owner, ...s }, targetContent, sourceProjectId }) => {
+      const source = sourceProjectId && names.has(sourceProjectId) ? sourceProjectId : null
+      return {
+        ...s,
+        targetContent: targetContent ?? null,
+        projectName: s.projectId ? (names.get(s.projectId) ?? null) : null,
+        sourceProjectId: source,
+        sourceProjectName: source ? (names.get(source) ?? null) : null
+      }
+    })
   }
 
   countPending(): number {
@@ -724,7 +764,10 @@ export class SuggestionRepository {
   insertMany(items: NewSuggestion[]): number {
     const ts = Date.now()
     for (const item of items) {
-      this.db.insert(memorySuggestions).values({ id: randomUUID(), owner: this.getOwner(), createdAt: ts, ...item }).run()
+      this.db
+        .insert(memorySuggestions)
+        .values({ id: randomUUID(), owner: this.getOwner(), createdAt: ts, ...item, projectId: item.projectId ?? null })
+        .run()
     }
     return items.length
   }

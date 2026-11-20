@@ -7,6 +7,7 @@ import { pushProfileIfSignedIn, syncProfile } from '@renderer/stores/assistantSy
 import { scheduleBackup } from './backup'
 
 type MemoryState = {
+  /** Mọi phạm vi (chung + mọi dự án) — từng nơi tự lọc theo projectId. */
   memories: Memory[]
   suggestions: MemorySuggestion[]
   pendingCount: number
@@ -18,10 +19,14 @@ type MemoryState = {
   loadMemories(): Promise<void>
   loadSuggestions(): Promise<void>
   setQuery(query: string): Promise<void>
-  create(content: string, category: MemoryCategory): Promise<void>
+  create(content: string, category: MemoryCategory, projectId?: string | null): Promise<void>
   update(id: string, content: string, category: MemoryCategory): Promise<void>
   remove(id: string): Promise<void>
-  resolve(id: string, accept: boolean, edits?: { content?: string; category?: MemoryCategory }): Promise<void>
+  resolve(
+    id: string,
+    accept: boolean,
+    edits?: { content?: string; category?: MemoryCategory; projectId?: string | null }
+  ): Promise<void>
   /** Duyệt nhiều đề xuất (Đồng ý / Bỏ qua đã chọn, Đồng ý tất cả) — các dòng biến mất ngay. */
   resolveMany(ids: string[], accept: boolean): Promise<void>
   saveProfile(profile: UserProfile): Promise<UserProfile>
@@ -62,7 +67,7 @@ export const useMemory = create<MemoryState>((set, get) => ({
   },
 
   async loadMemories() {
-    set({ memories: await api.memory.list(get().query || undefined) })
+    set({ memories: await api.memory.list({ query: get().query || undefined }) })
   },
 
   async loadSuggestions() {
@@ -75,8 +80,8 @@ export const useMemory = create<MemoryState>((set, get) => ({
     await get().loadMemories()
   },
 
-  async create(content, category) {
-    await api.memory.create(content, category)
+  async create(content, category, projectId = null) {
+    await api.memory.create(content, category, projectId)
     await get().loadMemories()
     scheduleBackup()
   },

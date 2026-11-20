@@ -1,6 +1,9 @@
 import { ChevronDown, Download } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
+import { Select } from '@renderer/components/ui/input'
+import { useProjects } from '@renderer/features/projects/store'
 import { Button } from '@renderer/components/ui/button'
 import { api } from '@renderer/lib/api'
 import { useAuth } from '@renderer/stores/auth'
@@ -111,13 +114,60 @@ export function MemoryPage() {
         <Section title={t('profile.heading')} description={t('profile.description')}>
           <ProfileForm />
         </Section>
-        <Section title={t('list.heading')}>
-          <MemoryList />
+        <Section title={t('list.heading')} testId="memory-list-section">
+          <MemoryScopePicker />
         </Section>
         <Section title={t('backup.heading')}>
           <BackupSection />
         </Section>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Chọn phạm vi danh sách trí nhớ: mặc định trí nhớ chung; chọn một dự án để xem / sửa trí nhớ riêng của nó.
+ * Phạm vi nằm trên URL (?project=<id>) để trang dự án mở thẳng đúng dự án.
+ */
+function MemoryScopePicker() {
+  const { t } = useTranslation('memory')
+  const projects = useProjects((s) => s.projects)
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('project')
+  const projectId = requested && projects.some((p) => p.id === requested) ? requested : null
+  const setScope = (id: string | null): void =>
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (id) next.set('project', id)
+      else next.delete('project')
+      return next
+    }, { replace: true })
+
+  return (
+    <div className="space-y-3">
+      {projects.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <label className="text-muted-foreground" htmlFor="memory-scope">
+            {t('list.scope')}
+          </label>
+          <Select
+            id="memory-scope"
+            className="w-auto max-w-72"
+            value={projectId ?? ''}
+            onChange={(e) => setScope(e.target.value || null)}
+            data-testid="memory-scope"
+          >
+            <option value="">{t('list.scopeUser')}</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {t('list.scopeProject', { name: p.name })}
+              </option>
+            ))}
+          </Select>
+          {projectId && <span className="text-xs text-muted-foreground">{t('list.scopeHelpProject')}</span>}
+        </div>
+      )}
+      <MemoryList key={projectId ?? 'user'} projectId={projectId} />
     </div>
   )
 }

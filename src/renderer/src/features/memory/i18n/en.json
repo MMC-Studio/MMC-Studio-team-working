@@ -10,7 +10,7 @@
     "goal": "Goal",
     "skill": "Skill",
     "preference": "Answer preference",
-    "project": "Project",
+    "project": "Work",
     "deadline": "Deadline",
     "other": "Other"
   },
@@ -33,7 +33,15 @@
     "collapse": "Collapse",
     "category": "Category",
     "filter": "Filter by category",
-    "all": "All"
+    "all": "All",
+    "scopeFilter": "Filter by scope",
+    "scopeUser": "General",
+    "scopeProject": "Project: {{name}}",
+    "scope": "Scope",
+    "scopeToUser": "Save as general memory",
+    "scopeToProject": "Save to project {{name}}",
+    "scopeRow": "Scope:",
+    "categoryRow": "Type:"
   },
   "profile": {
     "heading": "Personal profile",
@@ -69,6 +77,24 @@
     "addPlaceholder": "Add something the assistant should remember…",
     "add": "Add",
     "edit": "Edit",
-    "lastUsed": "Last used {{date}}"
+    "lastUsed": "Last used {{date}}",
+    "scope": "Show memories",
+    "scopeUser": "General memories",
+    "scopeProject": "Project: {{name}}",
+    "scopeHelpProject": "Only used in chats of this project."
+  },
+  "project": {
+    "pending": "Awaiting review ({{count}})",
+    "empty": "No memories for this project yet. After each chat in the project, the assistant suggests what to remember — used only in this project.",
+    "add": "Add",
+    "addPlaceholder": "Something the assistant should remember in this project…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "remove": "Delete",
+    "openAll": "Open on the Memory page",
+    "scopeUser": "General",
+    "scopeProject": "Project",
+    "toggleScope": "Change scope (click to switch General ↔ Project)"
   }
 }

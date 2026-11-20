@@ -27,8 +27,11 @@ export type ChatServiceDeps = {
   /** Provider theo cài đặt hiện tại (CLI hoặc API key). */
   getProvider(): AIProvider
   getAssistant(): AssistantProfile
-  /** Hồ sơ + memory liên quan tới câu hỏi để chèn vào system prompt. */
-  getMemoryContext(query: string): { user: UserProfileContext; memories: string[] }
+  /** Hồ sơ + memory liên quan tới câu hỏi (cuộc trong dự án: kèm trí nhớ của dự án đó). */
+  getMemoryContext(
+    query: string,
+    conversationId: string
+  ): { user: UserProfileContext; memories: string[]; projectMemories?: string[] }
   /** Phần "Dự án" của system prompt ('' = cuộc không thuộc dự án). Dựng lại mỗi lượt → sửa hướng dẫn có hiệu lực ngay. */
   projectPromptFor?(conversationId: string): string
   loadModeSkill(mode: ChatMode): Promise<string | undefined>
@@ -468,7 +471,7 @@ export class ChatService {
     let terminal: ChatEvent | null = null
 
     const provider = deps.getProvider()
-    const memory = deps.getMemoryContext(args.text)
+    const memory = deps.getMemoryContext(args.text, conversationId)
     const projectSection = deps.projectPromptFor?.(conversationId) ?? ''
     const userSkills = deps.userSkillsFor
       ? await deps.userSkillsFor(args.text).catch((e: unknown) => {
@@ -508,6 +511,7 @@ export class ChatService {
           userSkills: userSkills.section,
           user: memory.user,
           memories: memory.memories,
+          projectMemories: memory.projectMemories,
           project: projectSection,
           extraContext: [args.options.context, expressivePrompt, voiceNote, artifactRules, artifactState]
             .filter(Boolean)
@@ -515,6 +519,7 @@ export class ChatService {
         })
     const turnInput: TurnContextInput = {
       memories: memory.memories,
+      projectMemories: memory.projectMemories ?? [],
       skillsSection: userSkills.section,
       states: { access: args.options.context ?? '', expressive: expressivePrompt, artifacts: artifactState },
       ephemeral: voiceNote

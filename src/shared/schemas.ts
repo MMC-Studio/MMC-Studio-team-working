@@ -176,6 +176,8 @@ export const MEMORY_CATEGORIES = [
   'other'
 ] as const
 export const MEMORY_ACTIONS = ['add', 'update', 'delete'] as const
+/** Phạm vi trí nhớ: `user` = chung (mọi cuộc), `project` = chỉ trong dự án của cuộc trò chuyện. */
+export const MEMORY_SCOPES = ['user', 'project'] as const
 export const SUGGESTION_STATUSES = ['pending', 'accepted', 'rejected'] as const
 
 export const memoryCategorySchema = z.enum(MEMORY_CATEGORIES)
@@ -183,8 +185,18 @@ export const memoryContentSchema = z.string().trim().min(1).max(500)
 
 export const memoryCreateSchema = z.object({
   content: memoryContentSchema,
-  category: memoryCategorySchema
+  category: memoryCategorySchema,
+  /** null / bỏ trống = trí nhớ chung. */
+  projectId: idSchema.nullable().optional()
 })
+
+/** Lọc danh sách trí nhớ: bỏ `projectId` = mọi phạm vi, null = chỉ chung, id = chỉ của dự án đó. */
+export const memoryListSchema = z
+  .object({
+    query: z.string().trim().max(200).optional(),
+    projectId: idSchema.nullable().optional()
+  })
+  .optional()
 
 export const memoryUpdateSchema = z.object({
   id: idSchema,
@@ -197,7 +209,9 @@ export const suggestionResolveSchema = z.object({
   id: idSchema,
   accept: z.boolean(),
   content: memoryContentSchema.optional(),
-  category: memoryCategorySchema.optional()
+  category: memoryCategorySchema.optional(),
+  /** Đổi phạm vi trước khi duyệt (chỉ đề xuất thêm mới): null = chung, id = dự án của cuộc trò chuyện. */
+  projectId: idSchema.nullable().optional()
 })
 
 /** Duyệt hàng loạt (Đồng ý / Bỏ qua đã chọn, Đồng ý tất cả). */
@@ -212,7 +226,9 @@ export const memorySuggestionsOutputSchema = z.object({
         action: z.enum(MEMORY_ACTIONS),
         id: z.string().optional(),
         content: z.string().trim().max(500).default(''),
-        category: z.string().optional()
+        category: z.string().optional(),
+        /** `user` | `project`; thiếu / lạ → theo cuộc trò chuyện (trong dự án = project, ngoài = user). */
+        scope: z.string().optional()
       })
     )
     .max(20)
@@ -574,6 +590,7 @@ export const apiKeySchema = z
 
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number]
 export type MemoryAction = (typeof MEMORY_ACTIONS)[number]
+export type MemoryScope = (typeof MEMORY_SCOPES)[number]
 export type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number]
 export type UserProfile = z.infer<typeof userProfileSchema>
 export type SavedAccountInfo = z.infer<typeof savedAccountInfoSchema>
