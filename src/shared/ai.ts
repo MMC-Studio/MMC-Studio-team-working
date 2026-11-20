@@ -12,6 +12,8 @@ export type ChatUsage = {
 /** Sự kiện duy nhất renderer nhìn thấy — không lộ chi tiết CLI/API. */
 export type ChatEvent =
   | { type: 'session'; sessionId: string }
+  /** Chỉ trong main: CLI vừa tóm tắt (compact) session — ngữ cảnh theo lượt đã gửi có thể mất, phải gửi lại. */
+  | { type: 'compact' }
   | { type: 'text'; delta: string }
   | { type: 'tool'; name: string; input: unknown }
   | { type: 'done'; usage?: ChatUsage }

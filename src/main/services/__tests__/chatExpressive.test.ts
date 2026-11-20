@@ -96,6 +96,9 @@ describe('ChatService + biểu cảm', () => {
       ).toBe(true)
     )
 
+  /** Phần lời người dùng (bỏ khối ngữ cảnh theo lượt của app ở đầu). */
+  const userPart = (prompt: string): string => prompt.replace(/^<ngu-canh-luot>[\s\S]*?<\/ngu-canh-luot>\n\n/, '')
+
   it('câu trả lời: bỏ thẻ khỏi nội dung lưu, gắn GIF, thả reaction vào tin người dùng; lời nhắc có phần Biểu cảm', async () => {
     const provider = new ScriptProvider('Hihi xong rồi nè ✨ [[react:🥰]] [[gif:happy cat]]')
     const chat = make(provider)
@@ -106,7 +109,9 @@ describe('ChatService + biểu cảm', () => {
     expect(reply.content).toBe('Hihi xong rồi nè ✨')
     expect(reply.media).toEqual(GIF)
     expect(user.reactions).toEqual([{ emoji: '🥰', by: 'assistant' }])
-    expect(provider.calls[0].systemPrompt).toContain('## Biểu cảm')
+    // Mức biểu cảm đổi theo lượt → khối đầu tin nhắn (CLI giữ system prompt cũ khi resume).
+    expect(provider.calls[0].prompt).toContain('<muc ten="bieu-cam">\n## Biểu cảm')
+    expect(provider.calls[0].systemPrompt).not.toContain('## Biểu cảm')
     const kinds = emitted.map((p) => p.event.type)
     expect(kinds.indexOf('final')).toBeLessThan(kinds.indexOf('done'))
     expect(emitted.find((p) => p.event.type === 'reactions')?.event).toEqual({
@@ -135,7 +140,7 @@ describe('ChatService + biểu cảm', () => {
     const conv = convs.create('free')
     chat.send(conv.id, '', [], GIF)
     await done(conv.id)
-    expect(provider.calls[0].prompt).toBe('[Người dùng gửi GIF: "happy cat"]')
+    expect(userPart(provider.calls[0].prompt)).toBe('[Người dùng gửi GIF: "happy cat"]')
     expect(msgs.list(conv.id)[0].media).toEqual(GIF)
     expect(convs.get(conv.id)?.title).toBe('happy cat')
 
@@ -146,7 +151,7 @@ describe('ChatService + biểu cảm', () => {
     emitted = []
     chat.send(conv.id, 'tiếp nha')
     await done(conv.id)
-    expect(provider.calls[1].prompt).toMatch(
+    expect(userPart(provider.calls[1].prompt)).toMatch(
       /^\(Người dùng vừa thả ❤️ vào một câu trả lời của bạn\. Người dùng vừa thả 😂/
     )
     expect(provider.calls[1].prompt).toContain('tiếp nha')
@@ -160,16 +165,16 @@ describe('ChatService + biểu cảm', () => {
     chat.send(conv.id, 'bin bị e rơ', [], null, voice)
     await done(conv.id)
     expect(provider.calls[0].prompt).toContain('🎤 nói — chữ do máy chép lại')
-    expect(provider.calls[0].systemPrompt).toContain('VOICE_TEASE')
+    expect(provider.calls[0].prompt).toContain('<muc ten="giong-noi">\nVOICE_TEASE')
     expect(msgs.list(conv.id)[0].voice).toEqual(voice)
     emitted = []
     chat.send(conv.id, 'app bị lỗi khi build', [], null, voice)
     await done(conv.id)
-    expect(provider.calls[1].systemPrompt).toContain('VOICE_NO_TEASE')
+    expect(provider.calls[1].prompt).toContain('VOICE_NO_TEASE')
     emitted = []
     chat.send(conv.id, 'gõ phím thường')
     await done(conv.id)
-    expect(provider.calls[2].systemPrompt).not.toContain('VOICE_')
+    expect(provider.calls[2].prompt).not.toContain('VOICE_')
   })
 
   it('không thả cảm xúc được vào tin không tồn tại', () => {

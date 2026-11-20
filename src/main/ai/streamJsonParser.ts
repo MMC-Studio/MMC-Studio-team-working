@@ -71,6 +71,9 @@ export class StreamJsonParser {
   }
 
   private handleSystem(msg: CliLine): ChatEvent[] {
+    // Tóm tắt session (tự động khi đầy ngữ cảnh, hoặc /compact): {"type":"system","subtype":"compact_boundary",…}
+    // — kiểm chứng CLI 2.1.329.
+    if (msg.subtype === 'compact_boundary') return [{ type: 'compact' }]
     if (msg.subtype !== 'init' || !msg.session_id || msg.session_id === this.sessionId) return []
     this.sessionId = msg.session_id
     return [{ type: 'session', sessionId: msg.session_id }]

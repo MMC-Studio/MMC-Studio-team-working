@@ -15,6 +15,16 @@ const textOf = (events: ChatEvent[]): string =>
   events.map((e) => (e.type === 'text' ? e.delta : '')).join('')
 
 describe('StreamJsonParser với output CLI thật', () => {
+  it('CLI tóm tắt session (compact_boundary, dòng thật CLI 2.1.329 đã bỏ id) → sự kiện compact', () => {
+    const line = JSON.stringify({
+      type: 'system',
+      subtype: 'compact_boundary',
+      session_id: '00000000-0000-4000-8000-000000000000',
+      compact_metadata: { trigger: 'auto', pre_tokens: 1988, post_tokens: 1098 }
+    })
+    expect(new StreamJsonParser().push(line)).toEqual([{ type: 'compact' }])
+  })
+
   it('stream từng mảnh chữ và kết thúc bằng done (có --include-partial-messages)', () => {
     const { events, parser } = runFixture('partial')
     expect(events[0]).toEqual({ type: 'session', sessionId: '5be8004f-e797-452d-89fb-45a17e2d25a1' })
