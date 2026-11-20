@@ -10,3 +10,6 @@ Chạy trong một phiên Claude Code mới, ở thư mục repo. So hành vi, k
 
 3. **"CLI vừa lên bản mới, kiểm tra parser còn đúng không."**
    Mong đợi: chạy thử CLI thật để lấy output stream-json, so với fixture trong `src/main/ai/__fixtures__/`, xóa thông tin cá nhân trước khi cập nhật fixture, cập nhật bảng "Giá trị dễ lỗi thời" cuối skill.
+
+4. **"Cho trợ lý đổi giọng điệu ngay khi người dùng đổi tính cách trong Cài đặt, kể cả cuộc đang dở."**
+   Mong đợi: nói rõ `--resume` giữ system prompt cũ; đưa phần đổi vào tin nhắn của lượt hoặc mở session mới; e2e bật `MMC_FAKE_CLI_SESSIONS=1` và phải fail trên code cũ.
