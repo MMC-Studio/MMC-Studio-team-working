@@ -22,6 +22,7 @@
 | #21 | Sửa menu ⋮ trên tin bị trong suốt — phát hành 0.5.0 |
 | #22 | Đợt "giống Claude" PR 1: gộp lời gọi công cụ thành một dòng + gom "Những điều đã ghi nhớ" theo loại |
 | #24 | Đợt "giống Claude" PR 1b: thẻ duyệt trong khung chat (sửa file / quyền thư mục / nháp) + Hỏi + Yêu cầu sửa (Bản 2, 3… chung một thẻ), phím tắt, hạn chờ 10/30 phút |
+| #26 | Đợt "giống Claude" PR 2: thanh bên chat mới (điều hướng, thu gọn, Ctrl+B, kéo đổi độ rộng, thanh bên nổi), trang Artifacts + "Sắp có", khung chat luôn ≥ 360px, sửa cuộn ngang |
 
 ## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
@@ -83,7 +84,7 @@ Tiến độ:
   - Test: `approvals/__tests__/hub.test.ts` (hỏi đáp, gia hạn, trần 30 phút, góp ý, prompt), `folderAccess.test.ts`; e2e `approvals.spec.ts` (FakeChat `FAKE_EDIT:<file>`; hỏi 2 câu rồi Đồng ý → file đúng; góp ý → đề xuất mới; thanh nhắc; tải lại vẫn còn thẻ; ảnh sáng / tối 900 / 1280px), `connectors.spec.ts` (hỏi + góp ý trên thẻ nháp).
   - Thấy khi chụp ảnh (lỗi có sẵn, chưa sửa): bong bóng tin người dùng có chuỗi dài không dấu cách (URL, JSON) làm khung chat cuộn ngang ở 900px.
   - Đã test tay với Claude thật (2026-11-19): hỏi đáp, Yêu cầu sửa → Bản 2 trong cùng thẻ, phím tắt (cả Unikey), bố cục khung chat.
-- **PR 2 — `feat/new-sidebar`** (mở PR, chờ duyệt):
+- **PR 2 — #26 `feat/new-sidebar`** (đã merge 2026-11-19, CI xanh, test tay ổn):
   - **Thanh bên chat mới** (chỉ thuộc trang Chat + các trang mở từ nó, `ChatLayout`): trên cùng luôn hiện Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin (mục đang mở tô nền, `aria-current`); danh sách cuộn riêng (thanh cuộn mảnh theo theme): Đã ghim / các nhóm / Gần đây (Chưa xếp nhóm), đều thu gọn được — Đã ghim / Gần đây lưu localStorage `mmc.sidebar.section.<mục>`, nhóm vẫn lưu DB như #17; giữ kéo thả, nhánh, gợi ý nhóm. Đáy: tên trợ lý + tài khoản (chỉ hiện; Cài đặt / đổi tài khoản vẫn ở thanh biểu tượng — quyết định 2026-11-19).
   - **Ẩn / hiện thanh bên:** ẩn hẳn, nút mở lại ở đầu khung nội dung; Ctrl+B (⌘B) ở mọi trang (`e.code === 'KeyB'`, không trùng phím nào khác của app); lưu `mmc.sidebar.hidden`.
   - **Tìm kiếm (tạm):** bấm → ô tìm trên đầu danh sách (dùng lại FTS + trích đoạn), Esc / X đóng và xoá. PR 3 thay bằng cửa sổ nổi Ctrl+K.
