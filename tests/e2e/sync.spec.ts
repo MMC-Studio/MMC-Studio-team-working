@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Đồng bộ trạng thái toàn app: mỗi thao tác chính → giao diện đổi trong vòng 1 GIÂY, không tải lại trang.
 // Hai loại thay đổi:
@@ -54,7 +54,7 @@ async function external(group: string, method: string, ...args: unknown[]): Prom
 }
 
 test('Cài đặt › Cập nhật: bấm → đổi ngay; đổi từ nơi khác → trang tự cập nhật', async () => {
-  await goTo(page, '#/settings', page.getByTestId('update-auto-check'))
+  await openSettings(page, 'updates', page.getByTestId('update-auto-check'))
   const box = page.getByTestId('update-auto-check')
   await expect(box).toBeChecked()
   await box.uncheck()
@@ -64,6 +64,7 @@ test('Cài đặt › Cập nhật: bấm → đổi ngay; đổi từ nơi khá
 })
 
 test('Cài đặt › Chat biểu cảm: chọn mức → đổi ngay; đổi từ nơi khác → tự cập nhật', async () => {
+  await page.getByTestId('settings-tab-capabilities').click()
   const mode = page.getByTestId('express-mode')
   await mode.selectOption('high')
   await expect(mode).toHaveValue('high', FAST)
@@ -82,6 +83,7 @@ test('Cài đặt › Giọng nói: bật/tắt ngay; đổi từ nơi khác →
 })
 
 test('Cài đặt › Skill: ghi chú my-style đổi từ nơi khác → tự hiện; xoá ghi chú → biến mất ngay', async () => {
+  await page.getByTestId('settings-tab-assistant').click()
   await external('skills', 'setStyleNotes', ['Trả lời ngắn gọn, có ví dụ'])
   const saved = page.getByTestId('style-saved')
   await expect(saved).toContainText('Trả lời ngắn gọn, có ví dụ', FAST)
@@ -90,6 +92,7 @@ test('Cài đặt › Skill: ghi chú my-style đổi từ nơi khác → tự h
 })
 
 test('Cài đặt › Skill: chép skill vào thư mục rồi quay lại app → tự hiện; bật/tắt ngay; gỡ từ nơi khác → biến mất', async () => {
+  await page.getByTestId('settings-tab-capabilities').click()
   const dir = join(userData, 'skills', 'demo-dong-bo')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'SKILL.md'), '---\nname: demo-dong-bo\ndescription: Skill thử đồng bộ\n---\n\n# Demo\n')

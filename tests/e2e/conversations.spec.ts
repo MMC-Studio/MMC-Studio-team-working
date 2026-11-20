@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Sắp xếp cuộc trò chuyện ở thanh bên: nhóm, ghim, kéo thả, gợi ý nhóm, nhánh, tiêu đề tự động, tìm kiếm (Ctrl+K).
 // Mỗi thao tác → thanh bên đổi trong 1 GIÂY (cơ chế đồng bộ chung). Chạy được khi KHÔNG có Claude CLI:
@@ -194,7 +194,7 @@ test('xoá nhóm: cuộc trò chuyện vẫn còn, ra khỏi nhóm', async () =>
 })
 
 test('lời nhắn mẫu artifact → tiêu đề là tên artifact (tắt AI đặt tiêu đề trong Cài đặt)', async () => {
-  await goTo(page, '#/settings', page.getByTestId('organize-aiTitles'))
+  await openSettings(page, 'ai', page.getByTestId('organize-aiTitles'))
   await page.getByTestId('organize-aiTitles').uncheck()
   await expect(page.getByTestId('organize-aiTitles')).not.toBeChecked(FAST)
   await goTo(page, '#/', box())

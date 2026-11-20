@@ -68,14 +68,10 @@ export function AppShell({ features }: { features: FeatureDefinition[] }) {
             <AssistantAvatar avatar={assistant.avatar} className="size-9" />
           </div>
           <TeamSwitcher />
-          {top.map((f) => (
-            <NavItem key={f.id} feature={f} />
-          ))}
+          {top.map((f) => (f.navButton ? <f.navButton key={f.id} /> : <NavItem key={f.id} feature={f} />))}
           <div className="flex-1" />
           <ThemeToggle />
-          {bottom.map((f) => (
-            <NavItem key={f.id} feature={f} />
-          ))}
+          {bottom.map((f) => (f.navButton ? <f.navButton key={f.id} /> : <NavItem key={f.id} feature={f} />))}
           <AccountSwitcher />
           {appEnv !== 'production' && (
             <span

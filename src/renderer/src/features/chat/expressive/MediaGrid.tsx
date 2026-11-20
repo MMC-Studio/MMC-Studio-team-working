@@ -1,11 +1,12 @@
 import { Star } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import type { MediaItem, MediaKind, MediaRef } from '@shared/expressive'
 import { Input } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { cn } from '@renderer/lib/utils'
+import { settingsLink } from '@renderer/features/settings/dialog'
 import { sameRef } from './mediaRef'
 import { MediaView } from './MediaView'
 
@@ -62,6 +63,7 @@ export function MediaGrid({
 
 /** Hướng dẫn lấy key GIPHY khi chưa có — app vẫn chạy bình thường. */
 export function GiphyKeyHelp() {
+  const { pathname } = useLocation()
   const { t } = useTranslation('chat')
   return (
     <div className="space-y-2 rounded-md bg-muted/50 p-3 text-xs" data-testid="giphy-key-help">
@@ -80,7 +82,7 @@ export function GiphyKeyHelp() {
         <li>{t('expressive.noKey.step2')}</li>
         <li>
           {t('expressive.noKey.step3')}{' '}
-          <Link to="/settings#expressive" className="text-primary underline">
+          <Link to={settingsLink(pathname, 'capabilities', 'expressive')} className="text-primary underline">
             {t('expressive.noKey.settings')}
           </Link>
         </li>

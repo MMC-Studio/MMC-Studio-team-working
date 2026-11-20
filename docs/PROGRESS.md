@@ -23,6 +23,7 @@
 | #22 | Đợt "giống Claude" PR 1: gộp lời gọi công cụ thành một dòng + gom "Những điều đã ghi nhớ" theo loại |
 | #24 | Đợt "giống Claude" PR 1b: thẻ duyệt trong khung chat (sửa file / quyền thư mục / nháp) + Hỏi + Yêu cầu sửa (Bản 2, 3… chung một thẻ), phím tắt, hạn chờ 10/30 phút |
 | #26 | Đợt "giống Claude" PR 2: thanh bên chat mới (điều hướng, thu gọn, Ctrl+B, kéo đổi độ rộng, thanh bên nổi), trang Artifacts + "Sắp có", khung chat luôn ≥ 360px, sửa cuộn ngang |
+| #28 | Đợt "giống Claude" PR 3: cửa sổ tìm kiếm nổi Ctrl+K (tab lọc, Gần đây + Hành động, phím tắt, xem trước artifact, Soạn) |
 
 ## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
@@ -97,7 +98,7 @@ Tiến độ:
   - **Thanh bên đang ẩn:** đưa chuột sát mép trái → thanh bên nổi, rời chuột thì ẩn lại; nút trong thanh bên nổi ghim lại thành cố định (nếu đủ chỗ).
   - **Khung chat hẹp:** nút thao tác của tin người dùng (⋮, nhánh, ghim, thả cảm xúc ~225px) xuống dưới bong bóng khi khung chat < 512px (container query `@container/msgs`), hàng nút dưới tin trợ lý được xuống dòng — trước đó bong bóng bị ép còn ~32px và khung chat cuộn ngang. Khung chat dùng thanh cuộn mảnh theo theme (`thin-scroll`).
   - Test: `artifacts.test.ts` (listAll đúng tài khoản / thứ tự), `artifact-library/__tests__/filter.test.ts`, `coming-soon/__tests__/sections.test.ts`; `chatLayout.test.ts` (tính bố cục); e2e `sidebar.spec.ts` (900px + panel: thanh bên tự ẩn, khung chat ≥ 360 không cuộn ngang, Ctrl+B thanh bên nổi; kéo / giới hạn / nhấp đúp / nhớ độ rộng / kéo nhỏ → ẩn; mép trái hiện thanh bên nổi; kéo panel; ảnh sáng / tối lúc đang kéo và 900px + panel; điều hướng, Ctrl+B + tải lại, tìm kiếm, thu gọn mục + tải lại, trang Artifacts + đổi tên đồng bộ, trang Sắp có, chuỗi dài 900px — test này fail trên code cũ: 2593px so với 589px; ảnh sáng / tối 900 / 1280px), `conversations.spec.ts` mở ô tìm qua mục "Tìm kiếm".
-- **PR 3 — `feat/search-palette`** (mở PR, chờ duyệt):
+- **PR 3 — #28 `feat/search-palette`** (đã merge 2026-11-20, CI xanh, test tay ổn):
   - **Cửa sổ tìm kiếm nổi** (`features/chat/search/`, gắn ở `ChatOverlays` nên mở được ở mọi trang): Ctrl+K (⌘K, `e.code === 'KeyK'`, không trùng phím nào khác — Ctrl+B thanh bên, Ctrl+Enter thẻ duyệt, Ctrl+Alt+Q là phím toàn cục ở main) hoặc mục "Tìm kiếm" trên thanh bên. Nền tối mờ, ô nhập trên cùng, nút ✕.
   - **Tab:** Tất cả · Artifacts · Cuộc trò chuyện (mọi chế độ trừ Code) · Code · Dự án · Lịch hẹn (2 tab cuối chưa có dữ liệu tới PR 5 / 7 → "Không có kết quả trong …" + "Tìm tất cả"). Chưa gõ ở Tất cả: "Gần đây" (8 mục mới nhất, cuộc + artifact) + "Hành động" (Cuộc trò chuyện mới, Cuộc trò chuyện Code mới).
   - **Dữ liệu:** dùng lại FTS `conversations.list(query)` (tiêu đề / tên nhóm / nội dung + trích đoạn) và `artifacts.listAll` (lọc không dấu `filterArtifacts`); đồng bộ `conversations` / `artifacts` khi đang mở; bỏ câu trả lời cũ về muộn.
@@ -106,7 +107,15 @@ Tiến độ:
   - **Xem trước artifact:** chọn dòng artifact → khung nhỏ bên phải (tên, chữ đầu đã bỏ ký hiệu Markdown / HTML, loại · thời gian); chỉ hiện khi cửa sổ ≥ 1250px.
   - **Bỏ ô tìm tạm trên thanh bên** (PR 2) cùng logic "đang tìm thì nhóm tự mở" (`buildSidebar` bỏ tham số `searching`, store chat bỏ `query`) — thanh bên luôn đủ danh sách.
   - Test: `paletteResults.test.ts` (tab, Gần đây / Hành động, lọc, mốc thời gian, xem trước); e2e `search.spec.ts` (Ctrl+K ở trang khác, tab, gõ tìm + trích đoạn, phím tắt, Alt+Enter → Ghim, artifact → panel, Soạn, đồng bộ, ảnh sáng / tối 900 / 1280px); `conversations.spec.ts` / `sidebar.spec.ts` chuyển sang cửa sổ mới.
-- **Tiếp theo: PR 4** — Cài đặt thành cửa sổ nổi.
+- **PR 4 — `feat/settings-dialog`** (mở PR, chờ duyệt):
+  - **Cài đặt là cửa sổ nổi** đè lên trang đang xem (không chuyển trang): nút Cài đặt ở thanh biểu tượng (`navButton` mới trong `FeatureDefinition`), tiêu đề "Cài đặt" + ✕, Esc đóng. Mở / đóng bằng tham số địa chỉ `?settings=<tab>` (+ `&setting=<id>` để nhảy tới dòng) trên trang hiện tại, luôn `replace` → đổi trang (vd bấm "Mở" Gmail & Telegram) là tự đóng, không thêm lượt Back. Link cũ `#/settings`, `#/settings/<tab|id dòng>`, `/settings#expressive` → về Chat và mở đúng tab / dòng.
+  - **Xếp tab** (`features/settings/catalog.ts`): Giao diện (sáng / tối, màu nhấn) · Trợ lý của bạn (tên / avatar / tính cách / ngôn ngữ, my-style, tự đề xuất ghi nhớ, Quản lý trí nhớ) ─ Trò chuyện & AI (chạy bằng CLI / API key, API key, kiểm tra CLI, tự đặt tiêu đề, gợi ý nhóm) · Khả năng (biểu cảm, giọng nói, skill, điều khiển máy tính) · Kết nối (Gmail & Telegram, kết nối agent) ─ Cập nhật (phiên bản + Kiểm tra ngay, tự kiểm tra, kênh) · Hỗ trợ (gửi báo lỗi). Chưa có tab Thông báo / Quyền & riêng tư / Plugin / Code vì app chưa có cài đặt cho các mục đó (Plugin tới PR 6).
+  - **Dòng kiểu Claude** (`SettingRow`): tên + mô tả xám trái, công tắc / nút / ô chọn phải, đường kẻ mảnh. Công tắc = checkbox thật `role="switch"`. Phần nhiều ô (biểu cảm, giọng nói, skill, hồ sơ trợ lý, my-style) giữ nguyên giao diện cũ, đặt dưới tên dòng. Kênh cập nhật đổi từ radio sang ô chọn.
+  - **Ô tìm** (cột trái): lọc theo tên + mô tả + từ khoá + tên tab, không dấu (`foldText` / `matchesAllWords` mới ở `@shared/text`, trang Artifacts dùng chung); kết quả kèm tên tab; Enter / bấm → đổi tab, cuộn tới dòng, nháy nền màu nhấn (`.setting-flash`); Esc khi đang tìm → xoá ô tìm trước.
+  - "Tự đề xuất ghi nhớ" / chạy trợ lý bằng: chuyển sang `useSyncedState('ai')` + `optimistic` (trước đây chỉ lấy một lần, bấm phải chờ IPC).
+  - Không đổi tên / chỗ lưu settings nào. Không migration, không thêm quyền cho trợ lý.
+  - Test: `settings/__tests__/catalog.test.ts` (đủ chữ vi / en, tìm không dấu, tên tab); e2e `settings.spec.ts` (mở đè trang Trí nhớ + Esc về đúng trang, đổi tab, tìm → nhảy + nháy, công tắc, "Mở" → tự đóng, link cũ, ảnh sáng / tối 900 / 1280px); các spec cũ vào Cài đặt qua helper `openSettings(page, tab, ready)`.
+- **Tiếp theo: PR 5** — Dự án (Projects), cần migration DB.
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo

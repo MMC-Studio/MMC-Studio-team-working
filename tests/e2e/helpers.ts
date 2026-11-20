@@ -20,3 +20,14 @@ export async function goTo(page: Page, hash: string, ready: Locator): Promise<vo
     expect(await page.evaluate(() => window.location.hash)).toBe(hash)
   }).toPass({ timeout: 30_000 })
 }
+
+/**
+ * Mở cửa sổ Cài đặt ở `tab` (nổi trên trang Chat, địa chỉ `#/?settings=<tab>`) và chờ `ready` hiện.
+ * Thử lại nếu bị chuyển trang chen ngang lúc mở app (xem waitForStartup).
+ */
+export async function openSettings(page: Page, tab: string, ready: Locator): Promise<void> {
+  await expect(async () => {
+    await page.evaluate((h) => (window.location.hash = h), `#/?settings=${tab}`)
+    await expect(ready).toBeVisible({ timeout: 3_000 })
+  }).toPass({ timeout: 30_000 })
+}

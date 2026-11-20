@@ -56,8 +56,8 @@ test('điều hướng trên đầu thanh bên + đáy hiện tên trợ lý; C�
   await expect(page.getByTestId('nav-new')).toHaveAttribute('aria-current', 'page')
   await expect(page.getByTestId('sidebar-footer')).toContainText('Dùng trên máy này')
   // Không trùng mục giữa hai thanh: Cài đặt chỉ ở thanh biểu tượng; Công việc đổi chữ thành "Dự án team".
-  await expect(sidebar().getByRole('link', { name: 'Cài đặt' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Cài đặt' })).toHaveCount(1)
+  await expect(sidebar().getByRole('button', { name: 'Cài đặt' })).toHaveCount(0)
+  await expect(page.getByTestId('nav-settings')).toHaveCount(1)
   await expect(page.getByRole('link', { name: 'Dự án team' })).toHaveCount(1)
 })
 

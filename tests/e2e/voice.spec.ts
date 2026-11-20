@@ -8,7 +8,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Giọng nói — chạy được khi KHÔNG có Claude CLI và KHÔNG có Python: MMC_FAKE_CHAT + MMC_FAKE_VOICE
 // (micro giả của Chromium, chép lời / đọc giả lập; chỉ bản chưa đóng gói).
@@ -47,7 +47,7 @@ test('mặc định tắt: không có nút micro / loa', async () => {
 })
 
 test('cài đặt: bật giọng nói, báo dung lượng tải, mặc định "điền vào ô nhập"', async () => {
-  await goTo(page, '#/settings', page.getByTestId('voice-settings'))
+  await openSettings(page, 'capabilities', page.getByTestId('voice-settings'))
   await page.getByTestId('voice-enable').check()
   await expect(page.getByLabel('Nói xong', { exact: true })).toHaveValue('fill')
   await expect(page.getByLabel('Model nhận giọng nói', { exact: true })).toHaveValue('auto')
@@ -85,7 +85,7 @@ test('nói → chữ điền vào ô nhập để sửa; gửi đi có nhãn "�
 })
 
 test('chế độ "Gửi luôn": nói xong là gửi', async () => {
-  await goTo(page, '#/settings', page.getByTestId('voice-settings'))
+  await openSettings(page, 'capabilities', page.getByTestId('voice-settings'))
   await page.getByLabel('Nói xong', { exact: true }).selectOption('send')
   await goTo(page, '#/', box())
   const before = await page.getByTestId('message-user').count()

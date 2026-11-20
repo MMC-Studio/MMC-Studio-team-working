@@ -8,7 +8,7 @@ import {
   type ElectronApplication,
   type Page
 } from '@playwright/test'
-import { goTo, waitForStartup } from './helpers'
+import { goTo, openSettings, waitForStartup } from './helpers'
 
 // Gmail / Telegram — chạy được khi KHÔNG có Claude CLI và không có tài khoản thật:
 // MMC_FAKE_GMAIL / MMC_FAKE_TELEGRAM (hộp thư + Telegram giả, chỉ ở bản chưa đóng gói),
@@ -56,7 +56,7 @@ const lastReply = (): ReturnType<Page['getByTestId']> =>
   page.getByTestId('message-assistant').last()
 
 test('mặc định tắt: trợ lý không có tool Gmail / Telegram', async () => {
-  await goTo(page, '#/settings', page.getByTestId('open-connectors'))
+  await openSettings(page, 'connections', page.getByTestId('open-connectors'))
   await page.getByTestId('open-connectors').click()
   await expect(page.getByTestId('gmail-enable')).not.toBeChecked()
   await expect(page.getByTestId('tg-enable')).not.toBeChecked()
@@ -203,7 +203,7 @@ test('Gmail: thêm / đổi tên / đăng nhập lỗi / ngắt kết nối → 
   await expect(page.getByTestId('gmail-account-count')).toHaveText('2 tài khoản')
 
   // Rời trang rồi quay lại: trang hỏi lại main, vẫn đúng.
-  await goTo(page, '#/settings', page.getByTestId('open-connectors'))
+  await openSettings(page, 'connections', page.getByTestId('open-connectors'))
   await page.getByTestId('open-connectors').click()
   await expect(page.getByTestId('gmail-account')).toHaveCount(2)
   await expect(gmailAccount('sv@truong.example.edu').getByTestId('gmail-account-label')).toHaveValue('Trường')

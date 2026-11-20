@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { waitForStartup } from './helpers'
+import { openSettings, waitForStartup } from './helpers'
 
 // Điều khiển máy tính — giai đoạn CHỈ XEM. Dùng màn hình giả (MMC_FAKE_SCREEN, chỉ có ở bản chưa đóng gói)
 // để không chụp/gửi màn hình thật của người chạy test.
@@ -64,7 +64,7 @@ test('mặc định tắt: không có phím tắt toàn cục, không có nút x
 })
 
 test('bật lần đầu phải qua cảnh báo; bật xong phím dừng khẩn cấp được đăng ký', async () => {
-  await go('#/settings')
+  await openSettings(page, 'capabilities', page.getByTestId('open-computer'))
   await page.getByTestId('open-computer').click()
   await expect(page.getByRole('heading', { name: /Điều khiển máy tính/ })).toBeVisible()
   await expect(page.getByTestId('hotkey-status')).toContainText('Chưa bật')
