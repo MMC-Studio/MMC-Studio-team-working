@@ -85,6 +85,20 @@
       "when": 1794148872695,
       "tag": "0011_message_reply_pin_recall",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1795154190633,
+      "tag": "0012_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795157766049,
+      "tag": "0013_session_prompt_key",
+      "breakpoints": true
     }
   ]
 }

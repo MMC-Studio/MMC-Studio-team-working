@@ -9,8 +9,10 @@ import { ConversationRepository, MessageRepository } from '../../db/repositories
 import {
   ChatBusyError,
   ChatService,
+  projectPromptKey,
   promptWithHistory,
   runOptions,
+  sessionStale,
   titleFromText,
   toHistory,
   withAppTools
@@ -48,10 +50,12 @@ describe('ChatService', () => {
 
   const makeService = (
     provider: AIProvider,
-    appToolsFor?: (id: string) => { names: string[]; context: string } | null
+    appToolsFor?: (id: string) => { names: string[]; context: string } | null,
+    projectPromptFor?: (conversationId: string) => string
   ): ChatService =>
     new ChatService({
       appToolsFor,
+      projectPromptFor,
       conversations: convs,
       messages: msgs,
       getProvider: () => provider,
@@ -193,6 +197,58 @@ describe('ChatService', () => {
       await waitForStatus(conv.id, 'done')
       const assistantMsg = msgs.list(conv.id).at(-1)!
       expect(() => service.editAndResend(assistantMsg.id, 'b')).toThrow('message_not_editable')
+    })
+  })
+
+  describe('session CLI theo phần dự án của system prompt', () => {
+    it('sessionStale: cuộc thường có session cũ (chưa có khoá) thì giữ; trong dự án / khoá khác thì làm mới', () => {
+      expect(sessionStale(null, '')).toBe(false)
+      expect(sessionStale(null, 'k1')).toBe(true)
+      expect(sessionStale('k1', 'k1')).toBe(false)
+      expect(sessionStale('k1', 'k2')).toBe(true)
+      expect(sessionStale('k1', '')).toBe(true)
+      expect(projectPromptKey('')).toBe('')
+      expect(projectPromptKey('## Dự án: A')).toBe(projectPromptKey('## Dự án: A'))
+      expect(projectPromptKey('## Dự án: A')).not.toBe(projectPromptKey('## Dự án: B'))
+    })
+
+    it('đổi hướng dẫn giữa cuộc → bỏ session cũ, lượt sau mở session mới với prompt mới + lịch sử; không đổi thì resume', async () => {
+      let n = 0
+      const provider = new FakeProvider(() =>
+        events({ type: 'session', sessionId: `s${++n}` }, { type: 'text', delta: 'ok' }, { type: 'done' })
+      )
+      let section = '## Dự án: Game\n### Hướng dẫn của dự án\nChào đồng đội!'
+      const conv = convs.create('free')
+      const service = makeService(provider, undefined, () => section)
+      const turn = async (text: string, index: number): Promise<ChatRequest> => {
+        service.send(conv.id, text)
+        await vi.waitFor(() => expect(provider.calls).toHaveLength(index + 1))
+        await waitForStatus(conv.id, 'done')
+        return provider.calls[index]
+      }
+
+      expect((await turn('lượt 1', 0)).sessionId).toBeUndefined()
+      expect((await turn('lượt 2', 1)).sessionId).toBe('s1')
+
+      section = '## Dự án: Game\n### Hướng dẫn của dự án\nXin chào sếp!'
+      const changed = await turn('lượt 3', 2)
+      expect(changed.sessionId).toBeUndefined()
+      expect(changed.systemPrompt).toContain('Xin chào sếp!')
+      expect(changed.prompt).toContain('Người dùng: lượt 1')
+      expect(changed.prompt.endsWith('lượt 3')).toBe(true)
+
+      const after = await turn('lượt 4', 3)
+      expect(after.sessionId).toBe('s3')
+      expect(after.prompt).toBe('lượt 4')
+    })
+
+    it('cuộc thường có session từ trước khi có khoá → vẫn resume (không làm mới hàng loạt)', async () => {
+      const provider = new FakeProvider(() => events({ type: 'session', sessionId: 's-old' }, { type: 'done' }))
+      const conv = convs.create('free')
+      convs.setSession(conv.id, 's-old')
+      makeService(provider, undefined, () => '').send(conv.id, 'tiếp')
+      await waitForStatus(conv.id, 'done')
+      expect(provider.calls[0]).toMatchObject({ sessionId: 's-old', prompt: 'tiếp' })
     })
   })
 

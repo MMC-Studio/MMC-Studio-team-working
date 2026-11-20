@@ -61,4 +61,28 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('m0-')
     expect(prompt).not.toContain('m9-')
   })
+
+  it('phần dự án: sau hồ sơ, trước memory; có ngân sách riêng, không bị cắt khi prompt dài', () => {
+    const project = `## Dự án: Game
+${'p'.repeat(5_000)}`
+    const memories = Array.from({ length: 10 }, (_, i) => `m${i}-${'x'.repeat(80)}`)
+    const prompt = buildSystemPrompt({
+      assistant: DEFAULT_ASSISTANT,
+      mode: 'free',
+      user: { name: 'An' },
+      memories,
+      project,
+      maxChars: 900
+    })
+    expect(prompt).toContain(project)
+    expect(prompt.indexOf('## Người dùng')).toBeLessThan(prompt.indexOf('## Dự án: Game'))
+    expect(prompt.indexOf('## Dự án: Game')).toBeLessThan(prompt.indexOf('m0-'))
+    // Phần còn lại vẫn trong giới hạn cũ (900) — dự án không lấy chỗ của memory.
+    expect(prompt.length).toBeLessThanOrEqual(900 + project.length + 2)
+    expect(prompt).toContain('m0-')
+  })
+
+  it('chế độ project hiện là "Quản lý công việc"', () => {
+    expect(buildSystemPrompt({ assistant: DEFAULT_ASSISTANT, mode: 'project' })).toContain('Quản lý công việc')
+  })
 })

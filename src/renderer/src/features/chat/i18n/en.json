@@ -37,7 +37,7 @@
     "free": "Free",
     "study": "Study",
     "code": "Code",
-    "project": "Project management"
+    "project": "Work management"
   },
   "attach": {
     "button": "Attach files (images up to 30 MB; PDF, text/code up to 10 MB). You can also paste (Ctrl+V) or drag and drop.",
@@ -404,7 +404,8 @@
     "hide": "Hide sidebar (Ctrl+B)",
     "show": "Show sidebar (Ctrl+B)",
     "localAccount": "On this computer",
-    "resize": "Drag to resize the sidebar · double-click to reset"
+    "resize": "Drag to resize the sidebar · double-click to reset",
+    "inProject": "In a project"
   },
   "palette": {
     "title": "Search",

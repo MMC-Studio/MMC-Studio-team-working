@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { HashRouter, Route, Routes, useNavigate } from 'react-router'
 import { useChat } from '@renderer/features/chat/store'
 import { useMemory } from '@renderer/features/memory/store'
+import { useProjects } from '@renderer/features/projects/store'
 import type { FeatureDefinition } from '@renderer/features/types'
 import { api } from '@renderer/lib/api'
 import { syncAssistant } from '@renderer/stores/assistantSync'
@@ -61,7 +62,11 @@ function useAuthLifecycle(): void {
       // Dữ liệu cá nhân (trí nhớ, hồ sơ, chat, trợ lý) đổi theo tài khoản: main đổi phạm vi TRƯỚC rồi mới tải lại.
       void (async () => {
         await useMemory.getState().switchAccount(uid)
-        await Promise.all([usePreferences.getState().reloadAssistant(), useChat.getState().switchAccount()])
+        await Promise.all([
+          usePreferences.getState().reloadAssistant(),
+          useChat.getState().switchAccount(),
+          useProjects.getState().reload()
+        ])
         if (uid) await syncAssistant(uid)
       })()
     })

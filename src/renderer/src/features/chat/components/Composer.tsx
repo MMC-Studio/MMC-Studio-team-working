@@ -30,6 +30,8 @@ type Props = {
   onStop(): void
   /** Có thẻ chờ duyệt trong cuộc này → chữ gõ vào là câu hỏi về thẻ, gửi được cả khi trợ lý đang chờ. */
   ask?: { onAsk(text: string): void; disabled: boolean }
+  /** Chữ gợi ý thay cho mặc định (vd trang dự án: "Cuộc trò chuyện mới trong …"). */
+  placeholder?: string
 }
 
 export function Composer({
@@ -40,7 +42,8 @@ export function Composer({
   onSend,
   onSendMedia,
   onStop,
-  ask
+  ask,
+  placeholder
 }: Props) {
   const { t } = useTranslation('chat')
   const name = usePreferences((s) => s.assistant.name)
@@ -188,9 +191,9 @@ export function Composer({
       <VoiceError />
       <Textarea
         ref={box}
-        aria-label={ask ? t('approvals.askPlaceholder') : t('placeholder', { name })}
+        aria-label={ask ? t('approvals.askPlaceholder') : (placeholder ?? t('placeholder', { name }))}
         className="max-h-48 min-h-14 border-0 focus-visible:ring-0"
-        placeholder={ask ? t('approvals.askPlaceholder') : t('placeholder', { name })}
+        placeholder={ask ? t('approvals.askPlaceholder') : (placeholder ?? t('placeholder', { name }))}
         data-ask-mode={ask ? 'true' : undefined}
         value={text}
         rows={2}

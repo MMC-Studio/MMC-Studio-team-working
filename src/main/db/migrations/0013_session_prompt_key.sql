@@ -1,0 +1,1 @@
+ALTER TABLE `conversations` ADD `cli_session_prompt_key` text;

@@ -2,10 +2,6 @@
   "title": "Coming soon",
   "unknown": "This page does not exist yet.",
   "sections": {
-    "projects": {
-      "title": "Projects",
-      "description": "Group conversations by project, with instructions, context and memory for each project."
-    },
     "scheduled": {
       "title": "Scheduled",
       "description": "Schedule the assistant to run tasks on its own (e.g. summarise email every morning)."

@@ -32,7 +32,8 @@ type ChatState = {
   /** Hỏi lại danh sách + nhóm (gộp các lần gọi dồn dập) — dùng cho sync 'conversations'. */
   refreshSidebar(): Promise<void>
   select(id: string | null): Promise<void>
-  create(mode?: ChatMode): Promise<Conversation>
+  /** `projectId`: tạo trong dự án (hướng dẫn + ngữ cảnh dự án gửi kèm mỗi lượt). */
+  create(mode?: ChatMode, projectId?: string): Promise<Conversation>
   rename(id: string, title: string): Promise<void>
   togglePin(id: string): Promise<void>
   /** Kéo thả / menu: chuyển vào nhóm (null = bỏ khỏi nhóm). `pinned` đổi kèm khi thả vào / ra mục Đã ghim. */
@@ -166,8 +167,8 @@ export const useChat = create<ChatState>((set, get) => {
       }
     },
 
-    async create(mode = 'free') {
-      const conv = await api.conversations.create(mode)
+    async create(mode = 'free', projectId) {
+      const conv = await api.conversations.create(mode, projectId)
       set((s) => ({
         conversations: [conv, ...s.conversations],
         activeId: conv.id,

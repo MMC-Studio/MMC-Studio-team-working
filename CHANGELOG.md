@@ -5,6 +5,10 @@
 ## [Unreleased]
 
 ### Tóm tắt
+- **Dự án**: tạo dự án cho việc bạn làm lặp lại (vd một đồ án, một game). Trong dự án có **Hướng dẫn** (vd "Luôn trả lời bằng C#") và **Ngữ cảnh** (file .md, .txt, .json, code…) — trợ lý luôn đọc kèm trong mọi cuộc trò chuyện của dự án, sửa xong là có hiệu lực từ tin tiếp theo. Mỗi tin gửi kèm tối đa 16.000 ký tự của dự án; file nào bị cắt bớt hoặc chỉ gửi tên thì app ghi rõ. Ghim dự án để hiện trong "Đã ghim"; tìm dự án bằng Ctrl+K. Xoá dự án thì các cuộc trò chuyện vẫn giữ lại.
+- **Cài đặt** giờ là cửa sổ nổi chia tab (Giao diện, Trợ lý của bạn, Trò chuyện & AI, Khả năng, Kết nối, Cập nhật, Hỗ trợ), có ô tìm không cần gõ dấu — bấm kết quả là nhảy tới đúng dòng.
+- **Tìm kiếm Ctrl+K**: cửa sổ tìm nhanh cuộc trò chuyện, artifact, dự án; chưa gõ thì hiện "Gần đây"; Tab để biến chữ đang gõ thành tin nhắn mới.
+- Chế độ chat "Quản lý dự án" đổi tên thành **"Quản lý công việc"** (cho khỏi nhầm với Dự án).
 - **Thanh bên chat mới** (giống Claude Desktop): trên cùng là **Mới · Tìm kiếm · Dự án · Artifacts · Lịch hẹn · Plugin**; dưới là **Đã ghim**, các nhóm và **Gần đây** — mục nào cũng thu gọn được. Ẩn / hiện cả thanh bằng nút ở đầu thanh hoặc **Ctrl+B**. Kéo mép phải để đổi độ rộng (nhấp đúp về mặc định, kéo nhỏ hẳn để ẩn); khi đang ẩn, đưa chuột sát mép trái để xem nhanh. Cửa sổ hẹp mà mở panel artifact thì thanh bên tự nhường chỗ để khung chat luôn đủ rộng.
 - **Trang Artifacts**: xem mọi tài liệu, slide, bảng, biểu đồ trợ lý đã tạo ở mọi cuộc trò chuyện; bấm vào là mở đúng cuộc trò chuyện và artifact đó. Dự án / Lịch hẹn / Plugin đang "Sắp có".
 - Trang Công việc đổi tên thành **Dự án team**.

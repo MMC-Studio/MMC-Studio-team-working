@@ -2,6 +2,7 @@ import {
   CodeXml,
   CornerDownLeft,
   Ellipsis,
+  FolderKanban,
   MessageCircle,
   MessageCirclePlus,
   Search,
@@ -20,6 +21,8 @@ import { api } from '@renderer/lib/api'
 import { useSync, useSyncedState } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
 import { ARTIFACT_TYPE_ICON } from '@renderer/features/artifact-library/typeIcon'
+import { useProjects } from '@renderer/features/projects/store'
+import { projectPath } from '@renderer/features/projects/view'
 import { useArtifacts } from '../artifacts/store'
 import { useComposeText } from '../draft'
 import { useChat } from '../store'
@@ -48,7 +51,7 @@ type ItemAction = 'open' | 'openConversation' | 'pin' | 'unpin'
 type View = { kind: 'list' } | { kind: 'filters' } | { kind: 'actions'; item: PaletteItem }
 
 function actionsOf(item: PaletteItem): ItemAction[] {
-  if (item.kind === 'conversation') return ['open', item.pinned ? 'unpin' : 'pin']
+  if (item.kind === 'conversation' || item.kind === 'project') return ['open', item.pinned ? 'unpin' : 'pin']
   if (item.kind === 'artifact') return ['open', 'openConversation']
   return []
 }
@@ -86,13 +89,15 @@ function PaletteDialog() {
   }, [debounced, loadConversations])
   // Tên cuộc trò chuyện chứa artifact đổi cũng phải hiện ngay.
   const { data: artifacts } = useSyncedState(['artifacts', 'conversations'], () => api.artifacts.listAll())
+  // Dự án: store chung (tự tải lại khi có thay đổi).
+  const projects = useProjects((s) => s.projects)
 
   const sections = useMemo<PaletteSection[]>(
     () =>
       conversations && artifacts
-        ? buildPalette({ tab, query: debounced, conversations, artifacts })
+        ? buildPalette({ tab, query: debounced, conversations, artifacts, projects })
         : [],
-    [tab, debounced, conversations, artifacts]
+    [tab, debounced, conversations, artifacts, projects]
   )
   const items = useMemo(() => flatItems(sections), [sections])
   const loading = conversations === null || artifacts === null
@@ -127,6 +132,11 @@ function PaletteDialog() {
     if (item.kind === 'conversation') {
       if (action === 'pin' || action === 'unpin') void useChat.getState().togglePin(item.id)
       else void go(item.id)
+      return
+    }
+    if (item.kind === 'project') {
+      if (action === 'pin' || action === 'unpin') void useProjects.getState().togglePin(item.id)
+      else void navigate(projectPath(item.id))
       return
     }
     void (async () => {
@@ -362,6 +372,7 @@ function PaletteDialog() {
 function iconOf(item: PaletteItem): LucideIcon {
   if (item.kind === 'action') return item.id === 'new-code' ? SquareTerminal : MessageCirclePlus
   if (item.kind === 'artifact') return ARTIFACT_TYPE_ICON[item.type] ?? Shapes
+  if (item.kind === 'project') return FolderKanban
   return item.mode === 'code' ? CodeXml : MessageCircle
 }
 

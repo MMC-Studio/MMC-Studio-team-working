@@ -37,7 +37,7 @@
     "free": "Tự do",
     "study": "Học tập",
     "code": "Code",
-    "project": "Quản lý dự án"
+    "project": "Quản lý công việc"
   },
   "attach": {
     "button": "Đính kèm file (ảnh tới 30 MB; PDF, file chữ/code tới 10 MB). Có thể dán (Ctrl+V) hoặc kéo thả.",
@@ -404,7 +404,8 @@
     "hide": "Ẩn thanh bên (Ctrl+B)",
     "show": "Hiện thanh bên (Ctrl+B)",
     "localAccount": "Dùng trên máy này",
-    "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định"
+    "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định",
+    "inProject": "Thuộc dự án"
   },
   "palette": {
     "title": "Tìm kiếm",

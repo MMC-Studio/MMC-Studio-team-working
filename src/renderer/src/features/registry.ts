@@ -11,6 +11,7 @@ import { ideasFeature } from './ideas'
 import { learningFeature } from './learning'
 import { memoryFeature } from './memory'
 import { notificationsFeature } from './notifications'
+import { projectsFeature } from './projects'
 import { settingsFeature } from './settings'
 import { teamFeature } from './team'
 import { timeFeature } from './time'
@@ -26,6 +27,7 @@ export const features: FeatureDefinition[] = [
   chatFeature,
   // Trang mở từ thanh bên chat (không có trên thanh biểu tượng).
   artifactLibraryFeature,
+  projectsFeature,
   comingSoonFeature,
   todayFeature,
   memoryFeature,

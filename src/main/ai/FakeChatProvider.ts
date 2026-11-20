@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ChatEvent } from '@shared/ai'
@@ -19,19 +20,38 @@ export type FakeToolCaller = (name: string, input: unknown, conversationId: stri
  */
 export class FakeChatProvider implements AIProvider {
   readonly id = 'fake'
-  readonly stateful = false
+  readonly stateful: boolean
+  /** sessionId → system prompt lúc tạo session (mô phỏng CLI: resume giữ prompt cũ, bỏ qua prompt mới). */
+  private readonly sessions = new Map<string, string>()
 
-  /** Gọi tool của app như CLI thật (qua registry) — để e2e đi được luồng duyệt nháp Gmail / Telegram. */
+  /**
+   * Gọi tool của app như CLI thật (qua registry) — để e2e đi được luồng duyệt nháp Gmail / Telegram.
+   * `cliSessions` (MMC_FAKE_CLI_SESSIONS=1): có session như CLI — lượt `--resume` dùng system prompt của lượt tạo
+   * session (đúng hành vi CLI 2.1.329 đã kiểm chứng), để e2e bắt được lỗi "đổi system prompt giữa cuộc".
+   */
   constructor(
     private readonly callTool?: FakeToolCaller,
-    private readonly decideEdit?: FakeEditDecider
-  ) {}
+    private readonly decideEdit?: FakeEditDecider,
+    cliSessions = false
+  ) {
+    this.stateful = cliSessions
+  }
 
   async isAvailable(): Promise<{ ok: boolean }> {
     return { ok: true }
   }
 
-  async *chat(req: ChatRequest, signal: AbortSignal): AsyncIterable<ChatEvent> {
+  async *chat(input: ChatRequest, signal: AbortSignal): AsyncIterable<ChatEvent> {
+    let req = input
+    if (this.stateful) {
+      const stored = input.sessionId ? this.sessions.get(input.sessionId) : undefined
+      if (stored !== undefined) req = { ...input, systemPrompt: stored }
+      else {
+        const sessionId = randomUUID()
+        this.sessions.set(sessionId, input.systemPrompt)
+        yield { type: 'session', sessionId }
+      }
+    }
     // Học phong cách: trả JSON giả để e2e kiểm tra được luồng đề xuất → duyệt.
     if (req.systemPrompt.includes('"type":"style_notes"')) {
       yield {
@@ -114,7 +134,8 @@ export class FakeChatProvider implements AIProvider {
       return
     }
     const skills = [...req.systemPrompt.matchAll(/^### Skill: ([\w-]+)/gm)].map((m) => m[1])
-    const first = req.prompt.split('\n').find((l) => l.trim() && !l.startsWith('(')) ?? ''
+    // Lượt gửi kèm lịch sử ("…\n---\n<tin mới>"): lấy phần tin mới.
+    const first = (req.prompt.split('\n---\n').pop() ?? '').split('\n').find((l) => l.trim() && !l.startsWith('(')) ?? ''
     const expressive = req.systemPrompt.includes('## Biểu cảm')
     const tags = !expressive
       ? ''
@@ -144,7 +165,16 @@ export class FakeChatProvider implements AIProvider {
     }
     const artifact = FAKE_ARTIFACTS[/FAKE_ARTIFACT:([\w-]+)/.exec(req.prompt)?.[1] ?? ''] ?? ''
     const used = skills.length ? ` [skill: ${skills.join(', ')}]` : ''
-    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${tags}${artifact}`
+    // Cuộc thuộc dự án: báo lại tên dự án, dòng đầu hướng dẫn, file đọc được → e2e kiểm phần dự án trong prompt.
+    const projectName = /^## Dự án: (.+)$/m.exec(req.systemPrompt)?.[1]
+    const project = projectName
+      ? ` [dự án: ${projectName} | hướng dẫn: ${/### Hướng dẫn của dự án\n(.*)/.exec(req.systemPrompt)?.[1]?.slice(0, 60) ?? '-'} | file: ${
+          [...req.systemPrompt.matchAll(/<file name="([^"]+)">/g)].map((m) => m[1]).join(', ') || '-'
+        }]`
+      : ''
+    // Chế độ session: lượt mở session mới kèm lịch sử dạng chữ → e2e biết app đã làm mới session.
+    const withHistory = this.stateful && req.prompt.startsWith('Đoạn hội thoại trước đó') ? ' [kèm lịch sử]' : ''
+    const reply = `Mizuki (giả lập) đã nhận: "${first.slice(0, 80)}"${used}${project}${withHistory}${tags}${artifact}`
     for (const part of reply.match(/.{1,12}/gsu) ?? []) {
       if (signal.aborted) return
       yield { type: 'text', delta: part }

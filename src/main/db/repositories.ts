@@ -29,6 +29,7 @@ import {
   memories,
   memorySuggestions,
   messages,
+  projects,
   settings,
   type TitleSource
 } from './schema'
@@ -46,6 +47,7 @@ const toConversation = (r: ConversationRow): Conversation => ({
   groupId: r.groupId,
   parentId: r.parentId,
   suggestedGroupId: r.suggestedGroupId,
+  projectId: r.projectId,
   createdAt: r.createdAt,
   updatedAt: r.updatedAt
 })
@@ -173,6 +175,7 @@ export class ConversationRepository {
   ):
     | (Conversation & {
         cliSessionId: string | null
+        cliSessionPromptKey: string | null
         memoryExtractedAt: number | null
         titleSource: TitleSource
         forkedFromMessageId: string | null
@@ -183,6 +186,7 @@ export class ConversationRepository {
       ? {
           ...toConversation(row),
           cliSessionId: row.cliSessionId,
+          cliSessionPromptKey: row.cliSessionPromptKey,
           memoryExtractedAt: row.memoryExtractedAt,
           titleSource: row.titleSource,
           forkedFromMessageId: row.forkedFromMessageId
@@ -236,6 +240,7 @@ export class ConversationRepository {
           mode: parent.mode,
           cwd: parent.cwd,
           groupId: parent.groupId,
+          projectId: parent.projectId,
           parentId: parent.id,
           forkedFromMessageId: messageId,
           createdAt: ts,
@@ -294,10 +299,19 @@ export class ConversationRepository {
   }
 
   create(mode: ChatMode): Conversation {
+    return this.insert(mode, null)
+  }
+
+  /** Tạo trong dự án — chỉ dự án của tài khoản này (không thì null). */
+  createInProject(mode: ChatMode, projectId: string): Conversation | null {
+    return this.ownsProject(projectId) ? this.insert(mode, projectId) : null
+  }
+
+  private insert(mode: ChatMode, projectId: string | null): Conversation {
     const ts = Date.now()
     const row = this.db
       .insert(conversations)
-      .values({ id: randomUUID(), owner: this.getOwner(), mode, createdAt: ts, updatedAt: ts })
+      .values({ id: randomUUID(), owner: this.getOwner(), mode, projectId, createdAt: ts, updatedAt: ts })
       .returning()
       .get()
     return toConversation(row)
@@ -331,8 +345,13 @@ export class ConversationRepository {
     this.db.update(conversations).set({ updatedAt: Date.now() }).where(eq(conversations.id, id)).run()
   }
 
-  setSession(id: string, cliSessionId: string | null): void {
-    this.db.update(conversations).set({ cliSessionId }).where(eq(conversations.id, id)).run()
+  /** `promptKey`: khoá phần dự án của system prompt lúc tạo session (xem cột cli_session_prompt_key). */
+  setSession(id: string, cliSessionId: string | null, promptKey: string | null = null): void {
+    this.db
+      .update(conversations)
+      .set({ cliSessionId, cliSessionPromptKey: cliSessionId ? promptKey : null })
+      .where(eq(conversations.id, id))
+      .run()
   }
 
   /** Bảo trì nội bộ (mọi tài khoản): hội thoại có tiêu đề kiểu lệnh tạo artifact của bản cũ. */
@@ -342,6 +361,14 @@ export class ConversationRepository {
       .from(conversations)
       .where(sql`lower(${conversations.title}) LIKE '%artifact%'`)
       .all()
+  }
+
+  private ownsProject(projectId: string): boolean {
+    return !!this.db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.owner, this.getOwner())))
+      .get()
   }
 
   private ownsGroup(groupId: string): boolean {
@@ -367,8 +394,9 @@ export class ConversationRepository {
 
   reassign(from: string, to: string): void {
     this.db.update(conversations).set({ owner: to }).where(eq(conversations.owner, from)).run()
-    // Nhóm đi cùng lịch sử chat.
+    // Nhóm và dự án đi cùng lịch sử chat.
     this.db.update(conversationGroups).set({ owner: to }).where(eq(conversationGroups.owner, from)).run()
+    this.db.update(projects).set({ owner: to }).where(eq(projects.owner, from)).run()
   }
 }
 
