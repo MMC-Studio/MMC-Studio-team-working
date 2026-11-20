@@ -27,6 +27,7 @@
 | #29 | Đợt "giống Claude" PR 4: Cài đặt thành cửa sổ nổi (7 tab chia nhóm, dòng kiểu Claude, ô tìm không dấu → nhảy tới dòng) |
 | #30 | PR 5a — Dự án: hướng dẫn + file ngữ cảnh gửi kèm trợ lý |
 | #31 | System prompt theo lượt: phần đổi theo lượt đi trong khối `<ngu-canh-luot>` đầu tin nhắn (CLI `--resume` giữ system prompt cũ) — test tay với Claude thật 2026-11-20 ổn |
+| #32 | PR 5b — Trí nhớ dự án: đề xuất có phạm vi chung / dự án, duyệt ở trang dự án + trang Trí nhớ (cùng một đề xuất), trí nhớ dự án vào khối theo lượt — test tay với Claude thật 2026-11-20 ổn |
 
 ## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
@@ -134,7 +135,7 @@ Tiến độ:
   - **Chặn giả mạo**: thẻ `ngu-canh-luot` trong mọi chữ không do app tạo (lời người dùng, trích dẫn, lịch sử, cả nội dung trí nhớ / skill) bị đổi "<" → "‹"; system prompt dặn chỉ tin khối ở ĐẦU tin nhắn. Thử với Claude thật: khối thật có hiệu lực, thẻ giả đã vô hiệu bị bỏ qua.
   - **Compact**: CLI tóm tắt session phát `system/compact_boundary` (kiểm chứng bằng `/compact`, có `trigger: manual|auto`) → parser phát sự kiện nội bộ `compact` → quên những gì đã gửi, lượt sau gửi lại đủ. Thêm lưới an toàn: cứ 25 lượt trong cùng session gửi lại đủ (phòng CLI đổi định dạng mà không phát hiện được). Lượt lỗi cũng quên (lượt sau gửi lại).
   - Test: `turnContext.test.ts` (chỉ gửi phần mới, trạng thái mất, skill sửa, 25 lượt, giả mạo), `chatService.test.ts` (trí nhớ giữa cuộc, compact, giả mạo, đổi tên → session mới, session cũ làm mới một lần; test cũ chuyển sang kiểm khối đầu tin nhắn với CLI / system prompt với API), parser `compact_boundary`; e2e `turn-context.spec.ts` (FakeChat có session như CLI, báo lại tên / trí nhớ / quyền / tool nó thấy): xin quyền → đọc, bật sửa → Edit/Write, hạ chỉ đọc → mất Edit/Write, Gỡ thư mục → không tool, thêm trí nhớ, my-style, đổi tên (kèm lịch sử, giữ trí nhớ), thẻ giả — cả 8 fail trên code cũ. FakeChat chế độ session chỉ đọc lệnh `FAKE_*` trong tin mới (không đọc lại trong lịch sử gửi kèm).
-- **PR 5b — `feat/projects-5b`** (mở PR, chờ duyệt) — trí nhớ dự án:
+- **PR 5b — `feat/projects-5b`** (#32, đã merge 2026-11-20; test tay với Claude thật: duyệt ở trang Trí nhớ → trang dự án cập nhật, cuộc trong dự án biết trí nhớ dự án, cuộc thường không, trí nhớ chung dùng được cả hai nơi) — trí nhớ dự án:
   - **Trích** (`memory/extraction.ts`, skill `memory-keeper`): cuộc trong dự án → prompt có tên + mô tả dự án, memory chia "chung" / "dự án này" (không gửi trí nhớ dự án khác), mỗi mục có `scope: user | project`. **Thiếu / lạ: cuộc trong dự án → project, cuộc ngoài dự án → user** (cuộc ngoài dự án mọi đề xuất là chung). update / delete giữ phạm vi của memory đích, chỉ trỏ được tới memory trợ lý được xem.
   - **Một đề xuất, hai nơi**: một dòng `memory_suggestions` (`project_id`, cột có từ 5a). `pending()` kèm tên dự án + dự án của cuộc sinh ra đề xuất. Trang dự án (cột phải "Trí nhớ") hiện đề xuất của dự án + đề xuất chung sinh từ cuộc trong dự án; trang Trí nhớ hiện tất cả, nhãn "Dự án: X", lọc Tất cả / Chung / từng dự án. Duyệt qua cùng IPC `memory:resolve` (sync `memory`).
   - **Đổi phạm vi trước khi duyệt** (chỉ đề xuất thêm mới): `resolve({ projectId })` chỉ nhận null hoặc dự án của đề xuất / của cuộc sinh ra nó (khác → `invalid_scope`), dự án phải của người đang đăng nhập. Trang dự án: bấm nhãn Chung ↔ Dự án; trang Trí nhớ: ô chọn trong ô sửa.
@@ -146,6 +147,7 @@ Tiến độ:
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo
+0. Đợt "giống Claude": PR 5 xong (5a #30 + 5b #32; mục Lịch hẹn ở trang dự án chờ PR 7). Tiếp theo **PR 6 — trang Plugin** (đã cài + gợi ý, chỉ gom giao diện); PR 7 (Lịch hẹn) và PR 8 (Kho plugin) cần gửi thiết kế riêng chờ duyệt.
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
 2. Các mức quyền sau (để sẵn khung, chưa làm): "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.
 3. Để sau: thao tác chuột/bàn phím (chỉ khi người dùng đồng ý riêng); A2A + mở kết nối ra LAN (chỉ có đề xuất trong `docs/agents.md`).
