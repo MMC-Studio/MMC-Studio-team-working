@@ -324,7 +324,7 @@ export interface TeamWorkingApi {
     onOpen(listener: (e: ScheduleOpenEvent) => void): () => void
     onNotice(listener: (e: ScheduleNoticeEvent) => void): () => void
     /** Chỉ e2e (MMC_FAKE_CLOCK): tua đồng hồ, giả máy thức dậy, nhấn phím dừng. */
-    test: { advance(ms: number): Promise<void>; resume(): Promise<void>; hotkey(): Promise<void> }
+    test: { advance(ms: number): Promise<void>; sleep(ms: number): Promise<void>; hotkey(): Promise<void> }
   }
   conversationGroups: {
     list(): Promise<ConversationGroup[]>

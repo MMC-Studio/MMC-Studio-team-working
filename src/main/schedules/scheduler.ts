@@ -213,7 +213,8 @@ export class Scheduler {
         continue
       }
       if (s.grants.folder && !this.deps.folderExists(s.grants.folder)) {
-        this.record(s, { ...base, status: 'error', reason: 'folder_missing', detail: s.grants.folder, startedAt: now })
+        // Không gọi Claude → không tính vào giới hạn số lần chạy mỗi ngày.
+        this.record(s, { ...base, status: 'error', reason: 'folder_missing', detail: s.grants.folder })
         this.afterFailure(s, 'error', 'folder_missing', null)
         continue
       }

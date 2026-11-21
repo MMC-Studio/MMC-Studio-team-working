@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useSchedules } from '../store'
@@ -30,7 +30,9 @@ export function ProjectSchedules({ projectId }: { projectId: string }) {
   const { t, i18n } = useTranslation('schedules')
   const { t: tp } = useTranslation('projects')
   const navigate = useNavigate()
-  const list = useSchedules((s) => s.schedules.filter((x) => x.projectId === projectId))
+  // Chọn cả mảng rồi lọc ngoài selector: selector trả mảng mới mỗi lần → zustand render lặp vô hạn.
+  const schedules = useSchedules((s) => s.schedules)
+  const list = useMemo(() => schedules.filter((x) => x.projectId === projectId), [schedules, projectId])
   const paused = useSchedules((s) => !!s.status?.settings.pausedAll)
   if (list.length === 0) return <p className="text-xs text-muted-foreground">{tp('panel.noSchedules')}</p>
   return (

@@ -26,7 +26,7 @@ export type SchedulesIpcDeps = {
   /** Chỉ e2e: hộp chọn thư mục giả. */
   fakeFolder?: () => string | null
   /** Chỉ e2e (đồng hồ giả): tua đồng hồ, giả máy thức dậy, nhấn phím dừng. */
-  test?: { advance(ms: number): void; resume(): void; hotkey(): void }
+  test?: { advance(ms: number): void; sleep(ms: number): void; hotkey(): void }
 }
 
 const S = { changes: 'schedules' } as const
@@ -120,7 +120,7 @@ export function registerSchedulesIpc(deps: SchedulesIpcDeps): void {
   if (deps.test) {
     const t = deps.test
     handle(IPC.schedulesTestAdvance, z.number().int().min(0).max(30 * 24 * 60 * 60 * 1000), (ms) => t.advance(ms), SC)
-    handle(IPC.schedulesTestResume, z.undefined(), () => t.resume(), SC)
+    handle(IPC.schedulesTestResume, z.number().int().min(0).max(30 * 24 * 60 * 60 * 1000), (ms) => t.sleep(ms), SC)
     handle(IPC.schedulesTestHotkey, z.undefined(), () => t.hotkey(), SC)
   }
 }

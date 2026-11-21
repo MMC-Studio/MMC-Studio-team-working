@@ -1142,7 +1142,11 @@ async function bootstrap(): Promise<void> {
             clockOffset += ms
             scheduler.tick()
           },
-          resume: () => scheduler.resume(),
+          // Máy ngủ `ms` rồi thức dậy: đồng hồ nhảy trước, bộ hẹn giờ chỉ biết khi có sự kiện resume.
+          sleep: (ms) => {
+            clockOffset += ms
+            scheduler.resume()
+          },
           hotkey: () => killSwitch.trigger()
         }
       : undefined

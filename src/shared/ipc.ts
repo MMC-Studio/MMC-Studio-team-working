@@ -35,7 +35,7 @@ export const IPC = {
   schedulesOpen: 'schedules:open',
   /** main → renderer: báo trong app (cửa sổ đang mở) thay cho thông báo Windows. */
   schedulesNotice: 'schedules:notice',
-  /** Chỉ e2e (bản chưa đóng gói + MMC_FAKE_CLOCK): tua đồng hồ / giả máy thức dậy / nhấn phím dừng. */
+  /** Chỉ e2e (bản chưa đóng gói + MMC_FAKE_CLOCK): tua đồng hồ / giả máy ngủ rồi thức dậy / nhấn phím dừng. */
   schedulesTestAdvance: 'schedules:testAdvance',
   schedulesTestResume: 'schedules:testResume',
   schedulesTestHotkey: 'schedules:testHotkey',

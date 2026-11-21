@@ -172,7 +172,7 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
     <>
       <Dialog open={!confirm} onOpenChange={(o) => !o && onClose()}>
         <DialogContent title={schedule ? t('form.editTitle') : t('form.newTitle')} className="max-w-xl" data-testid="schedule-editor">
-          <form onSubmit={onSubmit} className="thin-scroll max-h-[70vh] space-y-4 overflow-y-auto pr-1 text-sm">
+          <form onSubmit={onSubmit} className="thin-scroll max-h-[70vh] space-y-4 overflow-x-hidden overflow-y-auto pr-1 text-sm">
             <div className="space-y-1.5">
               <Label htmlFor="schedule-name">{t('form.name')}</Label>
               <Input id="schedule-name" value={form.name} maxLength={SCHEDULE_NAME_MAX} onChange={(e) => patch({ name: e.target.value })} autoFocus />
@@ -189,7 +189,7 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
               />
             </div>
 
-            <fieldset className="space-y-2">
+            <fieldset className="min-w-0 space-y-2">
               <legend className="pb-1 text-sm font-medium">{t('form.when')}</legend>
               <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t('form.when')}>
                 {KINDS.map((k) => (
@@ -290,7 +290,7 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
               </div>
             </div>
 
-            <fieldset className="space-y-2 rounded-lg border p-3" data-testid="schedule-grants">
+            <fieldset className="min-w-0 space-y-2 rounded-lg border p-3" data-testid="schedule-grants">
               <legend className="px-1 text-sm font-medium">{t('form.grants')}</legend>
               <p className="text-xs text-muted-foreground">{t('form.grantsHint')}</p>
               <div className="flex items-center gap-2">

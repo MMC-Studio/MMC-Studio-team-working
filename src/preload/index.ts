@@ -71,7 +71,7 @@ const api: TeamWorkingApi = {
     onNotice: (listener) => subscribe<ScheduleNoticeEvent>(IPC.schedulesNotice, listener),
     test: {
       advance: (ms) => ipcRenderer.invoke(IPC.schedulesTestAdvance, ms),
-      resume: () => ipcRenderer.invoke(IPC.schedulesTestResume),
+      sleep: (ms) => ipcRenderer.invoke(IPC.schedulesTestResume, ms),
       hotkey: () => ipcRenderer.invoke(IPC.schedulesTestHotkey)
     }
   },
