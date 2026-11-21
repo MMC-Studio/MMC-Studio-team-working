@@ -1,5 +1,5 @@
 import { Loader2, MessageCircleQuestion, Paperclip, Send, Square } from 'lucide-react'
-import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CHAT_MODES, type ChatMode } from '@shared/ai'
 import { MAX_ATTACHMENTS } from '@shared/schemas'
@@ -8,7 +8,9 @@ import { Select, Textarea } from '@renderer/components/ui/input'
 import { ScreenAccessToggle } from '@renderer/features/computer/components/ScreenAccessToggle'
 import { usePreferences } from '@renderer/stores/preferences'
 import { extractEmojis, type MediaItem } from '@shared/expressive'
-import { pasteKind, useComposeText, useDraft } from '../draft'
+import { pasteKind, useComposeText } from '../draft'
+import { newDraftKey, useDrafts } from '../drafts'
+import type { Attachment } from '@shared/types'
 import { ExpressPicker } from '../expressive/ExpressPicker'
 import { useRecent } from '../expressive/recentStore'
 import { useVoice } from '../voice/store'
@@ -32,7 +34,12 @@ type Props = {
   ask?: { onAsk(text: string): void; disabled: boolean }
   /** Chữ gợi ý thay cho mặc định (vd trang dự án: "Cuộc trò chuyện mới trong …"). */
   placeholder?: string
+  /** Nháp của cuộc nào (id cuộc / "new" / "new:<dự án>") — chữ + đính kèm giữ theo cuộc, không mất khi đổi trang. */
+  draftKey: string
 }
+
+const NO_FILES: Attachment[] = []
+const NO_PROBLEMS: { name?: string; reason: string }[] = []
 
 export function Composer({
   mode,
@@ -43,11 +50,22 @@ export function Composer({
   onSendMedia,
   onStop,
   ask,
-  placeholder
+  placeholder,
+  draftKey
 }: Props) {
   const { t } = useTranslation('chat')
   const name = usePreferences((s) => s.assistant.name)
-  const [text, setText] = useState('')
+  const text = useDrafts((s) => s.drafts[draftKey]?.text ?? '')
+  // Khoá mới nhất cho các callback đăng ký một lần (giọng nói, "Soạn" từ Ctrl+K).
+  const keyRef = useRef(draftKey)
+  useEffect(() => {
+    keyRef.current = draftKey
+  }, [draftKey])
+  const setText = (value: string | ((prev: string) => string)): void => {
+    const key = keyRef.current
+    const prev = useDrafts.getState().drafts[key]?.text ?? ''
+    useDrafts.getState().setText(key, typeof value === 'function' ? value(prev) : value)
+  }
   const box = useRef<HTMLTextAreaElement>(null)
   // Chế độ "điền vào ô nhập": chữ chép lời vào ô để bạn sửa; gửi đi vẫn đánh dấu là giọng nói.
   const pendingVoice = useRef<MessageVoice | null>(null)
@@ -69,7 +87,8 @@ export function Composer({
     const fill = (): void => {
       const value = useComposeText.getState().takeText()
       if (value === null) return
-      setText(value)
+      // "Soạn" luôn là tin nhắn cho CUỘC MỚI: ghi vào nháp "new" (lúc này cuộc đang mở có thể chưa kịp đổi sang mới).
+      useDrafts.getState().setText(newDraftKey(), value)
       requestAnimationFrame(() => {
         const el = box.current
         el?.focus()
@@ -98,7 +117,13 @@ export function Composer({
       el?.setSelectionRange(start + emoji.length, start + emoji.length)
     })
   }
-  const { items, problems, busy, addFiles, addFromClipboard, pick, remove, clear } = useDraft()
+  const items = useDrafts((s) => s.files[draftKey] ?? NO_FILES)
+  const problems = useDrafts((s) => s.problems[draftKey] ?? NO_PROBLEMS)
+  const busy = useDrafts((s) => !!s.busy[draftKey])
+  const addFiles = (files: File[]): Promise<void> => useDrafts.getState().addFiles(draftKey, files)
+  const addFromClipboard = (): Promise<void> => useDrafts.getState().addFromClipboard(draftKey)
+  const pick = (): Promise<void> => useDrafts.getState().pick(draftKey)
+  const remove = (id: string): void => useDrafts.getState().removeFile(draftKey, id)
 
   const canSend = !streaming && !disabled && !busy && (text.trim().length > 0 || items.length > 0)
   const canAsk = !!ask && !ask.disabled && !disabled && text.trim().length > 0
@@ -129,8 +154,8 @@ export function Composer({
       items.map((a) => a.id),
       voice
     )
-    setText('')
-    clear()
+    // Gửi xong: xoá nháp của ĐÚNG cuộc vừa gửi (cuộc "new" sẽ thành cuộc thật — nháp "new" cũng xoá).
+    useDrafts.getState().clear(draftKey)
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {

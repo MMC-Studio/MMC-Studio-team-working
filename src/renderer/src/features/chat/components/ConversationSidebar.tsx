@@ -41,6 +41,7 @@ import { useSchedules } from '@renderer/features/schedules/store'
 import { SCHEDULES_ROUTE } from '@renderer/features/schedules/view'
 import { buildSidebar, DRAG_TYPE, type SidebarRow, type SidebarSection } from '../sidebarTree'
 import { useChat } from '../store'
+import { draftPreview, useDrafts } from '../drafts'
 
 type Drop = { kind: 'pinned' } | { kind: 'group'; groupId: string } | { kind: 'recent' }
 const dropKey = (d: Drop): string => (d.kind === 'group' ? `group:${d.groupId}` : d.kind)
@@ -80,6 +81,8 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   const [over, setOver] = useState<string | null>(null)
 
   const projects = useProjects((s) => s.projects)
+  // Nháp tin nhắn đang gõ dở của từng cuộc → "Nháp: …" dưới tiêu đề.
+  const drafts = useDrafts((s) => s.drafts)
   // Lịch hẹn: số lần chạy chưa xem (chỉ khi tính năng bật).
   const scheduleUnseen = useSchedules((s) => (s.status?.settings.enabled ? s.status.unseen + s.status.pending : 0))
   const pinnedProj = useMemo(() => pinnedProjects(projects), [projects])
@@ -159,6 +162,11 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
               />
             )}
           </span>
+          {drafts[c.id]?.text.trim() && (
+            <span className="w-full truncate text-xs font-normal text-muted-foreground" data-testid="conversation-draft">
+              <span className="text-primary">{t('draftLabel')}</span> {draftPreview(drafts[c.id].text)}
+            </span>
+          )}
         </button>
         <div className="hidden shrink-0 group-hover:flex">
           <Button variant="ghost" size="icon-sm" title={c.pinned ? t('unpin') : t('pin')} onClick={() => void togglePin(c.id)}>
