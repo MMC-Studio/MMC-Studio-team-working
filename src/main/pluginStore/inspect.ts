@@ -2,12 +2,38 @@ import { createHash } from 'node:crypto'
 import { posix } from 'node:path'
 import { unzipSync } from 'fflate'
 import { SKILL_NAME_RE } from '@shared/skills'
-import type { PreviewSkill, PreviewWarning } from '@shared/pluginStore'
+import type { ErrorDetail, PreviewSkill, PreviewWarning, SkippedFile } from '@shared/pluginStore'
 import { parseSkillMd } from '../skills/format'
 import { asText, LIMITS } from '../skills/package'
 
 /** Chỉ giữ file chữ (giống skill tự cài). Script, hook, nhị phân: bỏ — app KHÔNG BAO GIỜ chạy gì kèm skill. */
 const TEXT_EXT = new Set(['.md', '.txt', '.json'])
+/**
+ * Lock file của trình quản lý gói: không phải nội dung skill (toàn link registry → cảnh báo nhiễu, người dùng quen bỏ qua).
+ * Không cài, không quét — ghi vào "Bị bỏ".
+ */
+export const LOCK_FILES = new Set([
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'bun.lock',
+  'bun.lockb',
+  'deno.lock',
+  'uv.lock',
+  'poetry.lock',
+  'pdm.lock',
+  'pipfile.lock',
+  'cargo.lock',
+  'gemfile.lock',
+  'composer.lock',
+  'go.sum',
+  'packages.lock.json',
+  'pubspec.lock',
+  'mix.lock',
+  'flake.lock'
+])
+export const isLockFile = (path: string): boolean => LOCK_FILES.has(posix.basename(path).toLowerCase())
 /** Tên tool của app — skill lạ nhắc tới là đáng ngờ (muốn trợ lý tự xin quyền / soạn nháp…). */
 export const APP_TOOL_NAMES = [
   'request_folder_access',
@@ -33,8 +59,11 @@ export type InspectedPlugin = {
 }
 
 export class InspectError extends Error {
-  constructor(readonly code: 'bad_archive' | 'too_large' | 'no_skills') {
-    super(code)
+  constructor(
+    readonly code: 'bad_archive' | 'too_large' | 'no_skills',
+    readonly detail: ErrorDetail | null = null
+  ) {
+    super(detail?.file ? `${code}: ${detail.reason} ${detail.file}` : code)
   }
 }
 
@@ -93,6 +122,9 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
   let top: string | null = null
   let total = 0
   let count = 0
+  /** File lớn nhất đã gặp — báo khi vượt tổng dung lượng (thường chính nó là thủ phạm). */
+  let biggest = { name: '', size: 0 }
+  const oversized = new Set<string>()
   const prefixOf = (name: string): string => name.slice(0, name.indexOf('/') + 1)
   const want = (rel: string): boolean => (pluginPath === '' ? true : rel === pluginPath || rel.startsWith(`${pluginPath}/`))
   let entries: Record<string, Uint8Array>
@@ -105,14 +137,18 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
         const rel = f.name.slice(top.length)
         const rootLicense = /^LICEN[CS]E(\.[a-z]+)?$/i.test(rel)
         if (!want(rel) && !rootLicense) return false
-        if (++count > LIMITS.files * 10) throw new InspectError('too_large')
+        if (++count > LIMITS.files * 10)
+          throw new InspectError('too_large', { reason: 'too_many_files', file: pluginPath || null, code: String(LIMITS.files * 10) })
         // File quá lớn: không giải nén, chỉ ghi tên để báo bỏ qua.
         if (f.originalSize > LIMITS.fileBytes) {
           files.set(rel, new Uint8Array(0))
+          oversized.add(rel)
           return false
         }
         total += f.originalSize
-        if (total > LIMITS.totalBytes * 10) throw new InspectError('too_large')
+        if (f.originalSize > biggest.size) biggest = { name: rel, size: f.originalSize }
+        if (total > LIMITS.totalBytes * 10)
+          throw new InspectError('too_large', { reason: 'too_many_bytes', file: biggest.name, code: String(LIMITS.totalBytes * 10) })
         return true
       }
     })
@@ -121,7 +157,10 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
     throw new InspectError('bad_archive')
   }
   for (const [name, bytes] of Object.entries(entries)) {
-    if (bytes.byteLength > LIMITS.fileBytes) continue
+    if (bytes.byteLength > LIMITS.fileBytes) {
+      oversized.add(top ? name.slice((top as string).length) : name)
+      continue
+    }
     files.set(top ? name.slice((top as string).length) : name, bytes)
   }
 
@@ -152,13 +191,25 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
   for (const dir of skillDirs.sort()) {
     const inDir = inPlugin.filter((p) => p.startsWith(dir)).map((p) => p.slice(dir.length))
     const contents = new Map<string, Uint8Array>()
-    const skipped: string[] = []
+    const skipped: SkippedFile[] = []
     let size = 0
     for (const p of inDir.sort()) {
       const bytes = rel(dir + p)
+      if (isLockFile(p)) {
+        skipped.push({ path: p, reason: 'lock_file' })
+        continue
+      }
+      if (oversized.has(base + dir + p)) {
+        skipped.push({ path: p, reason: 'too_big' })
+        continue
+      }
       const text = TEXT_EXT.has(posix.extname(p).toLowerCase()) && bytes.byteLength > 0 ? asText(bytes) : null
-      if (text === null || contents.size >= LIMITS.files || size + bytes.byteLength > LIMITS.totalBytes) {
-        skipped.push(p)
+      if (text === null) {
+        skipped.push({ path: p, reason: 'not_text' })
+        continue
+      }
+      if (contents.size >= LIMITS.files || size + bytes.byteLength > LIMITS.totalBytes) {
+        skipped.push({ path: p, reason: 'over_limit' })
         continue
       }
       size += bytes.byteLength
@@ -175,7 +226,8 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
       contents.set('SKILL.md', contents.get(skillMdName)!)
       contents.delete(skillMdName)
     }
-    const skippedSet = new Set(skipped)
+    // "Nhắc tới file bị bỏ": chỉ script / file thật của skill — lock file không phải thứ skill cần để chạy.
+    const skippedSet = new Set(skipped.filter((f) => f.reason !== 'lock_file').map((f) => f.path))
     for (const [p, bytes] of contents)
       if (warnings.length < MAX_WARNINGS) warnings.push(...scanText(`${name}/${p}`, asText(bytes) ?? '', skippedSet).slice(0, MAX_WARNINGS - warnings.length))
     skills.push({

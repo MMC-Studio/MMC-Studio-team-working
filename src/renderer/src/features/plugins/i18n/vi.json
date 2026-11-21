@@ -110,7 +110,7 @@
       "network": "Không kết nối được GitHub.",
       "unsupported_source": "Nguồn không hợp lệ (cần owner/repo trên GitHub).",
       "plugin_not_found": "Plugin không còn trong nguồn.",
-      "too_large": "Gói tải về quá lớn (trên 40 MB).",
+      "too_large": "Plugin vượt giới hạn — không cài được.",
       "bad_archive": "Không đọc được gói tải về.",
       "no_skills": "Plugin này không có skill nào dùng được (app chỉ cài skill bằng chữ).",
       "preview_expired": "Bản xem trước đã hết hạn — mở lại.",
@@ -118,7 +118,7 @@
       "source_exists": "Nguồn này đã có.",
       "too_many_sources": "Đã có tối đa 20 nguồn.",
       "builtin_source": "Nguồn mặc định không xoá được.",
-      "install_failed": "Cài lỗi — bản cũ (nếu có) vẫn giữ nguyên."
+      "install_failed": "Cài không được — bản cũ (nếu có) vẫn giữ nguyên."
     },
     "installed": "Đã cài từ kho",
     "checkUpdates": "Kiểm tra cập nhật",
@@ -160,7 +160,6 @@
       "warningsTitle": "{{count}} điểm cần đọc kỹ",
       "warningsHint": "Không chặn cài — chỉ để bạn kiểm tra. Skill lạ có thể cố xúi trợ lý làm việc ngoài ý bạn.",
       "files": "File: {{files}}",
-      "skipped": "Bị bỏ (không phải file chữ / quá lớn): {{files}}",
       "reinstallTitle": "Cài lại plugin \"{{name}}\""
     },
     "install": "Cài {{count}} skill",
@@ -197,6 +196,21 @@
     "addSource": "Thêm nguồn (owner/repo hoặc link GitHub)",
     "refPlaceholder": "nhánh / tag",
     "addSourceWarning": "Tôi hiểu: nguồn này chưa được duyệt; skill trong đó do người lạ viết và có thể chứa câu xúi trợ lý. Tôi sẽ đọc kỹ trước khi cài.",
-    "addSourceButton": "Thêm nguồn"
+    "addSourceButton": "Thêm nguồn",
+    "skipped": {
+      "not_text": "Bị bỏ (script / không phải file chữ — không bao giờ chạy): {{files}}",
+      "lock_file": "Bị bỏ (lock file của trình quản lý gói — không phải nội dung skill, không quét): {{files}}",
+      "too_big": "Bị bỏ (một file quá 512 KB): {{files}}",
+      "over_limit": "Bị bỏ (skill vượt 100 file / 2 MB): {{files}}"
+    },
+    "failReasons": {
+      "locked": "Thư mục hoặc file đang bị chương trình khác mở (Explorer, trình soạn thảo, cửa sổ lệnh…). Đóng nó rồi bấm lại.",
+      "write_failed": "Không ghi được xuống ổ đĩa (hết chỗ hoặc không có quyền).",
+      "hash_mismatch": "File ghi xong bị đổi nội dung (phần mềm diệt virus / đồng bộ?) — chưa cài.",
+      "too_many_files": "Plugin có hơn {{limit}} file — app không đọc gói lớn vậy.",
+      "too_many_bytes": "Plugin lớn hơn giới hạn đọc ({{limit}} byte). File lớn nhất:",
+      "archive_too_big": "Gói tải về từ GitHub lớn hơn 40 MB:"
+    },
+    "failFile": "File:"
   }
 }

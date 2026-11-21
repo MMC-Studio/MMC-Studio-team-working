@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { mkdir, readdir, readFile, rename, rm, rmdir, writeFile } from 'node:fs/promises'
+import { dirname, join, relative, sep } from 'node:path'
 import { createTwoFilesPatch } from 'diff'
 import { z } from 'zod'
 import {
@@ -21,6 +21,8 @@ import {
   type PluginPreview,
   type PluginSourceInfo,
   type PluginStoreError,
+  type ErrorDetail,
+  type InstallResult,
   type PreviewResult
 } from '@shared/pluginStore'
 import { GitHubError, type GitHubClient } from './github'
@@ -106,6 +108,8 @@ export class PluginStoreService {
   private errors = new Map<string, { error: CatalogError; retryAt: number | null }>()
   private lastRefresh = 0
   private pending = new Map<string, Pending>()
+  /** Token đang cài (chặn bấm hai lần cùng lúc). */
+  private installing = new Set<string>()
   private modifiedCache: Map<string, boolean> | null = null
 
   constructor(private readonly deps: PluginStoreDeps) {}
@@ -242,14 +246,16 @@ export class PluginStoreService {
       sha = loc.sha ?? (loc.repo === source.repo && !loc.ref ? sourceSha : await this.deps.github.resolveSha(loc.repo, loc.ref ?? 'HEAD'))
       zip = await this.deps.github.archive(loc.repo, sha)
     } catch (e) {
-      const err = e instanceof GitHubError && e.code === 'too_large' ? 'too_large' : catalogError(e).error
-      return { status: 'error', error: err, retryAt: e instanceof GitHubError ? e.retryAt : null }
+      if (e instanceof GitHubError && e.code === 'too_large')
+        return { status: 'error', error: 'too_large', detail: { reason: 'archive_too_big', file: loc.repo } }
+      return { status: 'error', error: catalogError(e).error, retryAt: e instanceof GitHubError ? e.retryAt : null }
     }
     let inspected: InspectedPlugin
     try {
       inspected = inspectArchive(zip, loc.path, entry.license)
     } catch (e) {
-      return { status: 'error', error: e instanceof InspectError ? e.code : 'bad_archive' }
+      this.deps.log.warn(`Kho plugin: đọc gói ${key} lỗi: ${(e as Error).message}`)
+      return { status: 'error', error: e instanceof InspectError ? e.code : 'bad_archive', detail: e instanceof InspectError ? e.detail : null }
     }
     const installed = this.deps.getInstalled()
     const current = installed.find((p) => p.key === key) ?? null
@@ -326,49 +332,116 @@ export class PluginStoreService {
    * Cài / cập nhật đúng bản đã xem trước. Ghi thư mục tạm, kiểm lại sha256 từng file vừa ghi, rồi mới thay bản cũ
    * (giữ bản cũ tới phút chót — lỗi thì trả lại như trước).
    */
-  async install(token: string): Promise<{ status: 'ok'; plugin: InstalledPlugin } | { status: 'error'; error: PluginStoreError }> {
+  async install(token: string): Promise<InstallResult> {
     const item = this.pending.get(token)
     if (!item) return { status: 'error', error: 'preview_expired' }
-    this.pending.delete(token)
+    if (this.installing.has(token)) return { status: 'error', error: 'install_failed', detail: { reason: 'locked', file: null, code: 'busy' } }
     if (!this.sourceExists(item.record.sourceRepo)) return { status: 'error', error: 'source_removed' }
     if (item.record.skills.length === 0) return { status: 'error', error: 'no_skills' }
-    const installed = this.deps.getInstalled()
-    const current = installed.find((p) => p.key === item.key)
-    const dir = current?.dir ?? dirOf(item.key, item.record.name)
-    const dest = join(this.deps.dir, dir)
+    this.installing.add(token)
+    try {
+      const installed = this.deps.getInstalled()
+      const current = installed.find((p) => p.key === item.key)
+      const dir = current?.dir ?? dirOf(item.key, item.record.name)
+      const files = new Map<string, Uint8Array>()
+      for (const sk of item.inspected.skills.filter((x) => item.record.skills.includes(x.name)))
+        for (const [p, bytes] of sk.contents) files.set(`${sk.name}/${p}`, bytes)
+      const failed = await this.writePlugin(join(this.deps.dir, dir), files, item.record.files)
+      if (failed) {
+        this.deps.log.warn(`Kho plugin: cài ${item.key} lỗi: ${failed.reason} ${failed.file ?? ''} (${failed.code ?? '-'})`)
+        // Giữ token: người dùng đóng chương trình đang giữ file rồi bấm lại được, không phải mở lại xem trước.
+        return { status: 'error', error: 'install_failed', detail: failed }
+      }
+      this.pending.delete(token)
+      const now = this.deps.now()
+      const record: InstalledRecord = { ...item.record, dir, installedAt: current?.installedAt ?? now, updatedAt: now, updateAvailable: null }
+      // Skill bỏ đi trong bản mới → quên cài đặt bật / tắt của chúng.
+      if (current) this.deps.forgetSkills(current.skills.filter((sk) => !record.skills.includes(sk)))
+      this.deps.setInstalled([...installed.filter((p) => p.key !== item.key), record])
+      this.modifiedCache = null
+      this.deps.log.info(`Kho plugin: đã ${current ? 'cập nhật' : 'cài'} ${item.key} @ ${record.location.sha.slice(0, 7)}`)
+      this.deps.changed()
+      return { status: 'ok', plugin: this.toInstalled(record) }
+    } catch (e) {
+      this.deps.log.warn(`Kho plugin: cài ${item.key} lỗi: ${(e as Error).message}`)
+      return { status: 'error', error: 'install_failed', detail: { reason: 'write_failed', file: null, code: errCode(e) } }
+    } finally {
+      this.installing.delete(token)
+    }
+  }
+
+  /**
+   * Ghi plugin vào `dest`; trả null khi xong, hoặc lý do + file lỗi (bản cũ giữ nguyên).
+   * Cách 1: ghi thư mục tạm, kiểm hash, đổi tên thay bản cũ. Windows không cho đổi tên thư mục đang mở
+   * (Explorer, trình soạn thảo, cửa sổ lệnh đứng trong đó → EPERM / EBUSY) → cách 2: ghi đè từng file tại chỗ,
+   * xoá file thừa; lỗi giữa chừng thì ghi lại nội dung cũ.
+   */
+  private async writePlugin(dest: string, files: Map<string, Uint8Array>, hashes: Record<string, string>): Promise<ErrorDetail | null> {
     const tmp = join(this.deps.dir, `.tmp-${randomUUID()}`)
     const backup = join(this.deps.dir, `.old-${randomUUID()}`)
     try {
-      for (const s of item.inspected.skills.filter((x) => item.record.skills.includes(x.name)))
-        for (const [p, bytes] of s.contents) {
-          const target = join(tmp, s.name, ...p.split('/'))
-          await mkdir(dirname(target), { recursive: true })
-          await writeFile(target, bytes)
-          // Kiểm hash ngay sau khi ghi (ổ đĩa / phần mềm khác đổi nội dung → không cài).
-          if (sha256(await readFile(target)) !== item.record.files[`${s.name}/${p}`]) throw new Error('hash_mismatch')
+      const bad = await writeAndVerify(tmp, files, hashes)
+      if (bad) return bad
+      if (existsSync(dest)) {
+        try {
+          await rename(dest, backup)
+        } catch (e) {
+          if (!isLocked(e)) throw e
+          this.deps.log.info(`Kho plugin: thư mục ${dest} đang bị mở (${errCode(e)}) → ghi đè từng file`)
+          return await this.writeInPlace(dest, files, hashes)
         }
-      if (existsSync(dest)) await rename(dest, backup)
+      }
       try {
         await rename(tmp, dest)
       } catch (e) {
         if (existsSync(backup)) await rename(backup, dest)
-        throw e
+        return { reason: isLocked(e) ? 'locked' : 'write_failed', file: null, code: errCode(e) }
       }
-      await rm(backup, { recursive: true, force: true })
+      await rm(backup, { recursive: true, force: true }).catch(() => undefined)
+      return null
     } catch (e) {
-      await rm(tmp, { recursive: true, force: true })
-      this.deps.log.warn(`Kho plugin: cài ${item.key} lỗi: ${(e as Error).message}`)
-      return { status: 'error', error: 'install_failed' }
+      return { reason: isLocked(e) ? 'locked' : 'write_failed', file: fileOf(e, tmp), code: errCode(e) }
+    } finally {
+      await rm(tmp, { recursive: true, force: true }).catch(() => undefined)
     }
-    const now = this.deps.now()
-    const record: InstalledRecord = { ...item.record, dir, installedAt: current?.installedAt ?? now, updatedAt: now, updateAvailable: null }
-    // Skill bỏ đi trong bản mới → quên cài đặt bật / tắt của chúng.
-    if (current) this.deps.forgetSkills(current.skills.filter((s) => !record.skills.includes(s)))
-    this.deps.setInstalled([...installed.filter((p) => p.key !== item.key), record])
-    this.modifiedCache = null
-    this.deps.log.info(`Kho plugin: đã ${current ? 'cập nhật' : 'cài'} ${item.key} @ ${record.location.sha.slice(0, 7)}`)
-    this.deps.changed()
-    return { status: 'ok', plugin: this.toInstalled(record) }
+  }
+
+  private async writeInPlace(dest: string, files: Map<string, Uint8Array>, hashes: Record<string, string>): Promise<ErrorDetail | null> {
+    const old = new Map<string, Uint8Array>()
+    for (const p of await listFiles(dest)) old.set(p, await readFile(join(dest, ...p.split('/'))))
+    const restore = async (): Promise<void> => {
+      for (const p of await listFiles(dest).catch(() => [] as string[]))
+        if (!old.has(p)) await rm(join(dest, ...p.split('/')), { force: true }).catch(() => undefined)
+      for (const [p, bytes] of old) {
+        const target = join(dest, ...p.split('/'))
+        await mkdir(dirname(target), { recursive: true }).catch(() => undefined)
+        await writeFile(target, bytes).catch(() => undefined)
+      }
+    }
+    for (const [p, bytes] of files) {
+      const target = join(dest, ...p.split('/'))
+      try {
+        await mkdir(dirname(target), { recursive: true })
+        await writeFile(target, bytes)
+        if (sha256(await readFile(target)) !== hashes[p]) {
+          await restore()
+          return { reason: 'hash_mismatch', file: p }
+        }
+      } catch (e) {
+        await restore()
+        return { reason: isLocked(e) ? 'locked' : 'write_failed', file: p, code: errCode(e) }
+      }
+    }
+    for (const p of old.keys())
+      if (!files.has(p))
+        try {
+          await rm(join(dest, ...p.split('/')), { force: true })
+        } catch (e) {
+          await restore()
+          return { reason: isLocked(e) ? 'locked' : 'write_failed', file: p, code: errCode(e) }
+        }
+    await removeEmptyDirs(dest)
+    return null
   }
 
   /** Gỡ: xoá thư mục plugin + bản ghi (SHA, hash) + cài đặt của skill. Không đụng cuộc trò chuyện / trí nhớ. */
@@ -496,4 +569,39 @@ export function loadDefaultSources(file: string): { repo: string; ref: string }[
   } catch {
     return []
   }
+}
+
+const LOCK_CODES = new Set(['EPERM', 'EBUSY', 'EACCES'])
+const errCode = (e: unknown): string | null => (e as NodeJS.ErrnoException | null)?.code ?? null
+const isLocked = (e: unknown): boolean => LOCK_CODES.has(errCode(e) ?? '')
+/** File gây lỗi, tính từ thư mục plugin (không lộ đường dẫn đầy đủ trên máy). */
+const fileOf = (e: unknown, root: string): string | null => {
+  const path = (e as NodeJS.ErrnoException | null)?.path
+  return path ? relative(root, path).split(sep).join('/') || null : null
+}
+
+/** Ghi tất cả file vào `root` (mới) và kiểm sha256 ngay sau khi ghi (ổ đĩa / phần mềm khác đổi nội dung → không cài). */
+async function writeAndVerify(root: string, files: Map<string, Uint8Array>, hashes: Record<string, string>): Promise<ErrorDetail | null> {
+  for (const [p, bytes] of files) {
+    const target = join(root, ...p.split('/'))
+    await mkdir(dirname(target), { recursive: true })
+    await writeFile(target, bytes)
+    if (sha256(await readFile(target)) !== hashes[p]) return { reason: 'hash_mismatch', file: p }
+  }
+  return null
+}
+
+async function listFiles(root: string): Promise<string[]> {
+  const out: string[] = []
+  for (const e of await readdir(root, { withFileTypes: true, recursive: true }))
+    if (e.isFile()) out.push(relative(root, join(e.parentPath, e.name)).split(sep).join('/'))
+  return out
+}
+
+async function removeEmptyDirs(root: string): Promise<void> {
+  const dirs = (await readdir(root, { withFileTypes: true, recursive: true }))
+    .filter((e) => e.isDirectory())
+    .map((e) => join(e.parentPath, e.name))
+    .sort((a, b) => b.length - a.length)
+  for (const d of dirs) await rmdir(d).catch(() => undefined)
 }

@@ -13,7 +13,7 @@ import type {
   SchedulesStatus
 } from './schedules'
 import type { DeferredActionResult, DeferredCard } from './deferred'
-import type { Catalog, InstalledPlugin, PluginSourceInfo, PluginStoreError, PreviewResult } from './pluginStore'
+import type { Catalog, InstallResult, InstalledPlugin, PluginSourceInfo, PluginStoreError, PreviewResult } from './pluginStore'
 import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
@@ -350,7 +350,7 @@ export interface TeamWorkingApi {
     catalog(force?: boolean): Promise<Catalog>
     preview(key: string): Promise<PreviewResult>
     cancelPreview(token: string): Promise<void>
-    install(token: string): Promise<{ status: 'ok'; plugin: InstalledPlugin } | { status: 'error'; error: PluginStoreError }>
+    install(token: string): Promise<InstallResult>
     uninstall(key: string): Promise<boolean>
     installed(): Promise<InstalledPlugin[]>
     checkUpdates(): Promise<InstalledPlugin[]>

@@ -1,7 +1,18 @@
 import { AlertTriangle, ChevronDown, ChevronRight, Download, GitCommit, Loader2, Package, RefreshCw, Settings2, ShieldCheck, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Catalog, CatalogPlugin, InstalledPlugin, PluginPreview, PluginSourceInfo, PreviewResult, PreviewWarning } from '@shared/pluginStore'
+import type {
+  Catalog,
+  CatalogPlugin,
+  ErrorDetail,
+  InstalledPlugin,
+  PluginPreview,
+  PluginSourceInfo,
+  PluginStoreError,
+  PreviewResult,
+  PreviewWarning,
+  SkipReason
+} from '@shared/pluginStore'
 import { matchesAllWords } from '@shared/text'
 import { DiffView } from '@renderer/components/DiffView'
 import { Button } from '@renderer/components/ui/button'
@@ -276,7 +287,7 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
     }
   }, [pluginKey])
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ error: PluginStoreError; detail: ErrorDetail | null } | null>(null)
   const preview: PluginPreview | null = result?.status === 'ok' ? result.preview : null
   const installable = preview?.skills.filter((s) => !s.conflict) ?? []
   // Plugin đã cài, cùng commit → cài lại (vd file bị sửa ngoài app), không phải cập nhật.
@@ -289,9 +300,13 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
   const install = async (): Promise<void> => {
     if (!preview) return
     setBusy(true)
-    const r = await api.pluginStore.install(preview.token)
+    setError(null)
+    // Mọi lỗi (kể cả IPC hỏng) phải hiện trong hộp — không bao giờ im lặng.
+    const r = await api.pluginStore
+      .install(preview.token)
+      .catch((e: unknown) => ({ status: 'error' as const, error: 'install_failed' as const, detail: { reason: 'write_failed' as const, file: null, code: String(e) } }))
     setBusy(false)
-    if (r.status === 'error') return setError(r.error)
+    if (r.status === 'error') return setError({ error: r.error, detail: r.detail ?? null })
     notifyChanged(['pluginStore', 'skills'])
     onDone()
     onClose()
@@ -307,9 +322,7 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
               {t('store.preview.loading')}
             </p>
           ) : result.status === 'error' ? (
-            <p className="text-destructive" data-testid="store-preview-error">
-              {t(`store.errors.${result.error}`, { time: result.retryAt ? new Date(result.retryAt).toLocaleTimeString() : '' })}
-            </p>
+            <ErrorBox testId="store-preview-error" error={result.error} detail={result.detail ?? null} retryAt={result.retryAt ?? null} />
           ) : (
             preview && (
               <>
@@ -367,8 +380,9 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
               </>
             )
           )}
-          {error && <p className="text-destructive">{t(`store.errors.${error}`, { time: '' })}</p>}
         </div>
+        {/* Ngoài vùng cuộn, ngay trên nút → luôn thấy được. */}
+        {error && <ErrorBox testId="store-install-error" error={error.error} detail={error.detail} retryAt={null} />}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={close}>
             {t('common:actions.cancel')}
@@ -426,6 +440,33 @@ function ChangeRow({ change }: { change: { path: string; change: 'added' | 'modi
   )
 }
 
+const SKIP_ORDER: SkipReason[] = ['not_text', 'lock_file', 'too_big', 'over_limit']
+
+/** Lỗi trong hộp xem trước / cài: mã lỗi + lý do + file gây ra. */
+function ErrorBox({ testId, error, detail, retryAt }: { testId: string; error: PluginStoreError; detail: ErrorDetail | null; retryAt: number | null }) {
+  const { t } = useTranslation('plugins')
+  return (
+    <div role="alert" className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid={testId} data-reason={detail?.reason ?? ''}>
+      <p className="flex items-start gap-2 font-medium">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        {t(`store.errors.${error}`, { time: retryAt ? new Date(retryAt).toLocaleTimeString() : '' })}
+      </p>
+      {detail && (
+        <p className="mt-1 break-words pl-6 text-xs">
+          {t(`store.failReasons.${detail.reason}`, { limit: detail.code ?? '' })}
+          {detail.file && (
+            <>
+              {' '}
+              {t('store.failFile')} <code data-testid="store-error-file">{detail.file}</code>
+            </>
+          )}
+          {detail.code && !['too_many_files', 'too_many_bytes'].includes(detail.reason) && <span className="opacity-70"> ({detail.code})</span>}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function SkillCard({ skill: s }: { skill: PluginPreview['skills'][number] }) {
   const { t } = useTranslation('plugins')
   const [open, setOpen] = useState(false)
@@ -447,9 +488,18 @@ function SkillCard({ skill: s }: { skill: PluginPreview['skills'][number] }) {
         {t('store.preview.files', { files: s.files.map((f) => `${f.path} (${Math.ceil(f.size / 1024)} KB)`).join(', ') })}
       </p>
       {s.skipped.length > 0 && (
-        <p className="mt-1 text-xs text-orange-700 dark:text-orange-300" data-testid="store-skill-skipped">
-          {t('store.preview.skipped', { files: s.skipped.join(', ') })}
-        </p>
+        <div className="mt-1 space-y-0.5 text-xs text-orange-700 dark:text-orange-300" data-testid="store-skill-skipped">
+          {SKIP_ORDER.filter((r) => s.skipped.some((f) => f.reason === r)).map((r) => (
+            <p key={r} data-testid="store-skipped-group" data-reason={r} className="break-words">
+              {t(`store.skipped.${r}`, {
+                files: s.skipped
+                  .filter((f) => f.reason === r)
+                  .map((f) => f.path)
+                  .join(', ')
+              })}
+            </p>
+          ))}
+        </div>
       )}
       {open && (
         <div className="mt-2">

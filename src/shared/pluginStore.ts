@@ -69,12 +69,17 @@ export type PreviewWarning =
   /** Skill nhắc tới file script / file bị bỏ → có thể không chạy đúng. */
   | { kind: 'missing_file'; file: string; target: string }
 
+/** Lý do bỏ một file: không phải file chữ · lock file (package-lock.json, yarn.lock…) · một file quá 512 KB · vượt 100 file / 2 MB của skill. */
+export type SkipReason = 'not_text' | 'lock_file' | 'too_big' | 'over_limit'
+export type SkippedFile = { path: string; reason: SkipReason }
+
 export type PreviewSkill = {
   name: string
   description: string
   body: string
   files: { path: string; size: number; sha256: string }[]
-  skipped: string[]
+  /** File trong thư mục skill KHÔNG cài, kèm lý do (script / nhị phân, lock file, quá lớn, vượt giới hạn của skill). */
+  skipped: SkippedFile[]
   /** Trùng tên skill có sẵn / skill bạn tự cài / skill của plugin khác → skill này không cài được. */
   conflict: 'builtin' | 'user' | 'plugin' | null
 }
@@ -129,7 +134,24 @@ export type PluginStoreError =
   | 'builtin_source'
   | 'install_failed'
 
-export type PreviewResult = { status: 'ok'; preview: PluginPreview } | { status: 'error'; error: PluginStoreError; retryAt?: number | null }
+/**
+ * Chi tiết lỗi để người dùng biết vì sao + file nào (không bao giờ chỉ báo chung chung).
+ * - locked: thư mục / file đang bị chương trình khác mở (Explorer, trình soạn thảo…)
+ * - write_failed: ghi đĩa lỗi (hết chỗ, không có quyền…) · hash_mismatch: file ghi xong bị đổi nội dung
+ * - too_many_files / too_many_bytes: plugin vượt giới hạn đọc (`limit`) · archive_too_big: gói tải về quá 40 MB
+ */
+export type ErrorDetail = {
+  reason: 'locked' | 'write_failed' | 'hash_mismatch' | 'too_many_files' | 'too_many_bytes' | 'archive_too_big'
+  file: string | null
+  /** Lỗi hệ thống gốc (vd EPERM) — hiện nhỏ để báo lỗi. */
+  code?: string | null
+}
+
+export type PreviewResult =
+  | { status: 'ok'; preview: PluginPreview }
+  | { status: 'error'; error: PluginStoreError; retryAt?: number | null; detail?: ErrorDetail | null }
+
+export type InstallResult = { status: 'ok'; plugin: InstalledPlugin } | { status: 'error'; error: PluginStoreError; detail?: ErrorDetail | null }
 
 export const sourceInputSchema = z.object({
   /** "owner/repo" hoặc link https://github.com/owner/repo(.git). */

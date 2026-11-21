@@ -110,7 +110,7 @@
       "network": "Couldn't reach GitHub.",
       "unsupported_source": "Invalid source (needs owner/repo on GitHub).",
       "plugin_not_found": "The plugin is no longer in the source.",
-      "too_large": "The download is too large (over 40 MB).",
+      "too_large": "The plugin exceeds the limits — cannot install.",
       "bad_archive": "Couldn't read the download.",
       "no_skills": "This plugin has no usable skills (the app installs text-only skills).",
       "preview_expired": "The preview expired — open it again.",
@@ -118,7 +118,7 @@
       "source_exists": "This source already exists.",
       "too_many_sources": "You already have 20 sources.",
       "builtin_source": "Default sources can't be removed.",
-      "install_failed": "Install failed — the previous version (if any) was kept."
+      "install_failed": "Install failed — the previous version (if any) is kept."
     },
     "installed": "Installed from the store",
     "checkUpdates": "Check for updates",
@@ -160,7 +160,6 @@
       "warningsTitle": "{{count}} things to read carefully",
       "warningsHint": "This doesn't block installing — it's for you to check. An unknown skill may try to push the assistant to act against your intent.",
       "files": "Files: {{files}}",
-      "skipped": "Dropped (not text / too large): {{files}}",
       "reinstallTitle": "Reinstall plugin \"{{name}}\""
     },
     "install": "Install {{count}} skill(s)",
@@ -197,6 +196,21 @@
     "addSource": "Add a source (owner/repo or GitHub link)",
     "refPlaceholder": "branch / tag",
     "addSourceWarning": "I understand: this source isn't reviewed; its skills are written by strangers and may contain text that tries to push the assistant. I'll read carefully before installing.",
-    "addSourceButton": "Add source"
+    "addSourceButton": "Add source",
+    "skipped": {
+      "not_text": "Dropped (script / not a text file — never run): {{files}}",
+      "lock_file": "Dropped (package-manager lock file — not skill content, not scanned): {{files}}",
+      "too_big": "Dropped (single file over 512 KB): {{files}}",
+      "over_limit": "Dropped (skill over 100 files / 2 MB): {{files}}"
+    },
+    "failReasons": {
+      "locked": "The folder or a file is open in another program (Explorer, an editor, a terminal…). Close it and try again.",
+      "write_failed": "Could not write to disk (out of space or no permission).",
+      "hash_mismatch": "A file changed right after being written (antivirus / sync tool?) — not installed.",
+      "too_many_files": "The plugin has more than {{limit}} files — too large to read.",
+      "too_many_bytes": "The plugin exceeds the read limit ({{limit}} bytes). Largest file:",
+      "archive_too_big": "The archive from GitHub is over 40 MB:"
+    },
+    "failFile": "File:"
   }
 }

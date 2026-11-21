@@ -141,12 +141,57 @@ describe('đọc gói plugin', () => {
     expect(r.skills.map((s) => s.name)).toEqual(['sach', 'viet-bao-cao'])
     const vbc = r.skills.find((s) => s.name === 'viet-bao-cao')!
     expect(vbc.files.map((f) => f.path).sort()).toEqual(['SKILL.md', 'mau.md'])
-    expect(vbc.skipped).toEqual(['scripts/build.py'])
+    expect(vbc.skipped).toEqual([{ path: 'scripts/build.py', reason: 'not_text' }])
     expect(r.license).toBe('MIT')
     expect(r.ignored).toMatchObject({ hooks: true, commands: 1, mcp: true })
     const kinds = new Set(r.warnings.map((w) => w.kind))
     expect([...kinds].sort()).toEqual(['app_tool', 'injection', 'missing_file', 'shell', 'url'])
     expect(r.warnings.find((w) => w.kind === 'missing_file')).toMatchObject({ target: expect.stringContaining('build.py') })
+  })
+
+  it('lock file: không cài, không quét (không sinh cảnh báo link); ghi "Bị bỏ" kèm lý do', () => {
+    const lock = JSON.stringify({ packages: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`p${i}`, { resolved: `https://registry.npmjs.org/p${i}/-/p${i}-1.0.0.tgz` }])) })
+    const r = inspectArchive(
+      archive('mmc/kho', SHA1, {
+        'skills/tok/SKILL.md': skillMd('tok', 'Dùng package.json và package-lock.json đi kèm.'),
+        'skills/tok/package.json': '{"name":"tok"}',
+        'skills/tok/package-lock.json': lock,
+        'skills/tok/yarn.lock': 'x',
+        'skills/tok/uv.lock': 'x',
+        'skills/tok/.npmrc': 'x',
+        'skills/tok/to.md': 'x'.repeat(600 * 1024)
+      }),
+      '',
+      null
+    )
+    const tok = r.skills[0]
+    expect(tok.files.map((f) => f.path).sort()).toEqual(['SKILL.md', 'package.json'])
+    expect(tok.skipped).toEqual(
+      expect.arrayContaining([
+        { path: 'package-lock.json', reason: 'lock_file' },
+        { path: 'yarn.lock', reason: 'lock_file' },
+        { path: 'uv.lock', reason: 'lock_file' },
+        { path: '.npmrc', reason: 'not_text' },
+        { path: 'to.md', reason: 'too_big' }
+      ])
+    )
+    expect(r.warnings.filter((w) => w.kind === 'url')).toEqual([])
+    // Nhắc tới lock file KHÔNG sinh cảnh báo "file bị bỏ" (không phải thứ skill cần để chạy).
+    expect(r.warnings.filter((w) => w.kind === 'missing_file')).toEqual([])
+  })
+
+  it('skill vượt 100 file → phần thừa "over_limit"; plugin quá nhiều file → too_large kèm giới hạn', () => {
+    const many = Object.fromEntries(Array.from({ length: 105 }, (_, i) => [`skills/nhieu/f${String(i).padStart(3, '0')}.md`, 'x']))
+    const r = inspectArchive(archive('mmc/kho', SHA1, { 'skills/nhieu/SKILL.md': skillMd('nhieu', 'x'), ...many }), '', null)
+    expect(r.skills[0].files).toHaveLength(100)
+    expect(r.skills[0].skipped.every((f) => f.reason === 'over_limit')).toBe(true)
+    const huge = Object.fromEntries(Array.from({ length: 1001 }, (_, i) => [`skills/to/f${i}.md`, 'x']))
+    try {
+      inspectArchive(archive('mmc/kho', SHA1, { 'skills/to/SKILL.md': skillMd('to', 'x'), ...huge }), '', null)
+      throw new Error('không lỗi')
+    } catch (e) {
+      expect(e).toMatchObject({ code: 'too_large', detail: { reason: 'too_many_files', code: '1000' } })
+    }
   })
 
   it('không có skill → no_skills; zip hỏng → bad_archive', () => {
