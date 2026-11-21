@@ -178,11 +178,11 @@ Tiến độ:
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo
-0. Đợt "giống Claude": PR 5 (#30, #32), PR 6 (#34), PR 7a (#36) xong. Đang làm **PR 7b** — hoãn duyệt trong lần chạy theo lịch (thiết kế đã duyệt). Sau đó PR 8 (Kho plugin online): thêm quyền mới → gửi thiết kế riêng, chờ duyệt rồi mới code.
+0. Đợt "giống Claude": PR 5 (#30, #32), PR 6 (#34), PR 7a (#36), PR 7b (#38) xong; nháp tin nhắn theo cuộc (#39) chờ duyệt. Tiếp theo PR 8 (Kho plugin online): thêm quyền mới → gửi thiết kế riêng, chờ duyệt rồi mới code.
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
 2. Các mức quyền sau (để sẵn khung, chưa làm): "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.
 3. Để sau: thao tác chuột/bàn phím (chỉ khi người dùng đồng ý riêng); A2A + mở kết nối ra LAN (chỉ có đề xuất trong `docs/agents.md`).
-4. Lịch hẹn **7b** (đang làm, theo "Quyết định đã duyệt" → Lịch hẹn): `propose_file_change` + `read_proposed`, một thẻ "Bộ thay đổi" mỗi lần chạy (diff từ bản gốc tới bản cuối, kiểm quyền / đường dẫn / nhị phân / hash lúc Đồng ý, ghi file tạm rồi đổi tên, ≤ 20 file, ≤ 256 KB); nháp hoãn: người nhận to rõ, cảnh báo người lạ, không "Đồng ý tất cả" cho nháp; thẻ hoãn lưu DB (`deferred_approvals`), hết hạn 7 ngày; "Yêu cầu sửa" dùng đúng tool + quyền của lịch, tính vào 8 lần / ngày. Còn để sau: chọn từng chat Telegram cho lịch (hiện bật / tắt cả Telegram).
+4. Lịch hẹn: 7a (#36) + 7b (#38) xong. Còn để sau: chọn từng chat Telegram cho lịch (hiện bật / tắt cả Telegram); test tay với Claude thật phần "Hỏi" trên thẻ hoãn duyệt. Lỗi "sửa lời nhắn làm mất tick Cho soạn nháp" (test tay 7b) chưa tái hiện được — đã có test giữ quyền khi sửa, chờ người dùng cho bước tái hiện nếu gặp lại.
 
 ## Quyết định đã duyệt
 - **Lịch hẹn (PR 7, duyệt 2026-11-21):** tách **7a** (lịch, chạy, nhật ký, giới hạn, thông báo, khay — lần chạy CHỈ ĐỌC) / **7b** (hoãn duyệt sửa file + nháp).
