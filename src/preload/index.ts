@@ -84,6 +84,18 @@ const api: TeamWorkingApi = {
       hotkey: () => ipcRenderer.invoke(IPC.schedulesTestHotkey)
     }
   },
+  pluginStore: {
+    sources: () => ipcRenderer.invoke(IPC.pluginStoreSources),
+    addSource: (input) => ipcRenderer.invoke(IPC.pluginStoreAddSource, input),
+    removeSource: (repo) => ipcRenderer.invoke(IPC.pluginStoreRemoveSource, repo),
+    catalog: (force) => ipcRenderer.invoke(IPC.pluginStoreCatalog, force),
+    preview: (key) => ipcRenderer.invoke(IPC.pluginStorePreview, key),
+    cancelPreview: (token) => ipcRenderer.invoke(IPC.pluginStoreCancelPreview, token),
+    install: (token) => ipcRenderer.invoke(IPC.pluginStoreInstall, token),
+    uninstall: (key) => ipcRenderer.invoke(IPC.pluginStoreUninstall, key),
+    installed: () => ipcRenderer.invoke(IPC.pluginStoreInstalled),
+    checkUpdates: () => ipcRenderer.invoke(IPC.pluginStoreCheckUpdates)
+  },
   conversationGroups: {
     list: () => ipcRenderer.invoke(IPC.conversationGroupsList),
     create: (name) => ipcRenderer.invoke(IPC.conversationGroupsCreate, name),

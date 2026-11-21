@@ -13,6 +13,7 @@ import type {
   SchedulesStatus
 } from './schedules'
 import type { DeferredActionResult, DeferredCard } from './deferred'
+import type { Catalog, InstalledPlugin, PluginSourceInfo, PluginStoreError, PreviewResult } from './pluginStore'
 import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
@@ -338,6 +339,21 @@ export interface TeamWorkingApi {
     onNotice(listener: (e: ScheduleNoticeEvent) => void): () => void
     /** Chỉ e2e (MMC_FAKE_CLOCK): tua đồng hồ, giả máy thức dậy, nhấn phím dừng. */
     test: { advance(ms: number): Promise<void>; sleep(ms: number): Promise<void>; hotkey(): Promise<void> }
+  }
+  /** Kho plugin online: chỉ skill bằng chữ, cài theo commit SHA, không tự cập nhật. */
+  pluginStore: {
+    sources(): Promise<PluginSourceInfo[]>
+    addSource(input: { repo: string; ref?: string }): Promise<{ status: 'ok'; source: PluginSourceInfo } | { status: 'error'; error: PluginStoreError }>
+    /** Nguồn tự thêm: plugin đã cài giữ lại ("nguồn đã bị xoá"). Nguồn mặc định không xoá được. */
+    removeSource(repo: string): Promise<{ status: 'ok' } | { status: 'error'; error: PluginStoreError }>
+    /** `force` = nút Làm mới (tối đa 1 lần / phút). */
+    catalog(force?: boolean): Promise<Catalog>
+    preview(key: string): Promise<PreviewResult>
+    cancelPreview(token: string): Promise<void>
+    install(token: string): Promise<{ status: 'ok'; plugin: InstalledPlugin } | { status: 'error'; error: PluginStoreError }>
+    uninstall(key: string): Promise<boolean>
+    installed(): Promise<InstalledPlugin[]>
+    checkUpdates(): Promise<InstalledPlugin[]>
   }
   conversationGroups: {
     list(): Promise<ConversationGroup[]>

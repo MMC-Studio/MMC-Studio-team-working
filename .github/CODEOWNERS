@@ -6,3 +6,5 @@
 /.github/ @phanduongthien
 /electron-builder.yml @phanduongthien
 /src/main/ai/ @phanduongthien
+# Nguồn kho plugin mặc định (code tải từ Internet) — chỉ chủ repo duyệt.
+/resources/plugin-sources.json @phanduongthien

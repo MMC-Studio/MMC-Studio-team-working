@@ -5,7 +5,8 @@
   "tabs": {
     "all": "Tất cả",
     "connectors": "Kết nối",
-    "skills": "Skill"
+    "skills": "Skill",
+    "discover": "Khám phá"
   },
   "filter": {
     "label": "Lọc theo trạng thái",
@@ -55,7 +56,8 @@
     "noClients": "chưa có agent",
     "builtin": "có sẵn trong app",
     "installedFrom": "cài từ {{source}}",
-    "byApp": "app hỗ trợ sẵn"
+    "byApp": "app hỗ trợ sẵn",
+    "fromStore": "từ kho {{source}}"
   },
   "describe": {
     "gmail": "Trợ lý đọc thư, tóm tắt, soạn nháp trả lời — nháp luôn qua hộp duyệt, không tự gửi.",
@@ -90,5 +92,111 @@
     "back": "Plugin",
     "notFound": "Không tìm thấy plugin này (có thể đã bị gỡ).",
     "files": "File: {{files}}"
+  },
+  "store": {
+    "skillNote": "Skill của plugin \"{{plugin}}\" cài từ kho. Chỉ dùng khi bạn gọi đích danh (\"dùng skill <tên>\"), không có trong lần chạy theo lịch. Gỡ: tab Khám phá → Gỡ plugin.",
+    "modified": "File của skill đã bị sửa / xoá ngoài app — skill tạm không được dùng. Cài lại ở tab Khám phá.",
+    "sourceRemoved": "Nguồn đã bị xoá",
+    "sourceBuiltin": "Nguồn đã duyệt",
+    "sourceUser": "Nguồn bạn thêm — chưa được duyệt",
+    "intro": "Skill bằng chữ từ các kho trên GitHub. Xem trước rồi mới cài; app không bao giờ chạy script / hook kèm theo.",
+    "sources": "Nguồn ({{count}})",
+    "refresh": "Làm mới",
+    "errors": {
+      "rate_limited": "GitHub đang tạm giới hạn — thử lại lúc {{time}} (đang dùng danh sách đã lưu).",
+      "not_found": "Không tìm thấy repo / nhánh trên GitHub.",
+      "no_marketplace": "Repo này không có .claude-plugin/marketplace.json.",
+      "bad_marketplace": "marketplace.json không đúng định dạng.",
+      "network": "Không kết nối được GitHub.",
+      "unsupported_source": "Nguồn không hợp lệ (cần owner/repo trên GitHub).",
+      "plugin_not_found": "Plugin không còn trong nguồn.",
+      "too_large": "Gói tải về quá lớn (trên 40 MB).",
+      "bad_archive": "Không đọc được gói tải về.",
+      "no_skills": "Plugin này không có skill nào dùng được (app chỉ cài skill bằng chữ).",
+      "preview_expired": "Bản xem trước đã hết hạn — mở lại.",
+      "source_removed": "Nguồn của plugin đã bị xoá — không cập nhật được.",
+      "source_exists": "Nguồn này đã có.",
+      "too_many_sources": "Đã có tối đa 20 nguồn.",
+      "builtin_source": "Nguồn mặc định không xoá được.",
+      "install_failed": "Cài lỗi — bản cũ (nếu có) vẫn giữ nguyên."
+    },
+    "installed": "Đã cài từ kho",
+    "checkUpdates": "Kiểm tra cập nhật",
+    "modifiedBadge": "Đã bị sửa ngoài app",
+    "updateAvailable": "Có bản mới ({{sha}})",
+    "installedMeta": "Skill: {{skills}} · {{repo}}@{{sha}}",
+    "reinstall": "Cài lại",
+    "update": "Cập nhật",
+    "uninstall": "Gỡ",
+    "catalog": "Plugin trong các nguồn",
+    "category": "Loại",
+    "allCategories": "Mọi loại",
+    "loading": "Đang tải danh sách…",
+    "noSources": "Chưa có nguồn nào. Bấm \"Nguồn\" để thêm repo GitHub dạng marketplace.",
+    "empty": "Không có plugin nào khớp.",
+    "uninstallTitle": "Gỡ plugin \"{{name}}\"?",
+    "uninstallBody": "Xoá các skill: {{skills}} cùng bản ghi phiên bản. Cuộc trò chuyện và trí nhớ không bị xoá.",
+    "installedBadge": "Đã cài",
+    "unsupported": {
+      "bad_path": "đường dẫn không hợp lệ",
+      "bad_repo": "repo không hợp lệ",
+      "not_github": "không nằm trên GitHub — chưa hỗ trợ",
+      "unsupported_kind": "định dạng nguồn chưa hỗ trợ"
+    },
+    "preview": {
+      "title": "Cài plugin \"{{name}}\"",
+      "updateTitle": "Cập nhật plugin \"{{name}}\"",
+      "loading": "Đang tải đúng phiên bản từ GitHub…",
+      "source": "Nguồn",
+      "version": "Phiên bản (commit)",
+      "from": "đang dùng {{sha}}",
+      "license": "License",
+      "noLicense": "Không ghi license",
+      "userSourceWarning": "Plugin từ nguồn bạn tự thêm — chưa được duyệt. Đọc kỹ nội dung skill trước khi cài.",
+      "rules": "Chỉ cài skill bằng chữ (.md, .txt, .json). Script, hook, file nhị phân luôn bị bỏ và không bao giờ chạy. Skill từ kho chỉ dùng khi bạn gọi đích danh, không có trong lần chạy theo lịch, và không cấp thêm quyền nào cho trợ lý.",
+      "changes": "Thay đổi so với bản đang dùng",
+      "noChanges": "Nội dung skill không đổi.",
+      "skills": "Skill ({{count}})",
+      "warningsTitle": "{{count}} điểm cần đọc kỹ",
+      "warningsHint": "Không chặn cài — chỉ để bạn kiểm tra. Skill lạ có thể cố xúi trợ lý làm việc ngoài ý bạn.",
+      "files": "File: {{files}}",
+      "skipped": "Bị bỏ (không phải file chữ / quá lớn): {{files}}",
+      "reinstallTitle": "Cài lại plugin \"{{name}}\""
+    },
+    "install": "Cài {{count}} skill",
+    "warnings": {
+      "injection": "câu có thể xúi trợ lý bỏ qua quy tắc: \"{{excerpt}}\"",
+      "app_tool": "nhắc tới công cụ của app {{tool}}",
+      "url": "có link {{url}}",
+      "base64": "có đoạn mã hoá dài (base64)",
+      "shell": "có lệnh: \"{{excerpt}}\"",
+      "missing_file": "nhắc tới {{target}} — file này không được cài (script / bị bỏ), skill có thể không chạy đúng"
+    },
+    "change": {
+      "added": "thêm",
+      "modified": "sửa",
+      "removed": "xoá"
+    },
+    "conflict": {
+      "builtin": "Trùng tên skill có sẵn của app — không cài skill này.",
+      "user": "Trùng tên skill bạn tự cài — không cài skill này (đổi tên / gỡ skill kia trước).",
+      "plugin": "Trùng tên skill của plugin khác — không cài skill này."
+    },
+    "ignored": {
+      "title": "Phần plugin có nhưng app KHÔNG lấy",
+      "hooks": "Hook (tự chạy lệnh) — không bao giờ chạy",
+      "commands": "{{count}} lệnh (/command) — app chưa hỗ trợ",
+      "agents": "{{count}} agent — app chưa hỗ trợ",
+      "mcp": "MCP server — sẽ có ở bản sau (8b), mỗi server phải duyệt riêng",
+      "other": "{{count}} file khác ngoài thư mục skill"
+    },
+    "sourcesTitle": "Nguồn kho plugin",
+    "sourcesHelp": "Repo GitHub công khai có .claude-plugin/marketplace.json. Nguồn mặc định do chủ repo app duyệt; nguồn bạn thêm thì tự chịu trách nhiệm.",
+    "removeSource": "Xoá nguồn",
+    "removeSourceHint": "Xoá một nguồn: plugin đã cài từ nguồn đó vẫn giữ lại (nhãn \"Nguồn đã bị xoá\"), nhưng không cập nhật được.",
+    "addSource": "Thêm nguồn (owner/repo hoặc link GitHub)",
+    "refPlaceholder": "nhánh / tag",
+    "addSourceWarning": "Tôi hiểu: nguồn này chưa được duyệt; skill trong đó do người lạ viết và có thể chứa câu xúi trợ lý. Tôi sẽ đọc kỹ trước khi cài.",
+    "addSourceButton": "Thêm nguồn"
   }
 }

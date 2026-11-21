@@ -29,10 +29,11 @@ import { useSkills } from '../store'
 import { usePlugins } from '../usePlugins'
 import { EnableDialog, PluginMenu } from './PluginMenu'
 import { PreviewDialog } from './skillParts'
+import { DiscoverView } from './Discover'
 
 /** Số dòng hiện sẵn mỗi phần; còn lại sau "Xem tất cả". */
 export const ROWS_SHOWN = 5
-const TABS: PluginTab[] = ['all', 'connectors', 'skills']
+const TABS: PluginTab[] = ['all', 'connectors', 'skills', 'discover']
 const STATUS: PluginStatusFilter[] = ['all', 'on', 'off', 'attention']
 
 export function PluginIcon({ item, className }: { item: PluginItem; className?: string }) {
@@ -226,13 +227,15 @@ export function PluginsPage() {
             </p>
           )}
 
-          {groups.loaded && nothing && searching && (
+          {tab === 'discover' && <DiscoverView query={text} />}
+
+          {tab !== 'discover' && groups.loaded && nothing && searching && (
             <p className="py-10 text-center text-sm text-muted-foreground" data-testid="plugins-no-results">
               {t('empty.results')}
             </p>
           )}
 
-          {(!searching || yours.length > 0) && (
+          {tab !== 'discover' && (!searching || yours.length > 0) && (
             <Section
               title={t('sections.yours')}
               testId="plugins-yours"
@@ -242,7 +245,7 @@ export function PluginsPage() {
               empty={groups.loaded ? t('empty.yours') : undefined}
             />
           )}
-          {tab !== 'connectors' && builtin.length > 0 && (
+          {tab !== 'connectors' && tab !== 'discover' && builtin.length > 0 && (
             <Section
               title={t('sections.builtin')}
               help={t('sections.builtinHelp')}
@@ -252,7 +255,7 @@ export function PluginsPage() {
               onExpand={() => setExpanded((e) => ({ ...e, builtin: !e.builtin }))}
             />
           )}
-          {suggestions.length > 0 && (
+          {tab !== 'discover' && suggestions.length > 0 && (
             <section className="mt-10" data-testid="plugins-suggestions">
               <h2 className="pb-2 text-base font-semibold">{t('sections.suggestions')}</h2>
               <div className="grid gap-x-6 sm:grid-cols-2">
