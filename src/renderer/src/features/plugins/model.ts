@@ -10,9 +10,11 @@ import { matchesAllWords } from '@shared/text'
 
 export const PLUGINS_ROUTE = '/plugins'
 
-export type PluginTab = 'all' | 'connectors' | 'skills'
+/** `discover` = Khám phá (kho plugin online). */
+export type PluginTab = 'all' | 'connectors' | 'skills' | 'discover'
 export type PluginStatusFilter = 'all' | 'on' | 'off' | 'attention'
-export type PluginType = 'gmail' | 'telegram' | 'agents' | 'mcp' | 'skill' | 'builtinSkill'
+/** `storeSkill` = skill của plugin cài từ kho (bật / tắt được; gỡ = gỡ cả plugin ở tab Khám phá). */
+export type PluginType = 'gmail' | 'telegram' | 'agents' | 'mcp' | 'skill' | 'builtinSkill' | 'storeSkill'
 
 export type PluginItem = {
   /** Khoá duy nhất trên trang (vd `gmail`, `mcp:<id>`, `skill:<tên>`). */
@@ -119,6 +121,24 @@ export function buildPlugins(src: PluginSources): PluginGroups {
   }
   for (const s of src.skills ?? []) {
     if (s.source === 'user' && s.name === STYLE_SKILL) continue // my-style ở Cài đặt › Trợ lý của bạn
+    if (s.source === 'plugin') {
+      yours.push({
+        key: `store:${s.name}`,
+        type: 'storeSkill',
+        kind: 'skill',
+        name: s.name,
+        description: s.description,
+        enabled: s.enabled,
+        // File bị sửa ngoài app → không được dùng, cần cài lại.
+        attention: !!s.plugin?.modified,
+        meta: { source: s.origin },
+        href: `${PLUGINS_ROUTE}/skill/plugin/${encodeURIComponent(s.name)}`,
+        toggleable: true,
+        removable: false,
+        confirmEnable: false
+      })
+      continue
+    }
     const user = s.source === 'user'
     const item: PluginItem = {
       key: `${user ? 'skill' : 'builtin'}:${s.name}`,

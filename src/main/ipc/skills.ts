@@ -24,7 +24,7 @@ export function registerSkillsIpc(deps: SkillsIpcDeps): void {
   handle(IPC.skillsList, none, () => store.list())
   handle(
     IPC.skillsGet,
-    z.object({ source: z.enum(['builtin', 'user']), name: skillNameSchema }),
+    z.object({ source: z.enum(['builtin', 'user', 'plugin']), name: skillNameSchema }),
     ({ source, name }) => store.get(source, name)
   )
   handle(IPC.skillsPick, z.enum(['folder', 'zip']), async (kind) => {
