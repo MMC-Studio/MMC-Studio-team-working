@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { goTo, waitForStartup } from './helpers'
 
-// Thanh bên chat mới (PR 2): điều hướng, Ctrl+B, thu gọn mục, trang Artifacts, trang "Sắp có", lỗi cuộn ngang.
+// Thanh bên chat mới (PR 2): điều hướng, Ctrl+B, thu gọn mục, trang Artifacts, trang Lịch hẹn, lỗi cuộn ngang.
 // Chạy được khi KHÔNG có Claude CLI (MMC_FAKE_CHAT).
 test.describe.configure({ mode: 'serial' })
 

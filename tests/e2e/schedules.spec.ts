@@ -2,7 +2,15 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import type { TeamWorkingApi } from '../../src/shared/types'
 import { goTo, openSettings, waitForStartup } from './helpers'
+
+// `window.api` trong page.evaluate (preload) — chỉ khai báo kiểu.
+declare global {
+  interface Window {
+    api: TeamWorkingApi
+  }
+}
 
 // Lịch hẹn (PR 7a): mặc định tắt, bật qua cảnh báo + hỏi khay, tạo lịch (quyền mới phải xác nhận), chạy CHỈ ĐỌC
 // (trợ lý giả báo lại tool / model / max-turns / MCP ngoài / thẻ duyệt nó nhận được), nhật ký, chưa xem, chạy bù
