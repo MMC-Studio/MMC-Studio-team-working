@@ -300,7 +300,7 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
                     <code className="min-w-0 flex-1 truncate rounded bg-muted px-1.5 py-0.5 text-xs" title={form.grants.folder} data-testid="schedule-folder">
                       {form.grants.folder}
                     </code>
-                    <Button type="button" size="icon-sm" variant="ghost" aria-label={t('form.removeFolder')} title={t('form.removeFolder')} onClick={() => patch({ grants: { ...form.grants, folder: null } })}>
+                    <Button type="button" size="icon-sm" variant="ghost" aria-label={t('form.removeFolder')} title={t('form.removeFolder')} onClick={() => patch({ grants: { ...form.grants, folder: null, folderWrite: false } })}>
                       <X />
                     </Button>
                   </>
@@ -312,6 +312,21 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
                   {t('form.pickFolder')}
                 </Button>
               </div>
+              {form.grants.folder && (
+                <label className="flex items-start gap-2 pl-6">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={form.grants.folderWrite}
+                    onChange={(e) => patch({ grants: { ...form.grants, folderWrite: e.target.checked } })}
+                    data-testid="schedule-folder-write"
+                  />
+                  <span>
+                    {t('form.folderWrite')}
+                    <span className="block text-xs text-muted-foreground">{t('form.folderWriteHint')}</span>
+                  </span>
+                </label>
+              )}
               {gmailAccounts.map((a) => (
                 <label key={a.id} className="flex items-center gap-2">
                   <input
@@ -336,6 +351,21 @@ function EditorBody({ schedule, projectId, onClose, onSaved }: EditorProps) {
                   <input type="checkbox" checked={form.grants.telegram} onChange={(e) => patch({ grants: { ...form.grants, telegram: e.target.checked } })} data-testid="schedule-telegram" />
                   <MessageCircle className="size-4 text-muted-foreground" />
                   <span>{t('form.telegram')}</span>
+                </label>
+              )}
+              {(form.grants.gmailAccounts.length > 0 || form.grants.telegram) && (
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={form.grants.drafts}
+                    onChange={(e) => patch({ grants: { ...form.grants, drafts: e.target.checked } })}
+                    data-testid="schedule-drafts"
+                  />
+                  <span>
+                    {t('form.drafts')}
+                    <span className="block text-xs text-muted-foreground">{t('form.draftsHint')}</span>
+                  </span>
                 </label>
               )}
             </fieldset>
@@ -390,9 +420,23 @@ export function GrantConfirmDialog({
         <ul className="space-y-2 text-sm" data-testid="schedule-grant-list">
           {added?.map((g) => (
             <li key={g.kind === 'gmail' ? g.accountId : g.kind} className="flex items-start gap-2 rounded-md bg-muted/60 px-3 py-2">
-              {g.kind === 'folder' ? <Folder className="mt-0.5 size-4 shrink-0" /> : g.kind === 'gmail' ? <Mail className="mt-0.5 size-4 shrink-0" /> : <MessageCircle className="mt-0.5 size-4 shrink-0" />}
-              <span className="min-w-0 break-all">
-                {g.kind === 'folder' ? t('confirm.folder', { path: g.path }) : g.kind === 'gmail' ? t('confirm.gmail', { label: g.label }) : t('confirm.telegram')}
+              {g.kind === 'folder' || g.kind === 'folderWrite' ? (
+                <Folder className="mt-0.5 size-4 shrink-0" />
+              ) : g.kind === 'gmail' ? (
+                <Mail className="mt-0.5 size-4 shrink-0" />
+              ) : (
+                <MessageCircle className="mt-0.5 size-4 shrink-0" />
+              )}
+              <span className="min-w-0 break-all" data-testid={`grant-${g.kind}`}>
+                {g.kind === 'folder'
+                  ? t('confirm.folder', { path: g.path })
+                  : g.kind === 'folderWrite'
+                    ? t('confirm.folderWrite', { path: g.path })
+                    : g.kind === 'gmail'
+                      ? t('confirm.gmail', { label: g.label })
+                      : g.kind === 'drafts'
+                        ? t('confirm.drafts')
+                        : t('confirm.telegram')}
               </span>
             </li>
           ))}

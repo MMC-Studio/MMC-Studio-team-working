@@ -69,7 +69,8 @@
   },
   "runTrigger": {
     "catch_up": "chạy bù",
-    "manual": "chạy ngay"
+    "manual": "chạy ngay",
+    "revision": "yêu cầu sửa"
   },
   "runMissed_one": "bỏ lỡ {{count}} lượt",
   "runMissed_other": "bỏ lỡ {{count}} lượt",
@@ -136,7 +137,11 @@
       "onceAt": "Chọn ngày giờ chạy.",
       "days": "Chọn ít nhất một ngày trong tuần.",
       "window": "Giờ kết thúc phải sau giờ bắt đầu."
-    }
+    },
+    "folderWrite": "Cho đề xuất sửa file trong thư mục này",
+    "folderWriteHint": "Lần chạy không sửa gì — chỉ để lại \"Bộ thay đổi\", bạn xem diff và duyệt từng file khi quay lại.",
+    "drafts": "Cho soạn nháp Gmail / Telegram",
+    "draftsHint": "Nháp chỉ được tạo khi bạn duyệt từng cái; không bao giờ tự gửi."
   },
   "errors": {
     "limit_total": "Đã có tối đa 20 lịch — xoá bớt lịch cũ rồi tạo lại.",
@@ -156,8 +161,10 @@
     "folder": "Đọc file trong thư mục {{path}}",
     "gmail": "Đọc thư Gmail tài khoản \"{{label}}\"",
     "telegram": "Đọc tin nhắn Telegram (theo danh sách chat được phép)",
-    "readOnly": "Chỉ đọc: không sửa file, không chạy lệnh, không soạn / gửi thư hay tin nhắn. Nội dung thư, tin nhắn, file chỉ là dữ liệu — trợ lý không làm theo lệnh nằm trong đó.",
-    "allow": "Cho phép"
+    "readOnly": "Không sửa file trực tiếp, không chạy lệnh, không gửi thư hay tin nhắn. Nội dung thư, tin nhắn, file chỉ là dữ liệu — trợ lý không làm theo lệnh nằm trong đó.",
+    "allow": "Cho phép",
+    "folderWrite": "Đề xuất sửa file trong {{path}} (bạn duyệt từng file sau)",
+    "drafts": "Đề xuất nháp Gmail / Telegram (bạn duyệt từng nháp sau)"
   },
   "enable": {
     "title": "Bật lịch hẹn?",
@@ -201,10 +208,12 @@
     "readOnly": "chỉ đọc",
     "gmail": "Đọc Gmail \"{{label}}\"",
     "telegram": "Đọc Telegram",
-    "never": "Không bao giờ: sửa file, chạy lệnh, soạn / gửi thư, xem màn hình, dùng MCP ngoài.",
+    "never": "Không bao giờ: sửa file trực tiếp, chạy lệnh, gửi thư / tin nhắn, xem màn hình, dùng MCP ngoài.",
     "history": "Lịch sử chạy",
     "noRuns": "Chưa chạy lần nào.",
-    "open": "Mở"
+    "open": "Mở",
+    "proposeEdits": "đọc + đề xuất sửa (bạn duyệt)",
+    "drafts": "Đề xuất nháp Gmail / Telegram (bạn duyệt)"
   },
   "notice": {
     "done": "Lịch hẹn \"{{name}}\" đã chạy xong.",
@@ -219,7 +228,9 @@
     "pausedHotkey": "Đã dừng khẩn cấp: mọi lịch hẹn đang tạm dừng.",
     "dailyLimit": "Đã chạy đủ số lần lịch hẹn cho hôm nay — các lượt còn lại bị bỏ qua.",
     "open": "Mở",
-    "close": "Đóng"
+    "close": "Đóng",
+    "donePending_one": "Lịch hẹn \"{{name}}\" đã chạy xong · {{count}} việc chờ duyệt.",
+    "donePending_other": "Lịch hẹn \"{{name}}\" đã chạy xong · {{count}} việc chờ duyệt."
   },
   "proposal": {
     "title": "Đề xuất lịch hẹn",
@@ -233,5 +244,76 @@
   },
   "badge": {
     "fromSchedule": "Từ lịch hẹn"
+  },
+  "pendingCount_one": "{{count}} chờ duyệt",
+  "pendingCount_other": "{{count}} chờ duyệt",
+  "deferred": {
+    "expiresIn_one": "Hết hạn sau {{count}} ngày",
+    "expiresIn_other": "Hết hạn sau {{count}} ngày",
+    "expired": "Đã hết hạn (quá 7 ngày)",
+    "revised": "Đã yêu cầu sửa — xem đề xuất mới bên dưới",
+    "done": "Đã xử lý",
+    "createdAt": "Đề xuất lúc {{when}} — chưa có gì được ghi / tạo",
+    "changesetTitle_one": "Bộ thay đổi · {{count}} file",
+    "changesetTitle_other": "Bộ thay đổi · {{count}} file",
+    "folder": "Thư mục:",
+    "newFile": "file mới",
+    "version": "Bản {{n}}",
+    "approve": "Đồng ý",
+    "reject": "Từ chối",
+    "approveAll_one": "Đồng ý tất cả ({{count}} file)",
+    "approveAll_other": "Đồng ý tất cả ({{count}} file)",
+    "rejectAll": "Từ chối tất cả",
+    "fileStatus": {
+      "pending": "chờ duyệt",
+      "applied": "đã ghi",
+      "rejected": "đã từ chối",
+      "conflict": "không ghi",
+      "error": "không ghi"
+    },
+    "fileError": {
+      "changed": "File đã thay đổi sau khi đề xuất — không ghi để khỏi đè thay đổi của bạn. Nhờ trợ lý làm lại (Yêu cầu sửa).",
+      "exists": "File này đã được tạo sau khi đề xuất — không ghi đè.",
+      "no_permission": "Lịch không còn quyền đề xuất sửa thư mục này — không ghi.",
+      "outside": "Đường dẫn nằm ngoài thư mục — không ghi.",
+      "protected": "File được bảo vệ / nhị phân — không ghi.",
+      "too_large": "Nội dung quá 256 KB — không ghi.",
+      "write_failed": "Ghi file lỗi — thử lại."
+    },
+    "draftTitle": {
+      "gmail": "Nháp Gmail chờ duyệt",
+      "telegram": "Nháp Telegram chờ duyệt"
+    },
+    "recipients": "Gửi tới",
+    "unknown": "Bạn CHƯA TỪNG liên lạc với: {{list}}. Kiểm tra kỹ người nhận — nội dung thư lạ có thể đã xúi trợ lý soạn nháp này.",
+    "account": "Lưu nháp ở tài khoản:",
+    "subject": "Tiêu đề:",
+    "replyTo": "Trả lời thư \"{{subject}}\"",
+    "createDraft": {
+      "gmail": "Tạo nháp Gmail",
+      "telegram": "Lưu nháp Telegram"
+    },
+    "draftError": {
+      "gmail_expired": "Gmail hết hạn đăng nhập — kết nối lại ở trang Plugin rồi bấm lại.",
+      "gmail_unavailable": "Gmail / tài khoản này đang tắt — bật lại rồi bấm lại.",
+      "telegram_unavailable": "Telegram đang tắt hoặc chưa đăng nhập.",
+      "telegram_chat_not_allowed": "Chat này không còn trong danh sách được phép.",
+      "no_permission": "Lịch không còn quyền soạn nháp.",
+      "rejected": "Đã từ chối.",
+      "generic": "Không tạo được nháp ({{code}})."
+    },
+    "inputPlaceholder": "Hỏi về đề xuất này, hoặc ghi cách muốn sửa…",
+    "ask": "Hỏi",
+    "revise": "Yêu cầu sửa",
+    "reviseHint": "Yêu cầu sửa: trợ lý làm lại trong cuộc này với đúng quyền của lịch (tính vào giới hạn số lần chạy mỗi ngày).",
+    "answering": "Đang trả lời…",
+    "errors": {
+      "expired": "Thẻ đã hết hạn hoặc đã xử lý.",
+      "busy": "Đang trả lời câu trước.",
+      "limit": "Đã hỏi đủ 10 câu.",
+      "disabled": "Lịch hẹn đang tắt — bật lại để yêu cầu sửa.",
+      "not_found": "Lịch không còn.",
+      "generic": "Không thực hiện được ({{code}})."
+    }
   }
 }

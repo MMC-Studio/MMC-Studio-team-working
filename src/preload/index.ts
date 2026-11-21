@@ -67,6 +67,15 @@ const api: TeamWorkingApi = {
     pauseAll: (paused) => ipcRenderer.invoke(IPC.schedulesPauseAll, paused),
     pickFolder: () => ipcRenderer.invoke(IPC.schedulesPickFolder),
     respondProposal: (decision) => ipcRenderer.invoke(IPC.schedulesRespondProposal, decision),
+    deferred: {
+      list: (conversationId) => ipcRenderer.invoke(IPC.deferredList, conversationId),
+      approveFiles: (id, paths) => ipcRenderer.invoke(IPC.deferredApproveFiles, { id, paths }),
+      rejectFiles: (id, paths) => ipcRenderer.invoke(IPC.deferredRejectFiles, { id, paths }),
+      approveDraft: (id, body) => ipcRenderer.invoke(IPC.deferredApproveDraft, { id, body }),
+      rejectDraft: (id) => ipcRenderer.invoke(IPC.deferredRejectDraft, id),
+      ask: (id, question) => ipcRenderer.invoke(IPC.deferredAsk, { id, question }),
+      revise: (id, note) => ipcRenderer.invoke(IPC.deferredRevise, { id, note })
+    },
     onOpen: (listener) => subscribe<ScheduleOpenEvent>(IPC.schedulesOpen, listener),
     onNotice: (listener) => subscribe<ScheduleNoticeEvent>(IPC.schedulesNotice, listener),
     test: {

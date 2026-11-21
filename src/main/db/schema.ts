@@ -129,6 +129,31 @@ export const scheduleRuns = sqliteTable(
   (t) => [index('schedule_runs_schedule_idx').on(t.scheduleId, t.createdAt), index('schedule_runs_started_idx').on(t.startedAt)]
 )
 
+/**
+ * Thẻ hoãn duyệt (Lịch hẹn 7b): đề xuất sửa file / nháp của lần chạy theo lịch, người dùng duyệt sau. Lưu DB vì phải
+ * còn sau khi tắt app; hết hạn sau 7 ngày. `payload` = file (bản gốc + hash + bản đề xuất) hoặc nháp.
+ */
+export const deferredApprovals = sqliteTable(
+  'deferred_approvals',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull().default('local'),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references((): AnySQLiteColumn => conversations.id, { onDelete: 'cascade' }),
+    scheduleId: text('schedule_id').references(() => schedules.id, { onDelete: 'set null' }),
+    runId: text('run_id'),
+    kind: text('kind').$type<'changeset' | 'draft'>().notNull(),
+    payload: text('payload', { mode: 'json' }).notNull(),
+    status: text('status').$type<'pending' | 'done' | 'expired' | 'revised'>().notNull().default('pending'),
+    qa: text('qa', { mode: 'json' }).$type<{ question: string; answer: string; status: 'answering' | 'done' | 'error' }[]>().notNull().default([]),
+    createdAt: integer('created_at').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [index('deferred_owner_idx').on(t.owner, t.status), index('deferred_conversation_idx').on(t.conversationId)]
+)
+
 export const conversations = sqliteTable(
   'conversations',
   {

@@ -130,6 +130,15 @@ export class FakeGmailBackend implements GmailBackend {
       }))
   }
 
+  /** Test: dò "đã liên lạc" lỗi. */
+  correspondenceFails = false
+
+  async hasCorrespondence(accountId: string, address: string): Promise<boolean> {
+    if (this.correspondenceFails) throw new Error('gmail_500: lỗi giả')
+    const a = address.toLowerCase()
+    return this.box(accountId).some((m) => m.from.toLowerCase().includes(a) || m.to.toLowerCase().includes(a))
+  }
+
   async read(accountId: string, id: string): Promise<GmailMessage> {
     const m = this.box(accountId).find((x) => x.id === id)
     if (!m) throw new Error('gmail_404: not found')

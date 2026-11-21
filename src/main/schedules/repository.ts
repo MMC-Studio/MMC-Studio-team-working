@@ -9,7 +9,7 @@ import type {
   ScheduleRunTrigger,
   SchedulePauseReason
 } from '@shared/schedules'
-import { SCHEDULE_RUNS_KEEP, SCHEDULE_RUNS_MAX_AGE_MS } from '@shared/schedules'
+import { normalizeGrants, SCHEDULE_RUNS_KEEP, SCHEDULE_RUNS_MAX_AGE_MS } from '@shared/schedules'
 import type { AppDatabase } from '../db/client'
 import { conversations, projects, scheduleRuns, schedules } from '../db/schema'
 
@@ -24,7 +24,7 @@ const toSchedule = (r: ScheduleRow, unseen: number): Schedule => ({
   prompt: r.prompt,
   recurrence: r.recurrence,
   projectId: r.projectId,
-  grants: r.grants,
+  grants: normalizeGrants(r.grants),
   model: r.model,
   catchUp: r.catchUp,
   enabled: r.enabled,
@@ -36,6 +36,7 @@ const toSchedule = (r: ScheduleRow, unseen: number): Schedule => ({
   consecutiveFailures: r.consecutiveFailures,
   origin: r.origin,
   unseen,
+  pending: 0,
   createdAt: r.createdAt,
   updatedAt: r.updatedAt
 })

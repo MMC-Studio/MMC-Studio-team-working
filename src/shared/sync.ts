@@ -25,7 +25,8 @@ export const SYNC_TOPICS = [
   'memory',
   'messages',
   'approvals',
-  'schedules'
+  'schedules',
+  'deferred'
 ] as const
 
 export type SyncTopic = (typeof SYNC_TOPICS)[number]

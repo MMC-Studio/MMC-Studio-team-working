@@ -31,6 +31,14 @@ export const IPC = {
   schedulesPauseAll: 'schedules:pauseAll',
   schedulesPickFolder: 'schedules:pickFolder',
   schedulesRespondProposal: 'schedules:respondProposal',
+  /** Thẻ hoãn duyệt (lịch hẹn 7b). */
+  deferredList: 'deferred:list',
+  deferredApproveFiles: 'deferred:approveFiles',
+  deferredRejectFiles: 'deferred:rejectFiles',
+  deferredApproveDraft: 'deferred:approveDraft',
+  deferredRejectDraft: 'deferred:rejectDraft',
+  deferredAsk: 'deferred:ask',
+  deferredRevise: 'deferred:revise',
   /** main → renderer: bấm thông báo / khay → mở cuộc trò chuyện của một lần chạy (hoặc trang Lịch hẹn). */
   schedulesOpen: 'schedules:open',
   /** main → renderer: báo trong app (cửa sổ đang mở) thay cho thông báo Windows. */

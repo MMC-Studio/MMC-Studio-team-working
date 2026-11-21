@@ -31,6 +31,7 @@ import {
   messages,
   projects,
   schedules,
+  deferredApprovals,
   settings,
   type TitleSource
 } from './schema'
@@ -429,6 +430,7 @@ export class ConversationRepository {
     this.db.update(conversationGroups).set({ owner: to }).where(eq(conversationGroups.owner, from)).run()
     this.db.update(projects).set({ owner: to }).where(eq(projects.owner, from)).run()
     this.db.update(schedules).set({ owner: to }).where(eq(schedules.owner, from)).run()
+    this.db.update(deferredApprovals).set({ owner: to }).where(eq(deferredApprovals.owner, from)).run()
   }
 }
 

@@ -19,6 +19,7 @@ import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
 import { ApprovalCards } from '../approvals/ApprovalCards'
+import { DeferredCards } from '@renderer/features/schedules/components/DeferredCards'
 import { cardsFor, useApprovals } from '../approvals/store'
 
 const EMPTY: never[] = []
@@ -137,6 +138,8 @@ export function ChatPage() {
               messages.map((m) => <MessageItem key={m.id} message={m} />)
             )}
             <ApprovalCards cards={cards} />
+            {/* Đề xuất hoãn duyệt của lần chạy theo lịch (sửa file / nháp) — key: đổi cuộc là dựng lại. */}
+            {activeId && <DeferredCards key={activeId} conversationId={activeId} />}
             <div ref={bottomRef} />
           </div>
         </div>

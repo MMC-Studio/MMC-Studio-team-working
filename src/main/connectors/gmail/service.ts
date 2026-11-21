@@ -16,6 +16,7 @@ import { errorResult, type AppToolRegistry, type ToolResult } from '../../tools/
 import type { DraftApprovals } from '../approvals'
 import { clip, DATA_NOTICE, isMailHidden, senderAddress } from '../filters'
 import { GmailAuthExpired, type GmailBackend, type GmailMessage } from './google'
+import type { DraftPayload, DraftSubmission } from '../../schedules/deferred'
 
 export const GMAIL_TOOLS = ['gmail_search', 'gmail_read', 'gmail_draft'] as const
 /** Giới hạn tần suất tính riêng cho từng tài khoản. */
@@ -42,6 +43,11 @@ export type GmailServiceDeps = {
    * Lấy phần chung với tài khoản đang bật — tắt tài khoản trong Cài đặt thì lịch cũng mất quyền.
    */
   restrictAccounts?: (conversationId: string) => readonly string[] | null
+  /**
+   * Lần chạy theo lịch có quyền soạn nháp: ghi nháp thành thẻ hoãn duyệt và trả lời trợ lý ngay (không dừng chờ).
+   * null = lượt thường (thẻ duyệt như cũ).
+   */
+  deferDraft?: (conversationId: string) => ((d: DraftSubmission) => string) | null
 }
 
 /** id trả cho trợ lý = `<tài khoản>:<id thư>` → đọc / trả lời luôn đúng tài khoản chứa thư. */
@@ -277,13 +283,13 @@ export class GmailService {
   }
 
   /**
-   * Tool + hướng dẫn cho lượt chat; null = không có gì. `readOnlyAccounts` (lịch hẹn): chỉ những tài khoản này, chỉ
-   * tool đọc (không soạn nháp).
+   * Tool + hướng dẫn cho lượt chat; null = không có gì. `scheduled` (lịch hẹn): chỉ những tài khoản lịch được cấp; tool
+   * nháp chỉ khi lịch được soạn nháp (nháp thành thẻ hoãn duyệt).
    */
-  toolsFor(readOnlyAccounts?: readonly string[]): { names: string[]; context: string } | null {
+  toolsFor(scheduled?: { accounts: readonly string[]; drafts: boolean }): { names: string[]; context: string } | null {
     const s = this.deps.getSettings()
     if (!s.enabled) return null
-    const visible = s.accounts.filter((a) => a.enabled && (!readOnlyAccounts || readOnlyAccounts.includes(a.id)))
+    const visible = s.accounts.filter((a) => a.enabled && (!scheduled || scheduled.accounts.includes(a.id)))
     if (visible.length === 0) return null
     if (!visible.some((a) => this.usable(a)))
       return { names: [], context: GMAIL_EXPIRED_CONTEXT }
@@ -291,10 +297,15 @@ export class GmailService {
       (a) =>
         `- ${describe(a)}${this.usable(a) ? '' : ' — HẾT HẠN đăng nhập, không đọc được: nhắc người dùng kết nối lại'}`
     )
-    if (readOnlyAccounts)
+    if (scheduled)
       return {
-        names: GMAIL_TOOLS.filter((n) => n !== 'gmail_draft'),
-        context: [GMAIL_READONLY_CONTEXT, 'Tài khoản được đọc trong lần chạy này (account = tên gọi):', ...lines].join('\n')
+        names: GMAIL_TOOLS.filter((n) => scheduled.drafts || n !== 'gmail_draft'),
+        context: [
+          GMAIL_READONLY_CONTEXT,
+          ...(scheduled.drafts ? ['- mcp__mmc__gmail_draft chỉ ghi ĐỀ XUẤT nháp: người dùng duyệt từng nháp sau; không bao giờ gửi.'] : []),
+          'Tài khoản được đọc trong lần chạy này (account = tên gọi):',
+          ...lines
+        ].join('\n')
       }
     return {
       names: [...GMAIL_TOOLS],
@@ -435,6 +446,25 @@ export class GmailService {
     if (to.length === 0) return errorResult('Thiếu người nhận (to).')
     const subject =
       input.subject ?? (original ? `Re: ${original.subject.replace(/^re:\s*/i, '')}` : '')
+    // Lần chạy theo lịch: không dừng chờ — ghi thẻ hoãn (người nhận to, rõ + cảnh báo người chưa từng liên lạc).
+    const sink = this.deps.deferDraft?.(conversationId)
+    if (sink) {
+      const text = sink({
+        draft: {
+          service: 'gmail',
+          account: { id: a.id, email: a.email, label: a.label },
+          recipients: to,
+          unknownRecipients: await this.unknownRecipients(a.id, to),
+          subject,
+          body: input.body,
+          replyTo: original ? original.subject : null
+        },
+        to,
+        replyToId: messageId ? `${a.id}:${messageId}` : null,
+        chatId: null
+      })
+      return { content: [{ type: 'text', text }] }
+    }
     const verdict = await this.deps.approvals.request(conversationId, {
       service: 'gmail',
       target: to.join(', '),
@@ -461,6 +491,41 @@ export class GmailService {
         }
       ]
     }
+  }
+
+  /**
+   * Người nhận chưa từng liên lạc: chưa có thư đã gửi / đã nhận nào với địa chỉ đó (bản nháp, thùng rác, spam không
+   * tính). Dò lỗi / không chắc → coi như chưa từng (thà cảnh báo thừa).
+   */
+  private async unknownRecipients(accountId: string, to: string[]): Promise<string[]> {
+    const out: string[] = []
+    for (const addr of to) {
+      const seen = await this.deps.backend.hasCorrespondence(accountId, addr).catch((err: unknown) => {
+        this.deps.log.warn(`Gmail: không dò được người nhận đã liên lạc chưa (${err instanceof Error ? err.message : String(err)})`)
+        return false
+      })
+      if (!seen) out.push(addr)
+    }
+    return out
+  }
+
+  /**
+   * Người dùng Đồng ý thẻ nháp hoãn (lịch hẹn): kiểm lại Gmail + tài khoản còn bật, còn đăng nhập, rồi mới tạo nháp.
+   * Lỗi → ném mã (`gmail_unavailable` / `gmail_expired`) — thẻ vẫn chờ.
+   */
+  async createDeferredDraft(p: DraftPayload, body: string): Promise<void> {
+    const a = this.account(p.draft.account?.id ?? '')
+    if (!this.deps.getSettings().enabled || !a?.enabled) throw new Error('gmail_unavailable')
+    if (!this.usable(a)) throw new Error('gmail_expired')
+    const messageId = p.replyToId ? (MESSAGE_REF.exec(p.replyToId)?.[2] ?? null) : null
+    try {
+      const original = messageId ? await this.guard(() => this.deps.backend.read(a.id, messageId)) : undefined
+      await this.guard(() => this.deps.backend.createDraft(a.id, { to: p.to, subject: p.draft.subject ?? '', body, replyTo: original }))
+    } catch (err) {
+      if (err instanceof GmailAuthExpired) throw new Error('gmail_expired')
+      throw err
+    }
+    this.deps.log.info(`Gmail: tạo nháp hoãn duyệt ở tài khoản ${a.id}`)
   }
 
   /** Mọi lần gọi tool: ghi log (không ghi nội dung), xử lý hết hạn đăng nhập. */

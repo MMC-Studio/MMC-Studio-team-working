@@ -30,10 +30,19 @@ export const HOURLY_STEPS = [1, 2, 3, 4, 6, 12] as const
 /**
  * Tool một lần chạy theo lịch được dùng — danh sách CHO PHÉP: tool mới thêm vào app sau này mặc định KHÔNG có ở đây.
  * Không bao giờ: điều khiển máy (screenshot, cửa sổ, cây UI, log app), MCP ngoài, xin quyền thư mục, đề xuất lịch,
- * Edit/Write/Bash, soạn nháp (7b sẽ thêm dạng đề xuất hoãn).
+ * Edit/Write/Bash. Sửa file / soạn nháp chỉ ở dạng ĐỀ XUẤT HOÃN (người dùng duyệt sau, 7b) và chỉ khi lịch được cấp.
  */
 export const SCHEDULE_CLI_TOOLS = ['Read', 'Grep', 'Glob'] as const
-export const SCHEDULE_APP_TOOLS = ['gmail_search', 'gmail_read', 'telegram_chats', 'telegram_read'] as const
+export const SCHEDULE_APP_TOOLS = [
+  'gmail_search',
+  'gmail_read',
+  'telegram_chats',
+  'telegram_read',
+  'propose_file_change',
+  'read_proposed',
+  'gmail_draft',
+  'telegram_draft'
+] as const
 
 export type ScheduleKind = 'once' | 'daily' | 'weekly' | 'hourly'
 
@@ -60,9 +69,22 @@ export type ScheduleGrants = {
   gmailAccounts: string[]
   /** Đọc Telegram (theo danh sách chat được phép của Telegram). */
   telegram: boolean
+  /** Được ĐỀ XUẤT sửa file trong thư mục (hoãn — người dùng duyệt sau từng file). */
+  folderWrite: boolean
+  /** Được ĐỀ XUẤT nháp Gmail / Telegram (hoãn — người dùng duyệt từng nháp). */
+  drafts: boolean
 }
 
-export const NO_GRANTS: ScheduleGrants = { folder: null, gmailAccounts: [], telegram: false }
+/** Quyền đọc từ DB (lịch tạo ở 7a thiếu folderWrite / drafts → false). */
+export const normalizeGrants = (g: Partial<ScheduleGrants> | null | undefined): ScheduleGrants => ({
+  folder: g?.folder ?? null,
+  gmailAccounts: g?.gmailAccounts ?? [],
+  telegram: !!g?.telegram,
+  folderWrite: !!g?.folderWrite && !!g?.folder,
+  drafts: !!g?.drafts
+})
+
+export const NO_GRANTS: ScheduleGrants = { folder: null, gmailAccounts: [], telegram: false, folderWrite: false, drafts: false }
 
 export type ScheduleModel = 'default' | 'cheap'
 
@@ -90,12 +112,15 @@ export type Schedule = {
   origin: 'user' | 'assistant'
   /** Số lần chạy chưa xem. */
   unseen: number
+  /** Số thẻ hoãn duyệt còn chờ (đề xuất sửa file / nháp). */
+  pending: number
   createdAt: number
   updatedAt: number
 }
 
 export type ScheduleRunStatus = 'running' | 'done' | 'error' | 'timeout' | 'aborted' | 'missed' | 'skipped'
-export type ScheduleRunTrigger = 'on_time' | 'catch_up' | 'manual'
+/** `revision` = "Yêu cầu sửa" trên thẻ hoãn duyệt: lượt ngắn trong cùng cuộc, cùng quyền của lịch. */
+export type ScheduleRunTrigger = 'on_time' | 'catch_up' | 'manual' | 'revision'
 
 /**
  * Mã lý do (hiện bằng i18n). Lỗi CLI không biết trước → `error` + chữ gốc trong `detail`.
@@ -183,6 +208,8 @@ export type SchedulesStatus = {
   dailyLimit: number
   /** Tổng số lần chạy chưa xem (tài khoản hiện tại) — số trên mục "Lịch hẹn" ở thanh bên. */
   unseen: number
+  /** Số thẻ hoãn duyệt còn chờ (tài khoản hiện tại). */
+  pending: number
 }
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -212,7 +239,9 @@ export const recurrenceSchema = z.discriminatedUnion('kind', [
 export const scheduleGrantsSchema = z.object({
   folder: z.string().trim().min(1).max(1000).nullable(),
   gmailAccounts: z.array(z.string().min(1).max(100)).max(20).transform((a) => [...new Set(a)]),
-  telegram: z.boolean()
+  telegram: z.boolean(),
+  folderWrite: z.boolean().default(false),
+  drafts: z.boolean().default(false)
 })
 
 export const scheduleInputSchema = z.object({
@@ -239,6 +268,8 @@ export type ScheduleGrantChange =
   | { kind: 'folder'; path: string }
   | { kind: 'gmail'; accountId: string; label: string }
   | { kind: 'telegram' }
+  | { kind: 'folderWrite'; path: string }
+  | { kind: 'drafts' }
 
 export type ScheduleSaveResult =
   | { status: 'saved'; schedule: Schedule }
@@ -257,6 +288,10 @@ export function addedGrants(
   for (const id of next.gmailAccounts)
     if (!prev?.gmailAccounts.includes(id)) out.push({ kind: 'gmail', accountId: id, label: gmailLabel(id) })
   if (next.telegram && !prev?.telegram) out.push({ kind: 'telegram' })
+  // Quyền đề xuất sửa file gắn với thư mục: đổi thư mục cũng phải hỏi lại.
+  if (next.folder && next.folderWrite && (!prev?.folderWrite || prev.folder !== next.folder))
+    out.push({ kind: 'folderWrite', path: next.folder })
+  if (next.drafts && !prev?.drafts) out.push({ kind: 'drafts' })
   return out
 }
 
@@ -293,6 +328,8 @@ export type ScheduleNoticeEvent = {
   conversationId?: string | null
   status?: ScheduleRunStatus
   reason?: ScheduleRunReason | 'failures' | 'hotkey' | 'quota' | null
+  /** Số việc chờ duyệt lần chạy để lại. */
+  pending?: number
 }
 
 export const scheduleRunsQuerySchema = z.object({ scheduleId: z.uuid().nullable(), limit: z.number().int().min(1).max(200).default(50) })

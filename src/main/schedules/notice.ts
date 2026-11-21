@@ -7,7 +7,8 @@ import type { ScheduleNotice } from './scheduler'
 export function scheduleNoticeText(n: ScheduleNotice): string {
   switch (n.kind) {
     case 'finished':
-      if (n.status === 'done') return `Lịch hẹn "${n.name}" đã chạy xong.`
+      if (n.status === 'done')
+        return n.pending ? `Lịch hẹn "${n.name}" đã chạy xong · ${n.pending} việc chờ duyệt.` : `Lịch hẹn "${n.name}" đã chạy xong.`
       if (n.status === 'timeout') return `Lịch hẹn "${n.name}" bị dừng vì chạy quá 10 phút.`
       if (n.status === 'aborted') return `Lịch hẹn "${n.name}" đã dừng.`
       if (n.reason === 'folder_missing') return `Lịch hẹn "${n.name}" lỗi: không tìm thấy thư mục.`
