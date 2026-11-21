@@ -105,7 +105,7 @@ export function ScheduleDetailPage({ id }: { id: string }) {
                 <code className="min-w-0 truncate rounded bg-muted px-1.5 py-0.5 text-xs" title={schedule.grants.folder}>
                   {schedule.grants.folder}
                 </code>
-                <span className="text-xs text-muted-foreground">{t('detail.readOnly')}</span>
+                <span className="text-xs text-muted-foreground">{schedule.grants.folderWrite ? t('detail.proposeEdits') : t('detail.readOnly')}</span>
               </p>
             )}
             {schedule.grants.gmailAccounts.map((a) => (
@@ -114,6 +114,12 @@ export function ScheduleDetailPage({ id }: { id: string }) {
                 {t('detail.gmail', { label: accountLabel(a) })}
               </p>
             ))}
+            {schedule.grants.drafts && (
+              <p className="flex items-center gap-2" data-testid="schedule-grant-drafts">
+                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                {t('detail.drafts')}
+              </p>
+            )}
             {schedule.grants.telegram && (
               <p className="flex items-center gap-2">
                 <MessageCircle className="size-4 shrink-0 text-muted-foreground" />

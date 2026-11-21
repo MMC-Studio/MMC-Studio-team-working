@@ -75,9 +75,11 @@ describe('Scheduler', () => {
       setLastOwner: (o) => {
         lastOwner = o
       },
-      startRun: (s, o) => {
+      startRun: (s, o, revision) => {
         if (startFails) throw startFails
-        const conv = convs.createForSchedule({ owner: o, scheduleId: s.id, title: s.name, projectId: s.projectId, cwd: s.grants.folder })
+        const conv = revision
+          ? { id: revision.conversationId }
+          : convs.createForSchedule({ owner: o, scheduleId: s.id, title: s.name, projectId: s.projectId, cwd: s.grants.folder })
         let resolve!: (o: RunOutcome) => void
         const d: Deferred = { resolve: (x) => resolve(x), aborted: false }
         const done = new Promise<RunOutcome>((r) => (resolve = r))
@@ -403,6 +405,22 @@ describe('Scheduler', () => {
     expect(repo.runs(a.id, 1)[0].status).toBe('aborted')
   })
 
+  it('"Yêu cầu sửa" trên thẻ hoãn: lượt mới CÙNG cuộc, chạy cả khi lịch đang tắt, tính vào giới hạn mỗi ngày', async () => {
+    const s = create()
+    ready()
+    scheduler.runNow(s.id)
+    const conversationId = scheduler.status().running!.conversationId
+    await finishRun()
+    service.setEnabled(s.id, false)
+    expect(scheduler.runRevision(s.id, { conversationId, note: 'Đổi tên', summary: '' })).toBe('queued')
+    expect(scheduler.status().running?.conversationId).toBe(conversationId)
+    await finishRun()
+    expect(repo.runs(s.id, 1)[0]).toMatchObject({ trigger: 'revision', status: 'done', conversationId })
+    expect(scheduler.status().today).toBe(2)
+    settings = { ...settings, enabled: false }
+    expect(scheduler.runRevision(s.id, { conversationId, note: 'x', summary: '' })).toBe('disabled')
+  })
+
   it('nextOccurrence lúc tạo lịch', () => {
     const s = create()
     expect(s.nextRunAt).toBe(nextOccurrence({ kind: 'daily', time: '08:00' }, clock))
@@ -436,7 +454,7 @@ describe('ScheduleService — quyền và giới hạn', () => {
 
   it('tạo lịch có quyền → phải xác nhận trước; không quyền → lưu thẳng', () => {
     expect(service.save({ input: input(), confirmed: false }).status).toBe('saved')
-    const r = service.save({ input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: true } }), confirmed: false })
+    const r = service.save({ input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: true, folderWrite: false, drafts: false } }), confirmed: false })
     expect(r).toEqual({
       status: 'confirm',
       added: [{ kind: 'folder', path: 'C:\\a' }, { kind: 'gmail', accountId: 'acc1', label: 'Trường' }, { kind: 'telegram' }]
@@ -445,13 +463,13 @@ describe('ScheduleService — quyền và giới hạn', () => {
   })
 
   it('sửa lịch: THÊM quyền phải xác nhận lại, BỚT quyền lưu thẳng', () => {
-    const created = service.save({ input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: false } }), confirmed: true })
+    const created = service.save({ input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: false, folderWrite: false, drafts: false } }), confirmed: true })
     if (created.status !== 'saved') throw new Error()
     const id = created.schedule.id
-    const more = service.save({ id, input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1', 'acc2'], telegram: true } }), confirmed: false })
+    const more = service.save({ id, input: input({ grants: { folder: 'C:\\a', gmailAccounts: ['acc1', 'acc2'], telegram: true, folderWrite: false, drafts: false } }), confirmed: false })
     expect(more).toEqual({ status: 'confirm', added: [{ kind: 'gmail', accountId: 'acc2', label: 'Cá nhân' }, { kind: 'telegram' }] })
     expect(repo.get(id)?.grants.gmailAccounts).toEqual(['acc1'])
-    const other = service.save({ id, input: input({ grants: { folder: 'C:\\b', gmailAccounts: ['acc1'], telegram: false } }), confirmed: false })
+    const other = service.save({ id, input: input({ grants: { folder: 'C:\\b', gmailAccounts: ['acc1'], telegram: false, folderWrite: false, drafts: false } }), confirmed: false })
     expect(other).toMatchObject({ status: 'confirm', added: [{ kind: 'folder', path: 'C:\\b' }] })
     const less = service.save({ id, input: input(), confirmed: false })
     expect(less.status).toBe('saved')

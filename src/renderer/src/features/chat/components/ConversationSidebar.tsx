@@ -81,7 +81,7 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
 
   const projects = useProjects((s) => s.projects)
   // Lịch hẹn: số lần chạy chưa xem (chỉ khi tính năng bật).
-  const scheduleUnseen = useSchedules((s) => (s.status?.settings.enabled ? s.status.unseen : 0))
+  const scheduleUnseen = useSchedules((s) => (s.status?.settings.enabled ? s.status.unseen + s.status.pending : 0))
   const pinnedProj = useMemo(() => pinnedProjects(projects), [projects])
   // Dự án ghim nằm đầu mục "Đã ghim" — mục này hiện cả khi chưa ghim cuộc trò chuyện nào.
   const sections = useMemo(() => {

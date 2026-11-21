@@ -188,6 +188,11 @@ function ScheduleRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{s.name}</span>
+          {s.pending > 0 && (
+            <span className="rounded-full bg-orange-500/15 px-1.5 text-[11px] font-medium text-orange-700 dark:text-orange-300" data-testid="schedule-pending">
+              {t('pendingCount', { count: s.pending })}
+            </span>
+          )}
           {s.unseen > 0 && (
             <span className="rounded-full bg-primary px-1.5 text-[11px] font-medium text-primary-foreground" data-testid="schedule-unseen">
               {s.unseen}

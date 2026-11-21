@@ -32,7 +32,8 @@ import {
   toMessage,
   type RawMessage
 } from '../gmail/google'
-import { GmailService, normalizeLabel } from '../gmail/service'
+import type { DraftSubmission } from '../../schedules/deferred'
+import { GmailService, normalizeLabel, type GmailServiceDeps } from '../gmail/service'
 
 const log = { info: vi.fn(), warn: vi.fn() }
 const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64url')
@@ -311,7 +312,11 @@ function approvalsWithLog() {
   return { approvals, events, lastRequest }
 }
 
-function gmailService(initial?: GmailSettings, restrictAccounts?: (conversationId: string) => readonly string[] | null) {
+function gmailService(
+  initial?: GmailSettings,
+  restrictAccounts?: (conversationId: string) => readonly string[] | null,
+  deferDraft?: GmailServiceDeps['deferDraft']
+) {
   let settings: GmailSettings = initial ?? {
     ...DEFAULT_GMAIL_SETTINGS,
     enabled: true,
@@ -332,7 +337,8 @@ function gmailService(initial?: GmailSettings, restrictAccounts?: (conversationI
     log,
     now: () => 1_000_000,
     newId: () => `acc${++n}`,
-    restrictAccounts
+    restrictAccounts,
+    deferDraft
   })
   const registry = new AppToolRegistry()
   service.registerTools(registry)
@@ -361,12 +367,30 @@ function gmailService(initial?: GmailSettings, restrictAccounts?: (conversationI
   }
 }
 
+describe('GmailService — nháp hoãn duyệt (lịch hẹn 7b)', () => {
+  it('lần chạy có quyền soạn nháp: KHÔNG dừng chờ thẻ duyệt, ghi đề xuất kèm người nhận lạ; Đồng ý sau → tạo nháp', async () => {
+    const sent: DraftSubmission[] = []
+    const g = gmailService(undefined, undefined, (id) => (id === 'c1' ? (d) => (sent.push(d), 'ĐÃ GHI') : null))
+    await g.service.connect()
+    const r = await g.call('gmail_draft', { to: ['lan@example.com', 'la@ngoai.example'], subject: 'Chào', body: 'Nội dung', account: 'ban' })
+    expect(r.content[0]).toMatchObject({ text: 'ĐÃ GHI' })
+    expect(g.events).toHaveLength(0)
+    expect(sent[0].draft).toMatchObject({ recipients: ['lan@example.com', 'la@ngoai.example'], unknownRecipients: ['la@ngoai.example'] })
+    expect(g.backend.drafts).toHaveLength(0)
+    await g.service.createDeferredDraft({ kind: 'draft', ...sent[0], draft: { ...sent[0].draft, error: null } }, 'Nội dung sửa')
+    expect(g.backend.drafts[0]).toMatchObject({ to: ['lan@example.com', 'la@ngoai.example'], body: 'Nội dung sửa' })
+    // Tắt Gmail → Đồng ý báo lỗi (thẻ vẫn chờ ở DeferredService).
+    g.service.setEnabled(false)
+    await expect(g.service.createDeferredDraft({ kind: 'draft', ...sent[0], draft: { ...sent[0].draft, error: null } }, 'x')).rejects.toThrow('gmail_unavailable')
+  })
+})
+
 describe('GmailService — lần chạy theo lịch hẹn', () => {
   it('chỉ tài khoản lịch được cấp, chỉ tool đọc; cuộc khác không bị ảnh hưởng', async () => {
     const only = new Map<string, readonly string[]>([['c1', ['acc2']]])
     const g = gmailService(undefined, (id) => only.get(id) ?? null)
     await g.addThree()
-    const tools = g.service.toolsFor(['acc2'])!
+    const tools = g.service.toolsFor({ accounts: ['acc2'], drafts: false })!
     expect(tools.names).toEqual(['gmail_search', 'gmail_read'])
     expect(tools.context).toContain('"Trường"')
     expect(tools.context).not.toContain('"Cá nhân"')

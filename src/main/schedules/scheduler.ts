@@ -19,9 +19,21 @@ export type RunOutcome = { status: 'done' | 'error' | 'aborted'; error: string |
 
 export type RunHandle = { conversationId: string; done: Promise<RunOutcome>; abort(): void }
 
+/** "Yêu cầu sửa" trên thẻ hoãn duyệt: lượt ngắn trong CÙNG cuộc, cùng tool + quyền của lịch. */
+export type Revision = { conversationId: string; note: string; summary: string }
+
 /** Báo người dùng (thông báo Windows hoặc trong app — index.ts quyết định). Không bao giờ chứa nội dung trả lời. */
 export type ScheduleNotice =
-  | { kind: 'finished'; scheduleId: string; name: string; status: ScheduleRunStatus; reason: ScheduleRunReason | null; conversationId: string | null }
+  | {
+      kind: 'finished'
+      scheduleId: string
+      name: string
+      status: ScheduleRunStatus
+      reason: ScheduleRunReason | null
+      conversationId: string | null
+      /** Số việc chờ duyệt (thẻ hoãn) lần chạy này để lại. */
+      pending?: number
+    }
   | { kind: 'paused'; scheduleId: string; name: string; reason: 'failures' }
   | { kind: 'pausedAll'; reason: 'hotkey' | 'quota' }
   | { kind: 'dailyLimit' }
@@ -37,13 +49,16 @@ export type SchedulerDeps = {
   getLastOwner(): string | null
   setLastOwner(owner: string): void
   /** Tạo cuộc trò chuyện + bắt đầu lượt chat CHỈ ĐỌC theo quyền của lịch. Lỗi ném ra = lần chạy lỗi. */
-  startRun(schedule: Schedule, owner: string): RunHandle
+  startRun(schedule: Schedule, owner: string, revision?: Revision, runId?: string): RunHandle
   folderExists(path: string): boolean
   killSwitch: { arm(holder: string): boolean; disarm(holder: string): void }
   notify(notice: ScheduleNotice): void
   /** Báo sync `schedules` (+ `conversations` khi có cuộc mới). */
   changed(conversations?: boolean): void
   log: { info(msg: string): void; warn(msg: string): void }
+  /** Thẻ hoãn duyệt còn chờ: của tài khoản / của một lần chạy (7b). */
+  pendingCount?(owner: string): number
+  pendingForRun?(runId: string): number
 }
 
 type Pending = {
@@ -53,6 +68,7 @@ type Pending = {
   scheduledFor: number
   missed: number
   queuedAt: number
+  revision?: Revision
 }
 
 type Running = {
@@ -198,7 +214,7 @@ export class Scheduler {
       const p = this.pending.shift()!
       const s = this.deps.repo.get(p.scheduleId, p.owner)
       // Lịch đã bị xoá / tắt trong lúc chờ (Chạy ngay thì vẫn chạy dù lịch đang tắt).
-      if (!s || (!s.enabled && p.trigger !== 'manual')) continue
+      if (!s || (!s.enabled && p.trigger !== 'manual' && p.trigger !== 'revision')) continue
       const base = { scheduleId: s.id, scheduledFor: p.scheduledFor, trigger: p.trigger, missed: p.missed }
       if (now - p.queuedAt > SCHEDULE_QUEUE_MAX_MS) {
         this.record(s, { ...base, status: 'skipped', reason: 'queue_timeout' })
@@ -253,7 +269,7 @@ export class Scheduler {
     const armed = this.deps.killSwitch.arm(RUN_HOLDER)
     let handle: RunHandle
     try {
-      handle = this.deps.startRun(s, p.owner)
+      handle = this.deps.startRun(s, p.owner, p.revision, run.id)
     } catch (err) {
       if (armed) this.deps.killSwitch.disarm(RUN_HOLDER)
       const message = err instanceof Error ? err.message : String(err)
@@ -317,7 +333,15 @@ export class Scheduler {
     } else if (status === 'error' || status === 'timeout') this.afterFailure(s, status, reason, r.conversationId)
     else this.deps.repo.patch(s.id, { consecutiveFailures: 0 })
     const fresh = this.deps.repo.get(s.id, r.owner)
-    this.deps.notify({ kind: 'finished', scheduleId: s.id, name: s.name, status, reason, conversationId: r.conversationId })
+    this.deps.notify({
+      kind: 'finished',
+      scheduleId: s.id,
+      name: s.name,
+      status,
+      reason,
+      conversationId: r.conversationId,
+      pending: this.deps.pendingForRun?.(r.runId) ?? 0
+    })
     if (fresh && fresh.consecutiveFailures >= SCHEDULE_FAILURES_PAUSE && fresh.pausedReason === 'failures')
       this.deps.notify({ kind: 'paused', scheduleId: s.id, name: s.name, reason: 'failures' })
     this.deps.changed(true)
@@ -358,6 +382,22 @@ export class Scheduler {
     if (!this.running) this.startNext(now)
     this.deps.changed()
     return true
+  }
+
+  /**
+   * "Yêu cầu sửa" trên thẻ hoãn duyệt: xếp hàng một lượt trong CÙNG cuộc trò chuyện (cùng tool + quyền của lịch, tính vào
+   * giới hạn số lần chạy mỗi ngày như mọi lần chạy).
+   */
+  runRevision(scheduleId: string, revision: Revision): 'queued' | 'disabled' | 'not_found' {
+    const owner = this.owner
+    if (!owner || !this.deps.getSettings().enabled) return 'disabled'
+    const s = this.deps.repo.get(scheduleId, owner)
+    if (!s) return 'not_found'
+    const now = this.deps.now()
+    this.pending.push({ scheduleId: s.id, owner, trigger: 'revision', scheduledFor: now, missed: 0, queuedAt: now, revision })
+    if (!this.running) this.startNext(now)
+    this.deps.changed()
+    return 'queued'
   }
 
   /** Nút "Dừng" (trang Lịch hẹn, khay, đầu cuộc trò chuyện). */
@@ -421,7 +461,8 @@ export class Scheduler {
       running: r && r.owner === this.owner ? { runId: r.runId, scheduleId: r.scheduleId, conversationId: r.conversationId, startedAt: r.startedAt } : null,
       today: this.deps.repo.startedSince(startOfDay(now)),
       dailyLimit: SCHEDULE_DAILY_RUNS,
-      unseen: this.owner ? this.deps.repo.unseen(this.owner) : 0
+      unseen: this.owner ? this.deps.repo.unseen(this.owner) : 0,
+      pending: this.owner ? (this.deps.pendingCount?.(this.owner) ?? 0) : 0
     }
   }
 

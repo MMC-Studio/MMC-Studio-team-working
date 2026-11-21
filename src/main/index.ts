@@ -142,6 +142,7 @@ import { startScheduledRun } from './schedules/runner'
 import { Scheduler, type ScheduleNotice } from './schedules/scheduler'
 import { ScheduleService } from './schedules/service'
 import { scheduleNoticeText } from './schedules/notice'
+import { DeferredService, deferredExplainPrompt } from './schedules/deferred'
 import { AppTray, closeAction, trayIconBitmap } from './tray'
 import {
   DEFAULT_EXPRESSIVE_SETTINGS,
@@ -495,7 +496,9 @@ async function bootstrap(): Promise<void> {
     limiter: connectorLimiter,
     emit: (status) => mainWindow?.webContents.send(IPC.gmailStatusEvent, status),
     log,
-    restrictAccounts: (conversationId) => gmailRestrict.get(conversationId) ?? null
+    restrictAccounts: (conversationId) => gmailRestrict.get(conversationId) ?? null,
+    // Lần chạy theo lịch có quyền soạn nháp → thẻ hoãn duyệt (deferred được tạo ở phần Lịch hẹn bên dưới).
+    deferDraft: (conversationId) => deferred.draftSink(conversationId)
   })
   gmail.registerTools(tools)
   const telegramApiHash = new SecretStore(secretsDir, safeStorage, 'telegram-api-hash.bin')
@@ -519,7 +522,8 @@ async function bootstrap(): Promise<void> {
     approvals: draftApprovals,
     limiter: connectorLimiter,
     emit: (status) => mainWindow?.webContents.send(IPC.telegramStatusEvent, status),
-    log
+    log,
+    deferDraft: (conversationId) => deferred.draftSink(conversationId)
   })
   telegram.registerTools(tools)
   app.on('before-quit', () => void telegramBackend.cancelLogin())
@@ -850,26 +854,37 @@ async function bootstrap(): Promise<void> {
     setSettings: setSchedulesSettings,
     getLastOwner: () => settings.get('schedulesLastOwner', z.string().nullable(), null),
     setLastOwner: (owner) => void settings.set('schedulesLastOwner', owner),
-    startRun: (schedule, owner) =>
-      startScheduledRun(schedule, owner, {
-        createConversation: (input) => conversations.createForSchedule(input),
-        runChat: (conversationId, turn) => chat.runScheduled(conversationId, turn),
-        abortChat: (requestId) => chat.abort(requestId),
-        gmailTools: (ids) => gmail.toolsFor(ids),
-        telegramTools: () => telegram.toolsFor(true),
-        restrictTools: (conversationId, names) => tools.restrict(conversationId, names),
-        restrictGmail: (conversationId, ids) => {
-          if (ids) gmailRestrict.set(conversationId, ids)
-          else gmailRestrict.delete(conversationId)
+    startRun: (schedule, owner, revision, runId) =>
+      startScheduledRun(
+        schedule,
+        owner,
+        {
+          createConversation: (input) => conversations.createForSchedule(input),
+          runChat: (conversationId, turn) => chat.runScheduled(conversationId, turn),
+          abortChat: (requestId) => chat.abort(requestId),
+          gmailTools: (ids, drafts) => gmail.toolsFor({ accounts: ids, drafts }),
+          telegramTools: (drafts) => telegram.toolsFor({ drafts }),
+          restrictTools: (conversationId, names) => tools.restrict(conversationId, names),
+          restrictGmail: (conversationId, ids) => {
+            if (ids) gmailRestrict.set(conversationId, ids)
+            else gmailRestrict.delete(conversationId)
+          },
+          beginDeferred: (conversationId, ctx) => deferred.begin(conversationId, ctx),
+          endDeferred: (conversationId) => deferred.end(conversationId),
+          now
         },
-        now
-      }),
+        revision,
+        runId
+      ),
+    pendingCount: (owner) => deferred.pendingCount(owner),
+    pendingForRun: (runId) => deferred.pendingForRun(runId),
     folderExists: isDirectory,
     killSwitch,
     notify: showScheduleNotice,
     changed: (withConversations) => {
       sync.changed('schedules')
-      if (withConversations) sync.changed('conversations')
+      // Lần chạy bắt đầu / xong: cuộc mới, hoặc tin mới trong cuộc đang mở (lượt Yêu cầu sửa) → khung chat tải lại.
+      if (withConversations) sync.changed('conversations', 'messages')
       syncTray()
     },
     log
@@ -881,6 +896,38 @@ async function bootstrap(): Promise<void> {
     isDirectory,
     gmailAccounts: () => getGmailSettings().accounts.map((a) => ({ id: a.id, label: a.label }))
   })
+  // Thẻ hoãn duyệt (7b): đề xuất sửa file / nháp của lần chạy theo lịch — người dùng duyệt sau, lưu DB, hết hạn 7 ngày.
+  const deferred = new DeferredService({
+    db,
+    getOwner,
+    now,
+    scheduleGrants: (id) => scheduleRepo.get(id)?.grants ?? null,
+    createDraft: (payload, body) =>
+      payload.draft.service === 'gmail' ? gmail.createDeferredDraft(payload, body) : telegram.createDeferredDraft(payload, body),
+    answer: async (card, question, signal) => {
+      const result = await completeText(
+        getProvider(),
+        {
+          prompt: deferredExplainPrompt(card, question),
+          systemPrompt: explainSystemPrompt(accountScope.getAssistant().name),
+          mode: 'free',
+          cwd: workspaceDir,
+          ephemeral: true
+        },
+        signal
+      )
+      return 'error' in result ? result : { text: result.text }
+    },
+    revise: (input) =>
+      scheduler.runRevision(input.scheduleId, { conversationId: input.conversationId, note: input.note, summary: input.summary }),
+    changed: () => {
+      sync.changed('deferred')
+      sync.changed('schedules')
+    },
+    log
+  })
+  deferred.registerTools(tools)
+  app.on('before-quit', () => deferred.cancelAll())
   // Ctrl+Alt+Q / nút dừng khẩn cấp: CHỈ khi đang có lần chạy → dừng + tạm dừng mọi lịch.
   killSwitch.onStop(() => scheduler.emergencyStop())
   const tray = new AppTray({
@@ -1130,6 +1177,7 @@ async function bootstrap(): Promise<void> {
     service: scheduleService,
     scheduler,
     proposals: scheduleProposals,
+    deferred,
     getSettings: getSchedulesSettings,
     setSettings: setSchedulesSettings,
     trayChanged: syncTray,

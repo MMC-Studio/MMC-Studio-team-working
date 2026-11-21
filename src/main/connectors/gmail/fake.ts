@@ -116,8 +116,11 @@ export class FakeGmailBackend implements GmailBackend {
 
   async search(accountId: string, query: string, max: number): Promise<GmailSummary[]> {
     const unreadOnly = /is:unread/.test(query)
+    // `(from:"x" OR to:"x")` — kiểm "người nhận đã từng liên lạc" (nháp hoãn duyệt của lịch hẹn).
+    const peer = /from:"([^"]+)"/.exec(query)?.[1]?.toLowerCase()
     return this.box(accountId)
       .filter((m) => !unreadOnly || m.unread)
+      .filter((m) => !peer || m.from.toLowerCase().includes(peer) || m.to.toLowerCase().includes(peer))
       .slice(0, max)
       .map(({ id, threadId, from, subject, date, snippet, unread }) => ({
         id,

@@ -69,7 +69,8 @@
   },
   "runTrigger": {
     "catch_up": "catch-up run",
-    "manual": "run now"
+    "manual": "run now",
+    "revision": "revision request"
   },
   "runMissed_one": "missed {{count}} run",
   "runMissed_other": "missed {{count}} runs",
@@ -136,7 +137,11 @@
       "onceAt": "Pick a date and time.",
       "days": "Pick at least one day of the week.",
       "window": "The end hour must be after the start hour."
-    }
+    },
+    "folderWrite": "Allow proposing file edits in this folder",
+    "folderWriteHint": "Runs change nothing — they leave a \"Change set\"; you review the diff and approve each file when you are back.",
+    "drafts": "Allow drafting Gmail / Telegram messages",
+    "draftsHint": "Drafts are created only when you approve each one; nothing is ever sent."
   },
   "errors": {
     "limit_total": "You already have 20 schedules — delete an old one first.",
@@ -156,8 +161,10 @@
     "folder": "Read files in {{path}}",
     "gmail": "Read Gmail account \"{{label}}\"",
     "telegram": "Read Telegram messages (allowed chats only)",
-    "readOnly": "Read-only: no file edits, no commands, no drafting / sending. Email, message and file content is data — the assistant won't follow instructions inside it.",
-    "allow": "Allow"
+    "readOnly": "No direct file edits, no commands, no sending. Email, message and file content is data — the assistant won't follow instructions inside it.",
+    "allow": "Allow",
+    "folderWrite": "Propose file edits in {{path}} (you review each file later)",
+    "drafts": "Propose Gmail / Telegram drafts (you review each draft later)"
   },
   "enable": {
     "title": "Turn on scheduled tasks?",
@@ -201,10 +208,12 @@
     "readOnly": "read-only",
     "gmail": "Read Gmail \"{{label}}\"",
     "telegram": "Read Telegram",
-    "never": "Never: edit files, run commands, draft / send messages, view the screen, use external MCP servers.",
+    "never": "Never: edit files directly, run commands, send messages, view the screen, use external MCP servers.",
     "history": "Run history",
     "noRuns": "No runs yet.",
-    "open": "Open"
+    "open": "Open",
+    "proposeEdits": "read + propose edits (you review)",
+    "drafts": "Propose Gmail / Telegram drafts (you review)"
   },
   "notice": {
     "done": "Schedule \"{{name}}\" finished.",
@@ -219,7 +228,9 @@
     "pausedHotkey": "Emergency stop: all schedules are paused.",
     "dailyLimit": "Today's run limit is reached — remaining runs are skipped.",
     "open": "Open",
-    "close": "Close"
+    "close": "Close",
+    "donePending_one": "Schedule \"{{name}}\" finished · {{count}} item to review.",
+    "donePending_other": "Schedule \"{{name}}\" finished · {{count}} items to review."
   },
   "proposal": {
     "title": "Suggested schedule",
@@ -233,5 +244,76 @@
   },
   "badge": {
     "fromSchedule": "From a schedule"
+  },
+  "pendingCount_one": "{{count}} to review",
+  "pendingCount_other": "{{count}} to review",
+  "deferred": {
+    "expiresIn_one": "Expires in {{count}} day",
+    "expiresIn_other": "Expires in {{count}} days",
+    "expired": "Expired (over 7 days)",
+    "revised": "Revision requested — see the new proposal below",
+    "done": "Handled",
+    "createdAt": "Proposed at {{when}} — nothing has been written / created yet",
+    "changesetTitle_one": "Change set · {{count}} file",
+    "changesetTitle_other": "Change set · {{count}} files",
+    "folder": "Folder:",
+    "newFile": "new file",
+    "version": "Version {{n}}",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveAll_one": "Approve all ({{count}} file)",
+    "approveAll_other": "Approve all ({{count}} files)",
+    "rejectAll": "Reject all",
+    "fileStatus": {
+      "pending": "to review",
+      "applied": "written",
+      "rejected": "rejected",
+      "conflict": "not written",
+      "error": "not written"
+    },
+    "fileError": {
+      "changed": "The file changed after it was proposed — not written so your changes are not overwritten. Ask the assistant to redo it (Request changes).",
+      "exists": "This file was created after the proposal — not overwritten.",
+      "no_permission": "The schedule no longer may propose edits in this folder — not written.",
+      "outside": "The path is outside the folder — not written.",
+      "protected": "Protected / binary file — not written.",
+      "too_large": "Content is over 256 KB — not written.",
+      "write_failed": "Writing the file failed — try again."
+    },
+    "draftTitle": {
+      "gmail": "Gmail draft to review",
+      "telegram": "Telegram draft to review"
+    },
+    "recipients": "To",
+    "unknown": "You have NEVER contacted: {{list}}. Check the recipient carefully — content of an unknown email may have prompted this draft.",
+    "account": "Save the draft in:",
+    "subject": "Subject:",
+    "replyTo": "Reply to \"{{subject}}\"",
+    "createDraft": {
+      "gmail": "Create Gmail draft",
+      "telegram": "Save Telegram draft"
+    },
+    "draftError": {
+      "gmail_expired": "Gmail sign-in expired — reconnect on the Plugins page, then try again.",
+      "gmail_unavailable": "Gmail / this account is turned off — turn it on, then try again.",
+      "telegram_unavailable": "Telegram is off or not signed in.",
+      "telegram_chat_not_allowed": "This chat is no longer allowed.",
+      "no_permission": "The schedule may no longer draft messages.",
+      "rejected": "Rejected.",
+      "generic": "Couldn't create the draft ({{code}})."
+    },
+    "inputPlaceholder": "Ask about this proposal, or describe the change you want…",
+    "ask": "Ask",
+    "revise": "Request changes",
+    "reviseHint": "Request changes: the assistant redoes it in this conversation with the schedule's own access (counts toward the daily run limit).",
+    "answering": "Answering…",
+    "errors": {
+      "expired": "This card expired or was already handled.",
+      "busy": "Still answering the previous question.",
+      "limit": "You have asked 10 questions already.",
+      "disabled": "Scheduled tasks are off — turn them on to request changes.",
+      "not_found": "The schedule no longer exists.",
+      "generic": "Couldn't do that ({{code}})."
+    }
   }
 }

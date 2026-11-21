@@ -12,6 +12,7 @@ import type {
   ScheduleSaveResult,
   SchedulesStatus
 } from './schedules'
+import type { DeferredActionResult, DeferredCard } from './deferred'
 import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
@@ -321,6 +322,18 @@ export interface TeamWorkingApi {
     /** Hộp chọn thư mục (main) — null = huỷ. */
     pickFolder(): Promise<string | null>
     respondProposal(decision: ScheduleProposalDecision): Promise<boolean>
+    /** Thẻ hoãn duyệt (lần chạy theo lịch): của một cuộc, hoặc mọi thẻ còn chờ (null). */
+    deferred: {
+      list(conversationId: string | null): Promise<DeferredCard[]>
+      /** Bỏ trống paths = mọi file đang chờ ("Đồng ý tất cả" — chỉ cho file). */
+      approveFiles(id: string, paths?: string[]): Promise<DeferredActionResult>
+      rejectFiles(id: string, paths?: string[]): Promise<DeferredActionResult>
+      /** Nháp: duyệt TỪNG cái, sửa được nội dung trước khi tạo. */
+      approveDraft(id: string, body?: string): Promise<DeferredActionResult>
+      rejectDraft(id: string): Promise<DeferredActionResult>
+      ask(id: string, question: string): Promise<DeferredActionResult>
+      revise(id: string, note: string): Promise<DeferredActionResult>
+    }
     onOpen(listener: (e: ScheduleOpenEvent) => void): () => void
     onNotice(listener: (e: ScheduleNoticeEvent) => void): () => void
     /** Chỉ e2e (MMC_FAKE_CLOCK): tua đồng hồ, giả máy thức dậy, nhấn phím dừng. */

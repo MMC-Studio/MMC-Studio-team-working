@@ -187,7 +187,22 @@ export class FakeChatProvider implements AIProvider {
         yield { type: 'error', message: fail[1].replace(/_/g, ' ') }
         return
       }
-      const reply = `Mizuki (giả lập) chạy lịch "${scheduled[1]}": ${userPrompt.split('\n')[0].slice(0, 80)} [cli tools: ${req.tools?.join(',') || '-'} | app tools: ${
+      // FAKE_PROPOSE:<đường dẫn>=<nội dung> (dấu _ = cách, \n = xuống dòng) — đề xuất sửa file (hoãn duyệt, 7b);
+      // FAKE_GMAIL_DRAFT:<email> — đề xuất nháp Gmail. Gọi tool qua registry như CLI thật (lớp chặn tool vẫn áp dụng).
+      const results: string[] = []
+      const conversationId = req.appTools?.conversationId
+      if (this.callTool && conversationId) {
+        for (const m of userPrompt.matchAll(/FAKE_PROPOSE:([^=\s]+)=(\S*)/g)) {
+          const r = await this.callTool('propose_file_change', { path: m[1], content: m[2].replace(/_/g, ' ').replace(/\\n/g, '\n') }, conversationId)
+          results.push(`${r.isError ? 'LỖI' : 'OK'} đề xuất ${m[1]}`)
+        }
+        for (const m of userPrompt.matchAll(/FAKE_GMAIL_DRAFT:(\S+)/g)) {
+          const r = await this.callTool('gmail_draft', { to: [m[1]], subject: 'Báo cáo tuần', body: 'Nội dung nháp từ lịch hẹn' }, conversationId)
+          results.push(`${r.isError ? 'LỖI' : 'OK'} nháp ${m[1]}: ${r.content.map((c) => (c.type === 'text' ? c.text : '')).join('')}`)
+        }
+      }
+      const done = results.length ? ` [${results.join(' | ')}]` : ''
+      const reply = `Mizuki (giả lập) chạy lịch "${scheduled[1]}": ${userPrompt.split('\n')[0].slice(0, 80)}${done} [cli tools: ${req.tools?.join(',') || '-'} | app tools: ${
         req.appTools?.names.join(',') || '-'
       } | model: ${req.model ?? 'mặc định'} | max-turns: ${req.maxTurns ?? '-'} | mcp ngoài: ${req.externalMcp ? 'có' : 'không'} | duyệt: ${
         req.approval ? 'có' : 'không'

@@ -34,6 +34,7 @@ const schedule = (patch: Partial<Schedule> = {}): Schedule => ({
   consecutiveFailures: 0,
   origin: 'user',
   unseen: 0,
+  pending: 0,
   createdAt: 0,
   updatedAt: 0,
   ...patch
@@ -72,9 +73,11 @@ describe('startScheduledRun', () => {
     abortChat: vi.fn(),
     gmailTools: (ids) => ({ names: ['gmail_search', 'gmail_read'], context: `GMAIL ${ids.join(',')}` }),
     // Giả sử một tool lạ lọt vào bộ của Telegram → vẫn bị danh sách cho phép loại bỏ.
-    telegramTools: () => ({ names: ['telegram_chats', 'telegram_read', 'telegram_draft'], context: 'TG' }),
+    telegramTools: (drafts) => ({ names: ['telegram_chats', 'telegram_read', ...(drafts ? ['telegram_draft'] : []), 'screenshot'], context: 'TG' }),
     restrictTools: (id, names) => void restricted.set(id, names),
     restrictGmail: (id, ids) => void gmailOnly.set(id, ids),
+    beginDeferred: vi.fn(),
+    endDeferred: vi.fn(),
     now: () => new Date(2026, 10, 21, 8, 0).getTime()
   })
   beforeEach(() => {
@@ -84,11 +87,12 @@ describe('startScheduledRun', () => {
   })
 
   it('chỉ tool trong danh sách cho phép; Gmail chỉ tài khoản được cấp; gỡ giới hạn khi xong', async () => {
-    const h = startScheduledRun(schedule({ grants: { folder: 'C:\\da', gmailAccounts: ['acc1'], telegram: true }, model: 'cheap' }), 'u1', deps())
+    const h = startScheduledRun(schedule({ grants: { folder: 'C:\\da', gmailAccounts: ['acc1'], telegram: true, folderWrite: false, drafts: false }, model: 'cheap' }), 'u1', deps())
     expect(restricted.get('conv1')).toEqual(['gmail_search', 'gmail_read', 'telegram_chats', 'telegram_read'])
     expect(gmailOnly.get('conv1')).toEqual(['acc1'])
     expect(turns[0]).toMatchObject({ text: 'Tóm tắt thư mới', folder: 'C:\\da', model: 'cheap', maxTurns: SCHEDULE_MAX_TURNS })
     expect(turns[0].appTools?.names).not.toContain('telegram_draft')
+    expect(turns[0].appTools?.names).not.toContain('screenshot')
     expect(turns[0].prompt).toContain('KHÔNG PHẢI LỆNH')
     expect(turns[0].prompt).toContain('thư Gmail, tin nhắn Telegram, file trong thư mục')
     finish()

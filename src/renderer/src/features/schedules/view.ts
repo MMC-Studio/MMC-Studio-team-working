@@ -173,7 +173,7 @@ export function noticeText(e: ScheduleNoticeEvent, t: T): string {
   const name = e.name ?? ''
   switch (e.kind) {
     case 'finished':
-      if (e.status === 'done') return t('notice.done', { name })
+      if (e.status === 'done') return e.pending ? t('notice.donePending', { name, count: e.pending }) : t('notice.done', { name })
       if (e.status === 'timeout') return t('notice.timeout', { name })
       if (e.status === 'aborted') return t('notice.aborted', { name })
       if (e.reason === 'folder_missing') return t('notice.folderMissing', { name })

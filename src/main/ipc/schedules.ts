@@ -9,6 +9,8 @@ import {
   type SchedulesSettings
 } from '@shared/schedules'
 import type { ScheduleProposals } from '../schedules/proposals'
+import type { DeferredService } from '../schedules/deferred'
+import { deferredAskSchema, deferredDraftSchema, deferredFilesSchema, deferredReviseSchema } from '@shared/deferred'
 import type { Scheduler } from '../schedules/scheduler'
 import { ScheduleError, type ScheduleService } from '../schedules/service'
 import type { HandleFn, HandleOptions } from './register'
@@ -18,6 +20,7 @@ export type SchedulesIpcDeps = {
   service: ScheduleService
   scheduler: Scheduler
   proposals: ScheduleProposals
+  deferred: DeferredService
   getSettings(): SchedulesSettings
   setSettings(value: SchedulesSettings): void
   /** Đổi lựa chọn "ẩn xuống khay khi đóng" → tạo / gỡ biểu tượng khay. */
@@ -52,7 +55,11 @@ const featureSchema = z.object({
 export function registerSchedulesIpc(deps: SchedulesIpcDeps): void {
   const { handle, service, scheduler } = deps
 
-  handle(IPC.schedulesList, z.undefined(), () => service.list())
+  // Kèm số thẻ hoãn duyệt còn chờ của từng lịch.
+  handle(IPC.schedulesList, z.undefined(), () => {
+    const pending = deps.deferred.pendingBySchedule()
+    return service.list().map((s) => ({ ...s, pending: pending.get(s.id) ?? 0 }))
+  })
   handle(IPC.schedulesStatus, z.undefined(), () => scheduler.status())
   handle(IPC.schedulesRuns, scheduleRunsQuerySchema, ({ scheduleId, limit }) => service.runs(scheduleId, limit))
 
@@ -115,6 +122,18 @@ export function registerSchedulesIpc(deps: SchedulesIpcDeps): void {
 
   handle(IPC.schedulesRespondProposal, scheduleProposalDecisionSchema, (decision) => deps.proposals.respond(decision), {
     changes: ['approvals', 'schedules']
+  })
+
+  // ---- Thẻ hoãn duyệt: file duyệt từng cái hoặc "Đồng ý tất cả" (CHỈ file); nháp duyệt từng cái. ----
+  const D: HandleOptions = { changes: ['deferred', 'schedules'] }
+  handle(IPC.deferredList, idSchema.nullable(), (conversationId) => deps.deferred.list(conversationId))
+  handle(IPC.deferredApproveFiles, deferredFilesSchema, ({ id, paths }) => deps.deferred.approveFiles(id, paths), D)
+  handle(IPC.deferredRejectFiles, deferredFilesSchema, ({ id, paths }) => deps.deferred.rejectFiles(id, paths), D)
+  handle(IPC.deferredApproveDraft, deferredDraftSchema, ({ id, body }) => deps.deferred.approveDraft(id, body), D)
+  handle(IPC.deferredRejectDraft, idSchema, (id) => deps.deferred.rejectDraft(id), D)
+  handle(IPC.deferredAsk, deferredAskSchema, ({ id, question }) => deps.deferred.ask(id, question), D)
+  handle(IPC.deferredRevise, deferredReviseSchema, ({ id, note }) => deps.deferred.revise(id, note), {
+    changes: ['deferred', 'schedules', 'conversations']
   })
 
   if (deps.test) {

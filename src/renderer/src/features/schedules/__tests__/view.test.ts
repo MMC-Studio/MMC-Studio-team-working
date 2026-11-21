@@ -34,6 +34,7 @@ const schedule = (patch: Partial<Schedule> = {}): Schedule => ({
   consecutiveFailures: 0,
   origin: 'user',
   unseen: 0,
+  pending: 0,
   createdAt: 0,
   updatedAt: 0,
   ...patch
@@ -110,7 +111,7 @@ describe('ô nhập ↔ dữ liệu lưu', () => {
   })
 
   it('sửa lịch: ô nhập lấy lại đúng giờ / quyền / model', () => {
-    const s = schedule({ recurrence: { kind: 'weekly', days: [1, 3], time: '17:30' }, model: 'cheap', grants: { folder: 'C:\\a', gmailAccounts: ['x'], telegram: true } })
+    const s = schedule({ recurrence: { kind: 'weekly', days: [1, 3], time: '17:30' }, model: 'cheap', grants: { folder: 'C:\\a', gmailAccounts: ['x'], telegram: true, folderWrite: false, drafts: false } })
     const f = formFromSchedule(s, at(2026, 11, 21))
     expect(f).toMatchObject({ kind: 'weekly', days: [1, 3], time: '17:30', model: 'cheap', grants: s.grants })
     expect(formToInput(f)).toMatchObject({ recurrence: { kind: 'weekly', days: [1, 3], time: '17:30' }, grants: s.grants })
