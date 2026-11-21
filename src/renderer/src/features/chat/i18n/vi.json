@@ -405,7 +405,8 @@
     "show": "Hiện thanh bên (Ctrl+B)",
     "localAccount": "Dùng trên máy này",
     "resize": "Kéo để đổi độ rộng thanh bên · nhấp đúp để về mặc định",
-    "inProject": "Thuộc dự án"
+    "inProject": "Thuộc dự án",
+    "scheduledUnseen": "{{count}} lần chạy chưa xem"
   },
   "palette": {
     "title": "Tìm kiếm",

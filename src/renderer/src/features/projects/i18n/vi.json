@@ -37,7 +37,8 @@
     "memories": "{{count}} trí nhớ của dự án",
     "keep": "{{count}} cuộc trò chuyện được giữ lại và thành cuộc trò chuyện thường.",
     "confirm": "Xoá dự án",
-    "suggestions": "{{count}} đề xuất trí nhớ đang chờ duyệt"
+    "suggestions": "{{count}} đề xuất trí nhớ đang chờ duyệt",
+    "schedules": "{{count}} lịch hẹn của dự án sẽ được giữ lại nhưng bị tạm dừng (xem lại rồi tự bật)."
   },
   "detail": {
     "back": "Dự án",
@@ -63,7 +64,8 @@
     "removeFile": "Gỡ file {{name}}",
     "memory": "Trí nhớ",
     "scheduled": "Lịch hẹn",
-    "soon": "Sắp có"
+    "addSchedule": "Thêm",
+    "noSchedules": "Chưa có lịch hẹn nào cho dự án này."
   },
   "instructionsDialog": {
     "title": "Hướng dẫn cho dự án",

@@ -37,6 +37,8 @@ export const SETTING_ITEMS: SettingItem[] = [
   { id: 'expressive', tab: 'capabilities' },
   { id: 'voice', tab: 'capabilities' },
   { id: 'computer', tab: 'capabilities' },
+  { id: 'schedules', tab: 'capabilities' },
+  { id: 'scheduleTray', tab: 'capabilities' },
   { id: 'plugins', tab: 'connections' },
   { id: 'version', tab: 'updates' },
   { id: 'autoCheck', tab: 'updates' },

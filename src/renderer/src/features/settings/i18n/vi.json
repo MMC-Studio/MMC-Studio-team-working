@@ -236,6 +236,16 @@
         "label": "Gửi báo lỗi",
         "description": "Bản nháp tự viết kèm phiên bản và log gần nhất (đã che thông tin cá nhân) để team sửa.",
         "keywords": "bug loi ho tro"
+      },
+      "schedules": {
+        "label": "Lịch hẹn",
+        "description": "Trợ lý tự chạy lời nhắn theo giờ khi app đang mở (chỉ đọc). Mặc định tắt; bật lần đầu có cảnh báo.",
+        "keywords": "lich hen hen gio tu dong chay dinh ky scheduled"
+      },
+      "scheduleTray": {
+        "label": "Ẩn xuống khay khi đóng cửa sổ",
+        "description": "Bấm X thì app ẩn xuống khay (góc phải thanh tác vụ) để lịch hẹn vẫn chạy. Chỉ có khi lịch hẹn đang bật.",
+        "keywords": "khay tray thu nho an dong cua so"
       }
     }
   }

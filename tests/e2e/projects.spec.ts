@@ -68,7 +68,7 @@ test('trang Dự án trống → tạo dự án → mở trang dự án', async 
   await expect(page.getByTestId('project-name')).toHaveText('Game Pixel', FAST)
   await expect(page.getByTestId('project-page')).toContainText('Game 2D làm bằng Unity')
   await expect(page.getByTestId('project-memory-empty')).toBeVisible()
-  await expect(page.getByTestId('panel-scheduled')).toContainText('Sắp có')
+  await expect(page.getByTestId('panel-scheduled')).toContainText('Chưa có lịch hẹn nào cho dự án này.')
 })
 
 test('hướng dẫn: sửa → hiện ngay ở cột phải', async () => {

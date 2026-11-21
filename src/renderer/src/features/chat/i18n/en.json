@@ -405,7 +405,8 @@
     "show": "Show sidebar (Ctrl+B)",
     "localAccount": "On this computer",
     "resize": "Drag to resize the sidebar · double-click to reset",
-    "inProject": "In a project"
+    "inProject": "In a project",
+    "scheduledUnseen": "{{count}} unread runs"
   },
   "palette": {
     "title": "Search",

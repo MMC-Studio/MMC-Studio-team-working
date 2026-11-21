@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronDown,
+  Clock,
   ChevronRight,
   FilePen,
   FilePlus2,
@@ -25,6 +26,8 @@ import {
   type ApprovalRequest
 } from '@shared/approvals'
 import type { DraftApprovalRequest } from '@shared/connectors'
+import type { ScheduleProposalRequest } from '@shared/schedules'
+import { recurrenceText } from '@renderer/features/schedules/view'
 import type { CodeApprovalRequest, FolderAccessRequest } from '@shared/types'
 import { DiffView } from '@renderer/components/DiffView'
 import { Button } from '@renderer/components/ui/button'
@@ -59,11 +62,14 @@ export function ApprovalCards({ cards }: { cards: ApprovalCard[] }) {
 function ApprovalCardView({ card }: { card: ApprovalCard }) {
   const { t } = useTranslation('chat')
   const { t: tc } = useTranslation('connectors')
-  const header = cardHeader(card, t, tc)
+  const { t: ts } = useTranslation('schedules')
+  const header = cardHeader(card, t, tc, ts)
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm" data-testid="approval-card" data-kind={card.kind}>
       <div
-        data-testid={card.kind === 'code' ? 'code-approval' : card.kind === 'folder' ? 'folder-access' : 'draft-approval'}
+        data-testid={
+          card.kind === 'code' ? 'code-approval' : card.kind === 'folder' ? 'folder-access' : card.kind === 'schedule' ? 'schedule-proposal' : 'draft-approval'
+        }
         className="space-y-3 text-sm"
       >
         <div className="flex items-center gap-2 font-medium">
@@ -145,6 +151,7 @@ function PastVersion({
 function CurrentVersion({ card }: { card: ApprovalCard }) {
   const { t } = useTranslation('chat')
   const { t: tc } = useTranslation('connectors')
+  const { t: ts } = useTranslation('schedules')
   const decide = useApprovals((s) => s.decide)
   const revise = useApprovals((s) => s.revise)
   const ask = useApprovals((s) => s.ask)
@@ -169,12 +176,15 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         return respondFolder(card.request, false, false, t('folderAccess.continue'), note)
       case 'draft':
         return api.drafts.respond({ id: card.id, approve: false, feedback: note })
+      case 'schedule':
+        return api.schedules.respondProposal({ id: card.id, approve: false, feedback: note })
     }
   }
 
   const accept = async (): Promise<void> => {
     if (card.kind === 'code') void decide(card.id, () => api.code.respond(card.id, true))
     else if (card.kind === 'draft') void decide(card.id, () => api.drafts.respond({ id: card.id, approve: true, body }))
+    else if (card.kind === 'schedule') void decide(card.id, () => api.schedules.respondProposal({ id: card.id, approve: true }))
     else {
       // Mở hộp chọn thư mục của Windows; đóng hộp mà chưa chọn → thẻ vẫn chờ.
       setBusy(true)
@@ -214,8 +224,14 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
   }
 
   const accentLabel =
-    card.kind === 'code' ? t('code.accept') : card.kind === 'folder' ? t('folderAccess.choose') : tc(`draft.approve.${card.request.service}`)
-  const rejectLabel = card.kind === 'folder' ? t('folderAccess.deny') : t('code.reject')
+    card.kind === 'code'
+      ? t('code.accept')
+      : card.kind === 'folder'
+        ? t('folderAccess.choose')
+        : card.kind === 'schedule'
+          ? ts('proposal.accept')
+          : tc(`draft.approve.${card.request.service}`)
+  const rejectLabel = card.kind === 'folder' ? t('folderAccess.deny') : card.kind === 'schedule' ? ts('proposal.reject') : t('code.reject')
 
   return (
     <div className="space-y-3" data-testid="approval-current" data-version={card.version}>
@@ -237,6 +253,8 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         </>
       ) : card.kind === 'draft' ? (
         <DraftView request={card.request} body={body} onBody={setBody} />
+      ) : card.kind === 'schedule' ? (
+        <ScheduleProposalView request={card.request} current />
       ) : (
         <RequestView kind="code" request={card.request} />
       )}
@@ -311,9 +329,11 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           size="sm"
           disabled={busy || (card.kind === 'draft' && !body.trim())}
           onClick={() => void accept()}
-          data-testid={card.kind === 'folder' ? 'folder-access-choose' : card.kind === 'draft' ? 'draft-approve' : 'approval-accept'}
+          data-testid={
+            card.kind === 'folder' ? 'folder-access-choose' : card.kind === 'draft' ? 'draft-approve' : card.kind === 'schedule' ? 'schedule-proposal-accept' : 'approval-accept'
+          }
         >
-          {card.kind === 'folder' ? <FolderOpen /> : <Check />}
+          {card.kind === 'folder' ? <FolderOpen /> : card.kind === 'schedule' ? <Clock /> : <Check />}
           {accentLabel}
         </Button>
       </div>
@@ -356,7 +376,34 @@ function RequestView({ kind, request }: { kind: ApprovalCard['kind']; request: A
       </div>
     )
   }
+  if (kind === 'schedule') return <ScheduleProposalView request={request as ScheduleProposalRequest} />
   return <DraftView request={request as DraftApprovalRequest} />
+}
+
+/** Đề xuất lịch hẹn: tên, giờ, dự án, model, lời nhắn + câu nói rõ lịch chỉ đọc, không có quyền thêm. */
+function ScheduleProposalView({ request, current }: { request: ScheduleProposalRequest; current?: boolean }) {
+  const { t, i18n } = useTranslation('schedules')
+  return (
+    <div className="space-y-2" data-testid={current ? 'schedule-proposal-view' : undefined}>
+      <p className="font-medium" data-testid={current ? 'schedule-proposal-name' : undefined}>
+        {request.name}
+      </p>
+      <p>
+        {t('proposal.when')} <span className="font-medium" data-testid={current ? 'schedule-proposal-when' : undefined}>{recurrenceText(request.recurrence, t, i18n.language)}</span>
+      </p>
+      {request.projectName && (
+        <p>
+          {t('proposal.project')} <span className="font-medium">{request.projectName}</span>
+        </p>
+      )}
+      <p>
+        {t('proposal.model')} <span className="font-medium">{t(`models.${request.model}`)}</span>
+      </p>
+      <p className="text-xs text-muted-foreground">{t('proposal.prompt')}</p>
+      <p className="whitespace-pre-wrap rounded-md bg-muted/60 px-3 py-2">{request.prompt}</p>
+      <p className="text-xs text-muted-foreground">{t('proposal.readOnly')}</p>
+    </div>
+  )
 }
 
 /** Nháp Gmail / Telegram: có `onBody` = bản mới nhất (sửa được), không có = bản cũ (chỉ xem). */
@@ -470,11 +517,12 @@ function summary(kind: ApprovalCard['kind'], request: ApprovalRequest): string {
     const r = request as FolderAccessRequest
     return r.suggestedPath ?? r.reason
   }
+  if (kind === 'schedule') return (request as ScheduleProposalRequest).name
   const r = request as DraftApprovalRequest
   return r.subject ? `${r.target} · ${r.subject}` : r.target
 }
 
-function cardHeader(card: ApprovalCard, t: T, tc: T): { icon: ReactNode; title: string } {
+function cardHeader(card: ApprovalCard, t: T, tc: T, ts: T): { icon: ReactNode; title: string } {
   switch (card.kind) {
     case 'code':
       return card.request.change.isNewFile
@@ -490,5 +538,7 @@ function cardHeader(card: ApprovalCard, t: T, tc: T): { icon: ReactNode; title: 
         icon: card.request.service === 'gmail' ? <Mail className="size-4" /> : <MessageCircle className="size-4" />,
         title: tc(`draft.title.${card.request.service}`)
       }
+    case 'schedule':
+      return { icon: <Clock className="size-4" />, title: ts('proposal.title') }
   }
 }

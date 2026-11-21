@@ -2,7 +2,6 @@ import { agentsFeature } from './agents'
 import { artifactLibraryFeature } from './artifact-library'
 import { chatFeature } from './chat'
 import { claudeCheckFeature } from './claude-check'
-import { comingSoonFeature } from './coming-soon'
 import { computerFeature } from './computer'
 import { connectorsFeature } from './connectors'
 import { dashboardFeature } from './dashboard'
@@ -13,6 +12,7 @@ import { memoryFeature } from './memory'
 import { notificationsFeature } from './notifications'
 import { pluginsFeature } from './plugins'
 import { projectsFeature } from './projects'
+import { schedulesFeature } from './schedules'
 import { settingsFeature } from './settings'
 import { teamFeature } from './team'
 import { timeFeature } from './time'
@@ -30,7 +30,7 @@ export const features: FeatureDefinition[] = [
   artifactLibraryFeature,
   projectsFeature,
   pluginsFeature,
-  comingSoonFeature,
+  schedulesFeature,
   todayFeature,
   memoryFeature,
   workFeature,

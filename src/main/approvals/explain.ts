@@ -1,5 +1,7 @@
 import { REVISION_HINT_MARKER, type ApprovalCard, type ApprovalQa, type ApprovalRequest } from '@shared/approvals'
 import type { DraftApprovalRequest } from '@shared/connectors'
+import type { ScheduleProposalRequest } from '@shared/schedules'
+import { describeRecurrence } from '../schedules/describe'
 import type { CodeApprovalRequest, FolderAccessRequest } from '@shared/types'
 
 /** Dấu nhận biết lần gọi "Hỏi" trên thẻ duyệt (FakeChatProvider dùng để trả lời giả lập). */
@@ -57,6 +59,20 @@ function describeRequest(kind: ApprovalCard['kind'], request: ApprovalRequest, m
         r.replyTo ? `Trả lời thư: ${r.replyTo}` : '',
         'Nội dung:',
         clip(r.body, maxPatch)
+      ]
+        .filter(Boolean)
+        .join('\n')
+    }
+    case 'schedule': {
+      const r = request as ScheduleProposalRequest
+      return [
+        'Loại: đề xuất tạo LỊCH HẸN (app tự chạy lời nhắn theo giờ khi app đang mở; lần chạy chỉ đọc, không có quyền thư mục / Gmail / Telegram)',
+        `Tên: ${r.name}`,
+        `Thời gian: ${describeRecurrence(r.recurrence)}`,
+        r.projectName ? `Dự án: ${r.projectName}` : '',
+        `Model: ${r.model === 'cheap' ? 'tiết kiệm (Haiku)' : 'như cài đặt'}`,
+        'Lời nhắn mỗi lần chạy:',
+        clip(r.prompt, maxPatch)
       ]
         .filter(Boolean)
         .join('\n')

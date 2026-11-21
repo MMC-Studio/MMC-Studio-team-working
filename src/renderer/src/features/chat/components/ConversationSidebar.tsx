@@ -37,6 +37,8 @@ import { ProjectMenu } from '@renderer/features/projects/components/ProjectMenu'
 import { useProjects } from '@renderer/features/projects/store'
 import { pinnedProjects, PROJECTS_ROUTE, projectPath } from '@renderer/features/projects/view'
 import { PLUGINS_ROUTE } from '@renderer/features/plugins/model'
+import { useSchedules } from '@renderer/features/schedules/store'
+import { SCHEDULES_ROUTE } from '@renderer/features/schedules/view'
 import { buildSidebar, DRAG_TYPE, type SidebarRow, type SidebarSection } from '../sidebarTree'
 import { useChat } from '../store'
 
@@ -78,6 +80,8 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
   const [over, setOver] = useState<string | null>(null)
 
   const projects = useProjects((s) => s.projects)
+  // Lịch hẹn: số lần chạy chưa xem (chỉ khi tính năng bật).
+  const scheduleUnseen = useSchedules((s) => (s.status?.settings.enabled ? s.status.unseen : 0))
   const pinnedProj = useMemo(() => pinnedProjects(projects), [projects])
   // Dự án ghim nằm đầu mục "Đã ghim" — mục này hiện cả khi chưa ghim cuộc trò chuyện nào.
   const sections = useMemo(() => {
@@ -375,8 +379,10 @@ export function ConversationSidebar({ variant }: { variant?: 'overlay' } = {}) {
         <SidebarItem
           icon={Clock}
           label={t('sidebar.scheduled')}
-          active={pathname === '/soon/scheduled'}
-          onClick={() => void navigate('/soon/scheduled')}
+          active={pathname.startsWith(SCHEDULES_ROUTE)}
+          onClick={() => void navigate(SCHEDULES_ROUTE)}
+          badge={scheduleUnseen}
+          badgeLabel={t('sidebar.scheduledUnseen', { count: scheduleUnseen })}
           testId="nav-scheduled"
         />
         <SidebarItem
@@ -537,7 +543,9 @@ function SidebarItem({
   active,
   onClick,
   testId,
-  title
+  title,
+  badge = 0,
+  badgeLabel
 }: {
   icon: LucideIcon
   label: string
@@ -545,6 +553,9 @@ function SidebarItem({
   active: boolean
   onClick(): void
   testId: string
+  /** Số nhỏ bên phải (vd lần chạy lịch hẹn chưa xem); 0 = ẩn. */
+  badge?: number
+  badgeLabel?: string
 }) {
   return (
     <button
@@ -559,6 +570,15 @@ function SidebarItem({
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <span className="truncate">{label}</span>
+      {badge > 0 && (
+        <span
+          className="ml-auto rounded-full bg-primary px-1.5 text-[11px] leading-[18px] font-medium text-primary-foreground"
+          aria-label={badgeLabel}
+          data-testid={`${testId}-badge`}
+        >
+          {badge}
+        </span>
+      )}
     </button>
   )
 }

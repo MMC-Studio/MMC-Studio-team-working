@@ -4,6 +4,15 @@ import type { MessageMedia, Reaction } from '@shared/expressive'
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import type { ChatMode, ChatUsage } from '@shared/ai'
+import type {
+  Recurrence,
+  ScheduleGrants,
+  ScheduleModel,
+  SchedulePauseReason,
+  ScheduleRunReason,
+  ScheduleRunStatus,
+  ScheduleRunTrigger
+} from '@shared/schedules'
 import type { MemoryAction, MemoryCategory, SuggestionStatus, TimeEntryKind } from '@shared/schemas'
 import type { MessageRole, MessageStatus, StoredAttachment, ToolEvent } from '@shared/types'
 
@@ -65,6 +74,61 @@ export const projectFiles = sqliteTable(
   (t) => [index('project_files_project_idx').on(t.projectId, t.createdAt)]
 )
 
+/**
+ * Lịch hẹn: trợ lý tự chạy một lời nhắn theo giờ hẹn khi app đang mở. Chỉ trên máy, theo tài khoản.
+ * Xoá dự án → lịch giữ lại (project_id = null) và bị tạm dừng (ProjectRepository.remove).
+ */
+export const schedules = sqliteTable(
+  'schedules',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull().default('local'),
+    name: text('name').notNull(),
+    prompt: text('prompt').notNull(),
+    recurrence: text('recurrence', { mode: 'json' }).$type<Recurrence>().notNull(),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    /** Quyền chốt lúc tạo lịch (thư mục đọc, tài khoản Gmail, Telegram). */
+    grants: text('grants', { mode: 'json' }).$type<ScheduleGrants>().notNull(),
+    model: text('model').$type<ScheduleModel>().notNull().default('default'),
+    catchUp: integer('catch_up', { mode: 'boolean' }).notNull().default(true),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    pausedReason: text('paused_reason').$type<SchedulePauseReason>(),
+    skipNext: integer('skip_next', { mode: 'boolean' }).notNull().default(false),
+    nextRunAt: integer('next_run_at'),
+    lastRunAt: integer('last_run_at'),
+    lastStatus: text('last_status').$type<ScheduleRunStatus>(),
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+    origin: text('origin').$type<'user' | 'assistant'>().notNull().default('user'),
+    createdAt: integer('created_at').notNull().default(now),
+    updatedAt: integer('updated_at').notNull().default(now)
+  },
+  (t) => [index('schedules_owner_idx').on(t.owner, t.createdAt)]
+)
+
+/** Nhật ký các lần chạy (kể cả bỏ lỡ / bỏ qua). Xoá lịch → xoá nhật ký; xoá cuộc trò chuyện → dòng còn, mất link. */
+export const scheduleRuns = sqliteTable(
+  'schedule_runs',
+  {
+    id: text('id').primaryKey(),
+    scheduleId: text('schedule_id')
+      .notNull()
+      .references(() => schedules.id, { onDelete: 'cascade' }),
+    scheduledFor: integer('scheduled_for').notNull(),
+    startedAt: integer('started_at'),
+    finishedAt: integer('finished_at'),
+    status: text('status').$type<ScheduleRunStatus>().notNull(),
+    trigger: text('trigger').$type<ScheduleRunTrigger>().notNull().default('on_time'),
+    reason: text('reason').$type<ScheduleRunReason>(),
+    detail: text('detail'),
+    missed: integer('missed').notNull().default(0),
+    conversationId: text('conversation_id').references((): AnySQLiteColumn => conversations.id, { onDelete: 'set null' }),
+    toolCount: integer('tool_count').notNull().default(0),
+    seenAt: integer('seen_at'),
+    createdAt: integer('created_at').notNull().default(now)
+  },
+  (t) => [index('schedule_runs_schedule_idx').on(t.scheduleId, t.createdAt), index('schedule_runs_started_idx').on(t.startedAt)]
+)
+
 export const conversations = sqliteTable(
   'conversations',
   {
@@ -97,6 +161,8 @@ export const conversations = sqliteTable(
     suggestedGroupId: text('suggested_group_id').references(() => conversationGroups.id, { onDelete: 'set null' }),
     /** Dự án chứa cuộc này. Xoá dự án → thành cuộc thường (không xoá cuộc). */
     projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    /** Cuộc do một lần chạy lịch hẹn tạo ra. Xoá lịch → thành cuộc thường. */
+    scheduleId: text('schedule_id').references((): AnySQLiteColumn => schedules.id, { onDelete: 'set null' }),
     createdAt: integer('created_at').notNull().default(now),
     updatedAt: integer('updated_at').notNull().default(now)
   },

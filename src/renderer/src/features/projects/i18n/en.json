@@ -37,7 +37,8 @@
     "memories": "{{count}} project memories",
     "keep": "{{count}} chats are kept and become regular chats.",
     "confirm": "Delete project",
-    "suggestions": "{{count}} pending memory suggestions"
+    "suggestions": "{{count}} pending memory suggestions",
+    "schedules": "{{count}} schedule(s) of this project are kept but paused (review them, then turn them back on)."
   },
   "detail": {
     "back": "Projects",
@@ -63,7 +64,8 @@
     "removeFile": "Remove file {{name}}",
     "memory": "Memory",
     "scheduled": "Scheduled",
-    "soon": "Coming soon"
+    "addSchedule": "Add",
+    "noSchedules": "No schedules for this project yet."
   },
   "instructionsDialog": {
     "title": "Project instructions",

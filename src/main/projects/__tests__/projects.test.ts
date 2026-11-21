@@ -81,7 +81,7 @@ describe('dự án (SQLite in-memory)', () => {
         .run()
     suggestion('pending')
     suggestion('accepted') // đã duyệt → không đếm
-    expect(repo.deleteInfo(p.id)).toEqual({ files: 2, memories: 1, suggestions: 1, conversations: 1 })
+    expect(repo.deleteInfo(p.id)).toEqual({ files: 2, memories: 1, suggestions: 1, conversations: 1, schedules: 0 })
 
     expect(repo.remove(p.id)).toBe(true)
     expect(convs.get(c.id)).toMatchObject({ id: c.id, projectId: null })

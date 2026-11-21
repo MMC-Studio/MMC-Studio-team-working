@@ -16,6 +16,7 @@ import type { MediaItem } from '@shared/expressive'
 import type { MessageVoice } from '@shared/voice'
 import { PROJECTS_ROUTE } from '../view'
 import { InstructionsDialog } from './ProjectDialogs'
+import { ProjectScheduleAdd, ProjectSchedules } from '@renderer/features/schedules/components/ProjectSchedules'
 import { ProjectMenu } from './ProjectMenu'
 
 /** Trang một dự án: tên + mô tả, ô nhập "Cuộc trò chuyện mới trong …", các cuộc của dự án, cột phải. */
@@ -256,7 +257,14 @@ function ProjectSidePanel({ project, onRemoveFile }: { project: ProjectDetail; o
       <PanelRow icon={Brain} title={t('panel.memory')} testId="panel-memory">
         <ProjectMemoryPanel projectId={project.id} />
       </PanelRow>
-      <PanelRow icon={Clock} title={t('panel.scheduled')} action={<span className="text-xs text-muted-foreground">{t('panel.soon')}</span>} testId="panel-scheduled" />
+      <PanelRow
+        icon={Clock}
+        title={t('panel.scheduled')}
+        action={<ProjectScheduleAdd projectId={project.id} className="rounded px-1.5 py-0.5 text-sm hover:bg-muted" />}
+        testId="panel-scheduled"
+      >
+        <ProjectSchedules projectId={project.id} />
+      </PanelRow>
       <p className="pt-4 text-xs text-muted-foreground">{t('detail.private')}</p>
 
       {editing && <InstructionsDialog project={project} open onClose={() => setEditing(false)} />}

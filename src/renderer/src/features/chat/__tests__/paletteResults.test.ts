@@ -15,6 +15,7 @@ const conv = (id: string, extra: Partial<Conversation> = {}): Conversation => ({
   parentId: null,
   suggestedGroupId: null,
   projectId: null,
+  scheduleId: null,
   createdAt: 0,
   updatedAt: 0,
   ...extra

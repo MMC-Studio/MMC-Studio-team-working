@@ -55,6 +55,8 @@ export type CliRunOptions = {
   addDirs?: string[]
   /** Model rẻ cho việc nền nhỏ → `--model haiku` (alias của CLI, luôn trỏ bản Haiku mới nhất). */
   cheap?: boolean
+  /** `--max-turns` (cờ ẩn khỏi --help nhưng chạy, kiểm chứng CLI 2.1.330): giới hạn số bước của lượt. */
+  maxTurns?: number
 }
 
 /**
@@ -87,6 +89,7 @@ export function buildCliArgs(opts: CliRunOptions): string[] {
   if (opts.sessionId) args.push('--resume', opts.sessionId)
   if (opts.ephemeral) args.push('--no-session-persistence')
   if (opts.cheap) args.push('--model', 'haiku')
+  if (opts.maxTurns && Number.isInteger(opts.maxTurns) && opts.maxTurns > 0) args.push('--max-turns', String(opts.maxTurns))
   return args
 }
 

@@ -29,6 +29,8 @@ export type ChatRequest = {
   ephemeral?: boolean
   /** 'cheap' = model rẻ (Haiku) cho việc nền nhỏ như đặt tiêu đề; bỏ trống = model mặc định. */
   model?: 'cheap'
+  /** Số bước tối đa (CLI `--max-turns`) — lần chạy không có người ngồi máy (lịch hẹn). */
+  maxTurns?: number
 }
 
 export interface AIProvider {

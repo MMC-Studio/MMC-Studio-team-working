@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import type { Project, ProjectDeleteInfo, ProjectUpdate } from '@shared/projects'
 import type { AppDatabase } from '../db/client'
-import { conversations, memories, memorySuggestions, projectFiles, projects } from '../db/schema'
+import { conversations, memories, memorySuggestions, projectFiles, projects, schedules } from '../db/schema'
 
 type ProjectRow = typeof projects.$inferSelect
 export type ProjectFileRow = typeof projectFiles.$inferSelect
@@ -94,13 +94,23 @@ export class ProjectRepository {
       ),
       conversations: count(
         this.db.select({ n: sql<number>`count(*)` }).from(conversations).where(eq(conversations.projectId, id)).get()
-      )
+      ),
+      schedules: count(this.db.select({ n: sql<number>`count(*)` }).from(schedules).where(eq(schedules.projectId, id)).get())
     }
   }
 
   /** Xoá dự án: file ngữ cảnh + trí nhớ dự án xoá theo (khoá ngoại), cuộc trò chuyện thành cuộc thường. */
   remove(id: string): boolean {
-    return this.db.delete(projects).where(this.mine(id)).run().changes > 0
+    if (!this.get(id)) return false
+    return this.db.transaction((tx) => {
+      // Lịch hẹn của dự án: giữ lại (khoá ngoại đặt project_id = null) nhưng TẠM DỪNG — mất hướng dẫn dự án thì lịch
+      // có thể chạy sai ý; người dùng xem lại rồi tự bật.
+      tx.update(schedules)
+        .set({ enabled: false, pausedReason: 'project_deleted', updatedAt: Date.now() })
+        .where(eq(schedules.projectId, id))
+        .run()
+      return tx.delete(projects).where(this.mine(id)).run().changes > 0
+    })
   }
 
   // ---- File ngữ cảnh ----

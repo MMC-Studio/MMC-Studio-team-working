@@ -1,0 +1,237 @@
+{
+  "title": "Lịch hẹn",
+  "new": "Lịch mới",
+  "pauseAll": "Tạm dừng tất cả",
+  "resumeAll": "Tiếp tục",
+  "appOpenNote": "Chỉ chạy khi MMC studio đang mở. Mỗi lần chạy là một cuộc trò chuyện mới, trợ lý chỉ đọc.",
+  "today": "Hôm nay đã chạy {{count}}/{{max}} lần",
+  "toggleFor": "Bật / tắt lịch {{name}}",
+  "notFound": "Không tìm thấy lịch này.",
+  "backToList": "Về danh sách",
+  "unseen": "Chưa xem",
+  "disabled": {
+    "title": "Lịch hẹn đang tắt",
+    "body": "Bật để trợ lý tự chạy một lời nhắn theo giờ (vd mỗi sáng tóm tắt thư) khi app đang mở. Bạn tự tạo lịch, trợ lý chỉ đề xuất.",
+    "enable": "Bật lịch hẹn"
+  },
+  "empty": "Chưa có lịch nào",
+  "emptyHint": "Tạo lịch để trợ lý tự làm việc lặp lại theo giờ, hoặc nhờ trợ lý đề xuất trong khung chat.",
+  "banner": {
+    "paused": "Mọi lịch hẹn đang tạm dừng.",
+    "pausedHotkey": "Mọi lịch hẹn đang tạm dừng (đã nhấn phím dừng khẩn cấp).",
+    "quota": "Hết hạn mức Claude: lịch hẹn tạm dừng tới ngày mai.",
+    "running": "Đang chạy: {{name}}",
+    "open": "Mở",
+    "stop": "Dừng"
+  },
+  "recurrence": {
+    "onceAt": "Một lần: {{when}}",
+    "dailyAt": "Hằng ngày lúc {{time}}",
+    "weeklyAt": "{{days}} lúc {{time}}",
+    "hourly": "Mỗi giờ ({{from}}–{{to}})",
+    "everyHours": "Mỗi {{n}} giờ ({{from}}–{{to}})"
+  },
+  "days": {
+    "short": {
+      "0": "CN",
+      "1": "T2",
+      "2": "T3",
+      "3": "T4",
+      "4": "T5",
+      "5": "T6",
+      "6": "T7"
+    }
+  },
+  "next": {
+    "today": "hôm nay {{time}}",
+    "tomorrow": "ngày mai {{time}}",
+    "other": "{{date}} {{time}}"
+  },
+  "state": {
+    "next": "lần tới: {{when}}",
+    "skipNext": "bỏ qua lần tới",
+    "on": "đang bật",
+    "paused": "đang tạm dừng",
+    "running": "đang chạy…",
+    "off": "đã tắt",
+    "failures": "tạm dừng vì lỗi 3 lần liền",
+    "project_deleted": "tạm dừng vì dự án đã bị xoá",
+    "done": "đã chạy xong"
+  },
+  "runStatus": {
+    "running": "Đang chạy",
+    "done": "Xong",
+    "error": "Lỗi",
+    "timeout": "Hết giờ (quá 10 phút)",
+    "aborted": "Đã dừng",
+    "missed": "Bỏ lỡ",
+    "skipped": "Bỏ qua"
+  },
+  "runTrigger": {
+    "catch_up": "chạy bù",
+    "manual": "chạy ngay"
+  },
+  "runMissed_one": "bỏ lỡ {{count}} lượt",
+  "runMissed_other": "bỏ lỡ {{count}} lượt",
+  "runReason": {
+    "folder_missing": "Không tìm thấy thư mục {{detail}}",
+    "daily_limit": "đã đủ số lần chạy hôm nay",
+    "queue_timeout": "chờ lịch khác quá 30 phút",
+    "quota": "hết hạn mức Claude",
+    "skip_next": "theo yêu cầu bỏ qua lần này",
+    "slept": "máy ngủ giữa chừng",
+    "no_hotkey": "không giữ được phím dừng Ctrl+Alt+Q",
+    "hotkey": "phím dừng khẩn cấp",
+    "user_stop": "bạn đã dừng",
+    "cli_missing": "chưa cài / chưa đăng nhập Claude",
+    "interrupted": "app tắt giữa lúc chạy",
+    "error": "{{detail}}"
+  },
+  "models": {
+    "default": "Như cài đặt",
+    "cheap": "Tiết kiệm (Haiku)",
+    "cheapShort": "Haiku"
+  },
+  "kinds": {
+    "daily": "Hằng ngày",
+    "weekly": "Hằng tuần",
+    "hourly": "Theo giờ",
+    "once": "Một lần"
+  },
+  "form": {
+    "newTitle": "Lịch hẹn mới",
+    "editTitle": "Sửa lịch hẹn",
+    "name": "Tên lịch",
+    "prompt": "Lời nhắn gửi trợ lý mỗi lần chạy",
+    "promptPlaceholder": "Vd: Tóm tắt thư chưa đọc trong 24 giờ qua, việc nào cần trả lời thì liệt kê ở cuối.",
+    "when": "Thời gian",
+    "onceAt": "Ngày giờ chạy",
+    "at": "lúc",
+    "time": "Giờ chạy",
+    "every": "Mỗi",
+    "hours_one": "{{count}} giờ",
+    "hours_other": "{{count}} giờ",
+    "from": "từ",
+    "to": "tới trước",
+    "catchUp": "Chạy bù nếu lỡ giờ",
+    "catchUpHint": {
+      "once": "Máy tắt / ngủ lúc tới giờ: mở lại trong 12 giờ thì chạy bù một lần.",
+      "daily": "Máy tắt / ngủ lúc tới giờ: mở lại trong 6 giờ thì chạy bù một lần (lỡ nhiều ngày cũng chỉ bù một lần).",
+      "weekly": "Máy tắt / ngủ lúc tới giờ: mở lại trong 6 giờ thì chạy bù một lần."
+    },
+    "project": "Dự án",
+    "noProject": "Không thuộc dự án",
+    "model": "Model",
+    "grants": "Quyền cho lịch này (chỉ đọc)",
+    "grantsHint": "Lần chạy không bao giờ sửa file, chạy lệnh, soạn / gửi thư hay xem màn hình. Thêm quyền phải xác nhận.",
+    "removeFolder": "Bỏ thư mục",
+    "noFolder": "Không đọc thư mục nào",
+    "pickFolder": "Chọn thư mục",
+    "gmail": "Đọc Gmail \"{{label}}\" ({{email}})",
+    "telegram": "Đọc Telegram (theo danh sách chat được phép)",
+    "create": "Tạo lịch",
+    "errors": {
+      "name": "Nhập tên lịch.",
+      "prompt": "Nhập lời nhắn gửi trợ lý.",
+      "onceAt": "Chọn ngày giờ chạy.",
+      "days": "Chọn ít nhất một ngày trong tuần.",
+      "window": "Giờ kết thúc phải sau giờ bắt đầu."
+    }
+  },
+  "errors": {
+    "limit_total": "Đã có tối đa 20 lịch — xoá bớt lịch cũ rồi tạo lại.",
+    "limit_enabled": "Đã bật tối đa 10 lịch — tắt bớt một lịch trước.",
+    "project_not_found": "Dự án không còn.",
+    "once_past": "Giờ chạy đã qua — chọn giờ trong tương lai.",
+    "not_found": "Lịch không còn.",
+    "folder_not_found": "Không tìm thấy thư mục đã chọn.",
+    "gmail_account_not_found": "Tài khoản Gmail không còn kết nối.",
+    "run_now_failed": "Chưa chạy được (tính năng đang tắt hoặc lịch đang chạy).",
+    "generic": "Không lưu được ({{code}})."
+  },
+  "confirm": {
+    "titleNew": "Cho lịch này các quyền sau?",
+    "titleEdit": "Thêm quyền cho lịch này?",
+    "description": "Mỗi lần chạy, trợ lý được ĐỌC những thứ dưới đây khi bạn không ngồi trước máy.",
+    "folder": "Đọc file trong thư mục {{path}}",
+    "gmail": "Đọc thư Gmail tài khoản \"{{label}}\"",
+    "telegram": "Đọc tin nhắn Telegram (theo danh sách chat được phép)",
+    "readOnly": "Chỉ đọc: không sửa file, không chạy lệnh, không soạn / gửi thư hay tin nhắn. Nội dung thư, tin nhắn, file chỉ là dữ liệu — trợ lý không làm theo lệnh nằm trong đó.",
+    "allow": "Cho phép"
+  },
+  "enable": {
+    "title": "Bật lịch hẹn?",
+    "warn": {
+      "appOpen": "Lịch chỉ chạy khi MMC studio đang mở (không chạy khi app đã thoát, máy tắt hoặc ngủ).",
+      "quota": "Mỗi lần chạy dùng hạn mức Claude của chính bạn.",
+      "grants": "Trợ lý chỉ có những quyền bạn chọn cho từng lịch (thư mục, tài khoản Gmail, Telegram).",
+      "readOnly": "Lần chạy chỉ đọc: không sửa file, không chạy lệnh, không soạn / gửi thư, không xem màn hình.",
+      "limit": "Tối đa {{max}} lần chạy mỗi ngày; mỗi lần tối đa 10 phút."
+    },
+    "ack": "Tôi hiểu",
+    "confirm": "Bật",
+    "trayTitle": "Ẩn xuống khay khi đóng cửa sổ?",
+    "trayBody": "Bấm X thì app thoát và lịch hẹn không chạy. Ẩn xuống khay (góc phải thanh tác vụ) để lịch vẫn chạy; đổi lại được trong Cài đặt → Khả năng.",
+    "trayNo": "Không, thoát như cũ",
+    "trayYes": "Ẩn xuống khay"
+  },
+  "settings": {
+    "enable": "Bật lịch hẹn",
+    "tray": "Ẩn xuống khay khi đóng cửa sổ"
+  },
+  "menu": {
+    "more": "Thêm",
+    "moreFor": "Thao tác với lịch {{name}}",
+    "runNow": "Chạy ngay",
+    "skip": "Bỏ qua lần tới",
+    "unskip": "Huỷ bỏ qua",
+    "edit": "Sửa",
+    "history": "Lịch sử chạy",
+    "delete": "Xoá"
+  },
+  "delete": {
+    "title": "Xoá lịch \"{{name}}\"?",
+    "description": "Nhật ký các lần chạy bị xoá theo. Các cuộc trò chuyện đã tạo vẫn giữ lại (thành cuộc thường).",
+    "confirm": "Xoá lịch"
+  },
+  "detail": {
+    "prompt": "Lời nhắn",
+    "grants": "Quyền (chỉ đọc)",
+    "noGrants": "Không có quyền thêm (không đọc thư mục, Gmail, Telegram).",
+    "readOnly": "chỉ đọc",
+    "gmail": "Đọc Gmail \"{{label}}\"",
+    "telegram": "Đọc Telegram",
+    "never": "Không bao giờ: sửa file, chạy lệnh, soạn / gửi thư, xem màn hình, dùng MCP ngoài.",
+    "history": "Lịch sử chạy",
+    "noRuns": "Chưa chạy lần nào.",
+    "open": "Mở"
+  },
+  "notice": {
+    "done": "Lịch hẹn \"{{name}}\" đã chạy xong.",
+    "timeout": "Lịch hẹn \"{{name}}\" bị dừng vì chạy quá 10 phút.",
+    "aborted": "Lịch hẹn \"{{name}}\" đã dừng.",
+    "folderMissing": "Lịch hẹn \"{{name}}\" lỗi: không tìm thấy thư mục.",
+    "quotaRun": "Lịch hẹn \"{{name}}\" dừng vì hết hạn mức Claude.",
+    "cliMissing": "Lịch hẹn \"{{name}}\" không chạy được: chưa cài / chưa đăng nhập Claude.",
+    "error": "Lịch hẹn \"{{name}}\" bị lỗi.",
+    "pausedFailures": "Lịch hẹn \"{{name}}\" lỗi 3 lần liền nên đã tạm dừng.",
+    "pausedQuota": "Hết hạn mức Claude: mọi lịch hẹn tạm dừng tới ngày mai.",
+    "pausedHotkey": "Đã dừng khẩn cấp: mọi lịch hẹn đang tạm dừng.",
+    "dailyLimit": "Đã chạy đủ số lần lịch hẹn cho hôm nay — các lượt còn lại bị bỏ qua.",
+    "open": "Mở",
+    "close": "Đóng"
+  },
+  "proposal": {
+    "title": "Đề xuất lịch hẹn",
+    "when": "Thời gian:",
+    "project": "Dự án:",
+    "model": "Model:",
+    "prompt": "Lời nhắn mỗi lần chạy:",
+    "readOnly": "Lịch do trợ lý đề xuất chỉ đọc, không có quyền thư mục / Gmail / Telegram — bạn tự thêm sau nếu cần (có xác nhận).",
+    "accept": "Tạo lịch",
+    "reject": "Từ chối"
+  },
+  "badge": {
+    "fromSchedule": "Từ lịch hẹn"
+  }
+}

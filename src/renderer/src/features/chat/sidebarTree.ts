@@ -15,6 +15,8 @@ export const MAX_DEPTH = 3
  * Dựng thanh bên: Đã ghim (luôn ở đầu) → từng nhóm → chưa xếp nhóm.
  * `conversations` giữ thứ tự main trả về (ghim trước, mới nhất trước).
  * - Nhánh nằm ngay dưới cuộc gốc khi cả hai ở cùng mục; khác mục (vd nhánh được ghim) thì đứng riêng.
+ * - Cuộc do lịch hẹn tạo ra KHÔNG hiện (lịch theo giờ sẽ làm ngập thanh bên) — xem ở trang Lịch hẹn / Ctrl+K /
+ *   trang dự án; người dùng ghim thì hiện ở "Đã ghim".
  * Tìm kiếm nằm ở cửa sổ nổi Ctrl+K (`search/`), thanh bên luôn hiện đủ danh sách.
  */
 export function buildSidebar(conversations: Conversation[], groups: ConversationGroup[]): SidebarSection[] {
@@ -24,6 +26,7 @@ export function buildSidebar(conversations: Conversation[], groups: Conversation
 
   const buckets = new Map<string, Conversation[]>()
   for (const c of conversations) {
+    if (c.scheduleId && !c.pinned) continue
     const key = sectionOf(c)
     buckets.set(key, [...(buckets.get(key) ?? []), c])
   }

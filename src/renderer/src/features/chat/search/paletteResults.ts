@@ -2,6 +2,7 @@ import type { ArtifactSummary, ArtifactType } from '@shared/artifacts'
 import type { ChatMode } from '@shared/ai'
 import type { Conversation } from '@shared/types'
 import type { Project } from '@shared/projects'
+import type { Schedule } from '@shared/schedules'
 import { matchesAllWords } from '@shared/text'
 import { filterArtifacts } from '@renderer/features/artifact-library/filter'
 
@@ -35,6 +36,7 @@ export type PaletteItem =
       updatedAt: number
     }
   | { kind: 'project'; id: string; title: string; pinned: boolean; updatedAt: number }
+  | { kind: 'schedule'; id: string; title: string; enabled: boolean; updatedAt: number }
   | { kind: 'action'; id: PaletteAction }
 
 export type PaletteSection = { key: 'recent' | 'results' | 'actions'; items: PaletteItem[] }
@@ -78,6 +80,8 @@ export function buildPalette(input: {
   artifacts: ArtifactSummary[]
   /** Dự án cá nhân — lọc ở đây (không dấu, theo tên + mô tả). */
   projects?: Project[]
+  /** Lịch hẹn — lọc ở đây (không dấu, theo tên + lời nhắn). */
+  schedules?: Schedule[]
 }): PaletteSection[] {
   const { tab } = input
   const searching = input.query.trim().length > 0
@@ -87,10 +91,18 @@ export function buildPalette(input: {
     .filter((p) => matchesAllWords(`${p.name} ${p.description}`, input.query))
     .map((p) => ({ kind: 'project', id: p.id, title: p.name, pinned: p.pinned, updatedAt: p.updatedAt }))
 
+  const scheds: PaletteItem[] = (input.schedules ?? [])
+    .filter((s) => matchesAllWords(`${s.name} ${s.prompt}`, input.query))
+    .map((s) => ({ kind: 'schedule', id: s.id, title: s.name, enabled: s.enabled, updatedAt: s.lastRunAt ?? s.updatedAt }))
+
   let items: PaletteItem[]
   switch (tab) {
     case 'all':
-      items = [...convs, ...arts, ...projs]
+      items = [...convs, ...arts, ...projs, ...scheds]
+      break
+    case 'scheduled':
+      // Lịch + các cuộc do lịch tạo (không hiện ở thanh bên).
+      items = [...scheds, ...input.conversations.filter((c) => c.scheduleId).map(conversationItem)]
       break
     case 'projects':
       items = projs

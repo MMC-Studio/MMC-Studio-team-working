@@ -236,6 +236,16 @@
         "label": "Report a bug",
         "description": "A draft is written for you with the version and recent logs (personal info masked).",
         "keywords": "bug report support"
+      },
+      "schedules": {
+        "label": "Scheduled tasks",
+        "description": "The assistant runs prompts on a schedule while the app is open (read-only). Off by default; turning it on shows a warning first.",
+        "keywords": "schedule scheduled recurring automatic cron"
+      },
+      "scheduleTray": {
+        "label": "Hide to the tray when closing",
+        "description": "Clicking X hides the app to the tray (bottom-right of the taskbar) so schedules keep running. Only while scheduled tasks are on.",
+        "keywords": "tray minimize hide close window"
       }
     }
   }

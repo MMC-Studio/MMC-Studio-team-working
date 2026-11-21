@@ -30,6 +30,7 @@ import {
   memorySuggestions,
   messages,
   projects,
+  schedules,
   settings,
   type TitleSource
 } from './schema'
@@ -48,6 +49,7 @@ const toConversation = (r: ConversationRow): Conversation => ({
   parentId: r.parentId,
   suggestedGroupId: r.suggestedGroupId,
   projectId: r.projectId,
+  scheduleId: r.scheduleId ?? null,
   createdAt: r.createdAt,
   updatedAt: r.updatedAt
 })
@@ -307,6 +309,35 @@ export class ConversationRepository {
     return this.ownsProject(projectId) ? this.insert(mode, projectId) : null
   }
 
+  /**
+   * Cuộc cho một lần chạy lịch hẹn — của CHỦ LỊCH (`owner`), có sẵn tiêu đề (AI không đặt lại) và thư mục đọc (không sửa).
+   * Dự án không còn của chủ lịch → cuộc thường.
+   */
+  createForSchedule(input: { owner: string; scheduleId: string; title: string; projectId: string | null; cwd: string | null }): Conversation {
+    const ts = Date.now()
+    const ownsProject =
+      !!input.projectId &&
+      !!this.db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, input.projectId), eq(projects.owner, input.owner))).get()
+    const row = this.db
+      .insert(conversations)
+      .values({
+        id: randomUUID(),
+        owner: input.owner,
+        mode: 'free',
+        title: input.title,
+        titleSource: 'fixed',
+        projectId: ownsProject ? input.projectId : null,
+        scheduleId: input.scheduleId,
+        cwd: input.cwd,
+        codeWrite: false,
+        createdAt: ts,
+        updatedAt: ts
+      })
+      .returning()
+      .get()
+    return toConversation(row)
+  }
+
   private insert(mode: ChatMode, projectId: string | null): Conversation {
     const ts = Date.now()
     const row = this.db
@@ -397,6 +428,7 @@ export class ConversationRepository {
     // Nhóm và dự án đi cùng lịch sử chat.
     this.db.update(conversationGroups).set({ owner: to }).where(eq(conversationGroups.owner, from)).run()
     this.db.update(projects).set({ owner: to }).where(eq(projects.owner, from)).run()
+    this.db.update(schedules).set({ owner: to }).where(eq(schedules.owner, from)).run()
   }
 }
 
