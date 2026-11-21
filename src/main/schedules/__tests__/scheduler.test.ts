@@ -476,6 +476,21 @@ describe('ScheduleService — quyền và giới hạn', () => {
     expect(repo.get(id)?.grants).toEqual(NO_GRANTS)
   })
 
+  it('sửa MỖI lời nhắn / giờ → giữ nguyên mọi quyền (cả đề xuất sửa + soạn nháp), không hỏi xác nhận lại', () => {
+    const full = { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: true, folderWrite: true, drafts: true }
+    const created = service.save({ input: input({ grants: full }), confirmed: true })
+    if (created.status !== 'saved') throw new Error()
+    const r = service.save({ id: created.schedule.id, input: input({ grants: full, prompt: 'Lời nhắn mới', recurrence: { kind: 'daily', time: '09:30' } }), confirmed: false })
+    expect(r.status).toBe('saved')
+    expect(repo.get(created.schedule.id)).toMatchObject({ prompt: 'Lời nhắn mới', grants: full })
+    // Bật lại quyền đề xuất sửa sau khi đã bỏ → phải hỏi lại.
+    service.save({ id: created.schedule.id, input: input({ grants: { ...full, folderWrite: false } }), confirmed: false })
+    expect(service.save({ id: created.schedule.id, input: input({ grants: full }), confirmed: false })).toEqual({
+      status: 'confirm',
+      added: [{ kind: 'folderWrite', path: 'C:\\a' }]
+    })
+  })
+
   it('kiểm tra: thư mục không có, tài khoản Gmail lạ, dự án của người khác, giờ một lần đã qua', () => {
     expect(() => service.save({ input: input({ grants: { ...NO_GRANTS, folder: 'C:\\khong-co' } }), confirmed: true })).toThrow('folder_not_found')
     expect(() => service.save({ input: input({ grants: { ...NO_GRANTS, gmailAccounts: ['x'] } }), confirmed: true })).toThrow('gmail_account_not_found')

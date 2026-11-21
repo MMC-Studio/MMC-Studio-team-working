@@ -54,6 +54,20 @@ export interface GmailBackend {
   search(accountId: string, query: string, max: number): Promise<GmailSummary[]>
   read(accountId: string, id: string): Promise<GmailMessage>
   createDraft(accountId: string, draft: GmailDraftInput): Promise<{ id: string }>
+  /**
+   * Đã từng THẬT SỰ gửi / nhận thư với địa chỉ này chưa — chỉ thư đã gửi / đã nhận: KHÔNG tính bản nháp, thùng rác,
+   * spam (nháp hoãn duyệt của lịch hẹn cảnh báo "người chưa từng liên lạc"). Lỗi → ném (bên gọi coi như chưa từng).
+   */
+  hasCorrespondence(accountId: string, address: string): Promise<boolean>
+}
+
+/** Thư có nhãn này không tính là "đã liên lạc". */
+const NOT_CORRESPONDENCE = new Set(['DRAFT', 'TRASH', 'SPAM'])
+
+/** Truy vấn tìm thư đã gửi / đã nhận với một địa chỉ (bỏ nháp, thùng rác, spam). */
+export function correspondenceQuery(address: string): string {
+  const safe = address.replace(/["\\\s()]/g, '')
+  return `(from:"${safe}" OR to:"${safe}") -in:drafts -in:trash -in:spam`
 }
 
 /**
@@ -347,6 +361,17 @@ export class GoogleGmailBackend implements GmailBackend {
         )
       )
     return out
+  }
+
+  async hasCorrespondence(accountId: string, address: string): Promise<boolean> {
+    // Không dùng in:anywhere (gồm cả thùng rác / spam). Gmail vẫn có thể trả thư nháp → kiểm thêm nhãn từng thư.
+    const q = new URLSearchParams({ maxResults: '10', q: correspondenceQuery(address) })
+    const list = await this.api<{ messages?: { id: string }[] }>(accountId, `/messages?${q.toString()}`)
+    for (const m of list.messages ?? []) {
+      const raw = await this.api<{ labelIds?: string[] }>(accountId, `/messages/${encodeURIComponent(m.id)}?format=minimal`)
+      if (!(raw.labelIds ?? []).some((l) => NOT_CORRESPONDENCE.has(l))) return true
+    }
+    return false
   }
 
   async read(accountId: string, id: string): Promise<GmailMessage> {

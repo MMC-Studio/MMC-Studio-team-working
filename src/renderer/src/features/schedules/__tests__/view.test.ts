@@ -110,6 +110,12 @@ describe('ô nhập ↔ dữ liệu lưu', () => {
     expect(formToInput({ ...f, name: 'A', prompt: 'B', kind: 'once', onceAt: '2026-11-21T09:30' })).toMatchObject({ recurrence: { kind: 'once', at: at(2026, 11, 21, 9, 30) } })
   })
 
+  it('sửa MỖI lời nhắn: quyền đề xuất sửa file + soạn nháp đi nguyên vẹn tới dữ liệu lưu', () => {
+    const grants = { folder: 'C:\\a', gmailAccounts: ['acc1'], telegram: false, folderWrite: true, drafts: true }
+    const f = formFromSchedule(schedule({ grants }), at(2026, 11, 21))
+    expect(formToInput({ ...f, prompt: 'Lời nhắn mới' })).toMatchObject({ prompt: 'Lời nhắn mới', grants })
+  })
+
   it('sửa lịch: ô nhập lấy lại đúng giờ / quyền / model', () => {
     const s = schedule({ recurrence: { kind: 'weekly', days: [1, 3], time: '17:30' }, model: 'cheap', grants: { folder: 'C:\\a', gmailAccounts: ['x'], telegram: true, folderWrite: false, drafts: false } })
     const f = formFromSchedule(s, at(2026, 11, 21))

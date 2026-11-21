@@ -494,17 +494,16 @@ export class GmailService {
   }
 
   /**
-   * Người nhận chưa từng liên lạc: không có thư nào từ / tới địa chỉ đó trong tài khoản (kể cả thư đã gửi). Lỗi khi
-   * tìm → coi như chưa từng (thà cảnh báo thừa).
+   * Người nhận chưa từng liên lạc: chưa có thư đã gửi / đã nhận nào với địa chỉ đó (bản nháp, thùng rác, spam không
+   * tính). Dò lỗi / không chắc → coi như chưa từng (thà cảnh báo thừa).
    */
   private async unknownRecipients(accountId: string, to: string[]): Promise<string[]> {
     const out: string[] = []
     for (const addr of to) {
-      const safe = addr.replace(/["\\\s()]/g, '')
-      const seen = await this.deps.backend.search(accountId, `in:anywhere (from:"${safe}" OR to:"${safe}")`, 1).then(
-        (list) => list.length > 0,
-        () => false
-      )
+      const seen = await this.deps.backend.hasCorrespondence(accountId, addr).catch((err: unknown) => {
+        this.deps.log.warn(`Gmail: không dò được người nhận đã liên lạc chưa (${err instanceof Error ? err.message : String(err)})`)
+        return false
+      })
       if (!seen) out.push(addr)
     }
     return out

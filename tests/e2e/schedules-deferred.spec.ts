@@ -95,6 +95,26 @@ test('tạo lịch có quyền đề xuất sửa + soạn nháp → hộp xác 
   await expect(row('Dọn dẹp')).toBeVisible(FAST)
 })
 
+test('sửa MỖI lời nhắn → giữ nguyên mọi quyền (thư mục, đề xuất sửa, Gmail, soạn nháp), không hỏi xác nhận', async () => {
+  const grants = () => page.evaluate(async () => (await window.api.schedules.list()).find((x) => x.name === 'Dọn dẹp')!.grants)
+  const before = await grants()
+  expect(before).toMatchObject({ folderWrite: true, drafts: true })
+  await row('Dọn dẹp').getByTestId('schedule-menu').click()
+  await page.getByTestId('schedule-edit').click()
+  await expect(page.getByTestId('schedule-drafts')).toBeChecked()
+  await expect(page.getByTestId('schedule-folder-write')).toBeChecked()
+  await page.getByLabel('Lời nhắn gửi trợ lý mỗi lần chạy').fill(`${PROMPT} `)
+  await page.getByTestId('schedule-save').click()
+  await expect(page.getByTestId('schedule-grant-confirm')).toHaveCount(0)
+  await expect(page.getByTestId('schedule-editor')).toHaveCount(0, FAST)
+  expect(await grants()).toEqual(before)
+  // Mở lại hộp sửa: các ô vẫn được tick.
+  await row('Dọn dẹp').getByTestId('schedule-menu').click()
+  await page.getByTestId('schedule-edit').click()
+  await expect(page.getByTestId('schedule-drafts')).toBeChecked()
+  await page.keyboard.press('Escape')
+})
+
 test('chạy: KHÔNG dừng chờ — một "Bộ thay đổi" (a.txt bản 2, file mới) + 2 thẻ nháp; file trên đĩa chưa đổi', async () => {
   await row('Dọn dẹp').getByTestId('schedule-menu').click()
   await page.getByTestId('schedule-run-now').click()

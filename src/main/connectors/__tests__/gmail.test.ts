@@ -237,6 +237,28 @@ describe('Gmail — OAuth, MIME, bản nháp', () => {
     expect(used).toHaveLength(2)
   })
 
+  it('đã liên lạc chưa: bỏ nháp / thùng rác / spam trong truy vấn; thư trả về chỉ là NHÁP (Gmail vẫn trả) → chưa từng', async () => {
+    const urls: string[] = []
+    const labels: Record<string, string[]> = { nhap: ['DRAFT'], rac: ['TRASH'], that: ['SENT'] }
+    let ids: string[] = ['nhap', 'rac']
+    const { backend, tokens } = google((u) => {
+      if (u.includes('oauth2.googleapis.com/token')) return json(200, { access_token: 'AT', expires_in: 3600 })
+      urls.push(u)
+      const one = /\/messages\/([^/?]+)\?format=minimal/.exec(u)
+      if (one) return json(200, { id: one[1], labelIds: labels[one[1]] })
+      return json(200, { messages: ids.map((id) => ({ id })) })
+    })
+    tokens.of('a').set('RT')
+    expect(await backend.hasCorrespondence('a', 'abc123xyz@gmail.com')).toBe(false)
+    const q = new URL(urls[0]).searchParams.get('q')!
+    expect(q).toBe('(from:"abc123xyz@gmail.com" OR to:"abc123xyz@gmail.com") -in:drafts -in:trash -in:spam')
+    expect(q).not.toContain('in:anywhere')
+    ids = ['nhap', 'that']
+    expect(await backend.hasCorrespondence('a', 'abc123xyz@gmail.com')).toBe(true)
+    ids = []
+    expect(await backend.hasCorrespondence('a', 'x@y.com')).toBe(false)
+  })
+
   it('ngắt một tài khoản: xoá token của riêng nó dù thu hồi phía Google lỗi mạng', async () => {
     const { backend, tokens } = google(() => {
       throw new Error('offline')
@@ -379,6 +401,15 @@ describe('GmailService — nháp hoãn duyệt (lịch hẹn 7b)', () => {
     expect(g.backend.drafts).toHaveLength(0)
     await g.service.createDeferredDraft({ kind: 'draft', ...sent[0], draft: { ...sent[0].draft, error: null } }, 'Nội dung sửa')
     expect(g.backend.drafts[0]).toMatchObject({ to: ['lan@example.com', 'la@ngoai.example'], body: 'Nội dung sửa' })
+    // Có bản nháp (tạo trong app) tới một địa chỉ nhưng chưa từng gửi / nhận → vẫn là người lạ.
+    await g.service.createDeferredDraft({ kind: 'draft', ...sent[0], to: ['abc123xyz@gmail.com'], draft: { ...sent[0].draft, error: null } }, 'nháp')
+    await g.call('gmail_draft', { to: ['abc123xyz@gmail.com'], body: 'Nội dung', account: 'ban' })
+    expect(sent[1].draft.unknownRecipients).toEqual(['abc123xyz@gmail.com'])
+    // Dò lỗi → không chắc → vẫn cảnh báo (cả người quen).
+    g.backend.correspondenceFails = true
+    await g.call('gmail_draft', { to: ['lan@example.com'], body: 'Nội dung', account: 'ban' })
+    expect(sent[2].draft.unknownRecipients).toEqual(['lan@example.com'])
+    g.backend.correspondenceFails = false
     // Tắt Gmail → Đồng ý báo lỗi (thẻ vẫn chờ ở DeferredService).
     g.service.setEnabled(false)
     await expect(g.service.createDeferredDraft({ kind: 'draft', ...sent[0], draft: { ...sent[0].draft, error: null } }, 'x')).rejects.toThrow('gmail_unavailable')
