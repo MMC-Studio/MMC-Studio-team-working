@@ -38,7 +38,8 @@ export function registerProjectsIpc(deps: ProjectsIpcDeps): void {
   )
   handle(IPC.projectsDeleteInfo, idSchema, (id) => repo.deleteInfo(id))
   // Xoá dự án: cuộc trò chuyện thành cuộc thường, trí nhớ dự án mất theo → báo cả ba mục.
-  handle(IPC.projectsRemove, idSchema, (id) => repo.remove(id), { changes: ['projects', 'conversations', 'memory'] })
+  // Lịch hẹn của dự án bị tạm dừng → báo cả mục schedules.
+  handle(IPC.projectsRemove, idSchema, (id) => repo.remove(id), { changes: ['projects', 'conversations', 'memory', 'schedules'] })
 
   // Renderer không gửi đường dẫn: main tự mở hộp thoại chọn file (chỉ file chữ).
   handle(

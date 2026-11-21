@@ -1,4 +1,5 @@
 import {
+  Clock,
   CodeXml,
   CornerDownLeft,
   Ellipsis,
@@ -22,6 +23,8 @@ import { useSync, useSyncedState } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
 import { ARTIFACT_TYPE_ICON } from '@renderer/features/artifact-library/typeIcon'
 import { useProjects } from '@renderer/features/projects/store'
+import { useSchedules } from '@renderer/features/schedules/store'
+import { schedulePath } from '@renderer/features/schedules/view'
 import { projectPath } from '@renderer/features/projects/view'
 import { useArtifacts } from '../artifacts/store'
 import { useComposeText } from '../draft'
@@ -91,13 +94,14 @@ function PaletteDialog() {
   const { data: artifacts } = useSyncedState(['artifacts', 'conversations'], () => api.artifacts.listAll())
   // Dự án: store chung (tự tải lại khi có thay đổi).
   const projects = useProjects((s) => s.projects)
+  const schedules = useSchedules((s) => s.schedules)
 
   const sections = useMemo<PaletteSection[]>(
     () =>
       conversations && artifacts
-        ? buildPalette({ tab, query: debounced, conversations, artifacts, projects })
+        ? buildPalette({ tab, query: debounced, conversations, artifacts, projects, schedules })
         : [],
-    [tab, debounced, conversations, artifacts, projects]
+    [tab, debounced, conversations, artifacts, projects, schedules]
   )
   const items = useMemo(() => flatItems(sections), [sections])
   const loading = conversations === null || artifacts === null
@@ -137,6 +141,10 @@ function PaletteDialog() {
     if (item.kind === 'project') {
       if (action === 'pin' || action === 'unpin') void useProjects.getState().togglePin(item.id)
       else void navigate(projectPath(item.id))
+      return
+    }
+    if (item.kind === 'schedule') {
+      void navigate(schedulePath(item.id))
       return
     }
     void (async () => {
@@ -373,6 +381,7 @@ function iconOf(item: PaletteItem): LucideIcon {
   if (item.kind === 'action') return item.id === 'new-code' ? SquareTerminal : MessageCirclePlus
   if (item.kind === 'artifact') return ARTIFACT_TYPE_ICON[item.type] ?? Shapes
   if (item.kind === 'project') return FolderKanban
+  if (item.kind === 'schedule') return Clock
   return item.mode === 'code' ? CodeXml : MessageCircle
 }
 

@@ -12,6 +12,7 @@ import type {
 } from '@shared/types'
 import type { UpdateState } from '@shared/update'
 import type { SyncTopic } from '@shared/sync'
+import type { ScheduleNoticeEvent, ScheduleOpenEvent } from '@shared/schedules'
 
 /** Đăng ký nghe sự kiện main → renderer; trả về hàm hủy. */
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -50,6 +51,29 @@ const api: TeamWorkingApi = {
     remove: (id) => ipcRenderer.invoke(IPC.projectsRemove, id),
     addFiles: (id) => ipcRenderer.invoke(IPC.projectsAddFiles, id),
     removeFile: (fileId) => ipcRenderer.invoke(IPC.projectsRemoveFile, fileId)
+  },
+  schedules: {
+    list: () => ipcRenderer.invoke(IPC.schedulesList),
+    status: () => ipcRenderer.invoke(IPC.schedulesStatus),
+    save: (input) => ipcRenderer.invoke(IPC.schedulesSave, input),
+    setEnabled: (id, enabled) => ipcRenderer.invoke(IPC.schedulesSetEnabled, { id, enabled }),
+    skipNext: (id, skip) => ipcRenderer.invoke(IPC.schedulesSkipNext, { id, skip }),
+    remove: (id) => ipcRenderer.invoke(IPC.schedulesRemove, id),
+    runNow: (id) => ipcRenderer.invoke(IPC.schedulesRunNow, id),
+    stop: () => ipcRenderer.invoke(IPC.schedulesStop),
+    runs: (scheduleId, limit) => ipcRenderer.invoke(IPC.schedulesRuns, { scheduleId, limit }),
+    markSeen: (conversationId) => ipcRenderer.invoke(IPC.schedulesMarkSeen, conversationId),
+    setFeature: (input) => ipcRenderer.invoke(IPC.schedulesSetFeature, input),
+    pauseAll: (paused) => ipcRenderer.invoke(IPC.schedulesPauseAll, paused),
+    pickFolder: () => ipcRenderer.invoke(IPC.schedulesPickFolder),
+    respondProposal: (decision) => ipcRenderer.invoke(IPC.schedulesRespondProposal, decision),
+    onOpen: (listener) => subscribe<ScheduleOpenEvent>(IPC.schedulesOpen, listener),
+    onNotice: (listener) => subscribe<ScheduleNoticeEvent>(IPC.schedulesNotice, listener),
+    test: {
+      advance: (ms) => ipcRenderer.invoke(IPC.schedulesTestAdvance, ms),
+      resume: () => ipcRenderer.invoke(IPC.schedulesTestResume),
+      hotkey: () => ipcRenderer.invoke(IPC.schedulesTestHotkey)
+    }
   },
   conversationGroups: {
     list: () => ipcRenderer.invoke(IPC.conversationGroupsList),

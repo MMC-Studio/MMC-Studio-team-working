@@ -205,6 +205,11 @@ export function DeleteProjectDialog({
                 {info.suggestions > 0 && <li>{t('deleteDialog.suggestions', { count: info.suggestions })}</li>}
               </ul>
               <p className="text-muted-foreground">{t('deleteDialog.keep', { count: info.conversations })}</p>
+              {info.schedules > 0 && (
+                <p className="text-muted-foreground" data-testid="project-delete-schedules">
+                  {t('deleteDialog.schedules', { count: info.schedules })}
+                </p>
+              )}
             </>
           )}
           <ErrorLine code={error} />

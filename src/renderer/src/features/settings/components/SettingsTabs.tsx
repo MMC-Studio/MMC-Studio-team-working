@@ -17,6 +17,7 @@ import { cn } from '@renderer/lib/utils'
 import { usePreferences } from '@renderer/stores/preferences'
 import { ExpressiveSettings } from '@renderer/features/chat/expressive/ExpressiveSettings'
 import { VoiceSettings } from '@renderer/features/chat/voice/VoiceSettings'
+import { SchedulesFeatureSwitch, TraySwitch } from '@renderer/features/schedules/components/ScheduleDialogs'
 import { PRESET_AVATARS, imageFileToAvatar } from '../avatar'
 import type { SettingsTab } from '../catalog'
 import { AiConnectionRows, AutoSuggestRow, OrganizeRows } from './AiSection'
@@ -259,6 +260,16 @@ function CapabilitiesTab() {
         <VoiceSettings />
       </SettingRow>
       <SettingRow id="computer" control={<OpenLink to="/computer" testId="open-computer" />} />
+      <SettingRow
+        id="schedules"
+        control={
+          <>
+            <OpenLink to="/scheduled" testId="open-schedules" />
+            <SchedulesFeatureSwitch />
+          </>
+        }
+      />
+      <SettingRow id="scheduleTray" control={<TraySwitch />} />
     </SettingsSection>
   )
 }

@@ -10,6 +10,7 @@ import { SidebarToggle } from '../layout/ChatLayout'
 import { errorCode } from '../store'
 import { useProjects } from '@renderer/features/projects/store'
 import { projectPath } from '@renderer/features/projects/view'
+import { ScheduleChatBadge } from '@renderer/features/schedules/components/ScheduleChatBadge'
 
 type Status = { kind: 'idle' } | { kind: 'running' } | { kind: 'done'; added: number } | { kind: 'error'; code: string }
 
@@ -65,6 +66,7 @@ export function ChatHeader({
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium" data-testid="chat-title" title={conversation?.title}>
           {conversation ? conversation.title || t('untitled') : ''}
         </h2>
+        {conversation && <ScheduleChatBadge conversationId={conversation.id} scheduleId={conversation.scheduleId} />}
         {status.kind === 'done' && (
           <span className="min-w-0 shrink truncate text-xs" data-testid="suggest-status">
             {status.added > 0 ? (

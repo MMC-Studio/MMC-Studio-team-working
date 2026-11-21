@@ -51,11 +51,20 @@ function NavigateFromMain() {
 function useAuthLifecycle(): void {
   useEffect(() => {
     const stopAuth = useAuth.getState().init()
-    let lastUid: string | null = null
-    const unsubscribe = useAuth.subscribe((s) => {
+    // undefined = chưa báo main lần nào: lần đầu biết trạng thái đăng nhập (kể cả chưa đăng nhập / không có Supabase)
+    // cũng phải báo, vì lịch hẹn chỉ chạy khi main biết chắc dữ liệu là của ai.
+    let lastUid: string | null | undefined = undefined
+    const apply = (s: ReturnType<typeof useAuth.getState>): void => {
+      if (s.status === 'loading') return
       const uid = s.session?.user.id ?? null
       if (uid === lastUid) return
+      const first = lastUid === undefined
       lastUid = uid
+      if (first && uid === null) {
+        // Mở app khi chưa đăng nhập: dữ liệu đã là của "trên máy" — chỉ báo main, không tải lại gì.
+        void api.account.set(null)
+        return
+      }
       queryClient.clear()
       if (uid) void useTeam.getState().load()
       else useTeam.getState().reset()
@@ -69,7 +78,9 @@ function useAuthLifecycle(): void {
         ])
         if (uid) await syncAssistant(uid)
       })()
-    })
+    }
+    const unsubscribe = useAuth.subscribe(apply)
+    apply(useAuth.getState())
     return () => {
       unsubscribe()
       stopAuth()

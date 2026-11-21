@@ -51,7 +51,14 @@ export type ProjectDetail = Project & {
 }
 
 /** Hộp xác nhận xoá dự án ghi rõ những gì sẽ mất / được giữ. */
-export type ProjectDeleteInfo = { files: number; memories: number; suggestions: number; conversations: number }
+export type ProjectDeleteInfo = {
+  files: number
+  memories: number
+  suggestions: number
+  conversations: number
+  /** Lịch hẹn của dự án: giữ lại nhưng bị tạm dừng. */
+  schedules: number
+}
 
 export type ProjectFileRejectReason = 'not_text' | 'too_large' | 'too_many' | 'unreadable'
 export type ProjectAddFilesResult = {

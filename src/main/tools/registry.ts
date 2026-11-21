@@ -38,6 +38,22 @@ export const errorResult = (text: string): ToolResult => ({ content: [{ type: 't
  */
 export class AppToolRegistry {
   private tools = new Map<string, AppTool>()
+  /**
+   * Cuộc trò chuyện đang có lượt chạy bị giới hạn (lịch hẹn): CHỈ tool trong danh sách này dùng được, kể cả khi
+   * tính năng khác đang bật — tool mới đăng ký sau này mặc định bị chặn ở đây.
+   */
+  private policies = new Map<string, ReadonlySet<string>>()
+
+  /** Giới hạn tool cho một cuộc trong lúc lượt chạy diễn ra; `null` = bỏ giới hạn (lượt kết thúc). */
+  restrict(conversationId: string, names: readonly string[] | null): void {
+    if (names) this.policies.set(conversationId, new Set(names))
+    else this.policies.delete(conversationId)
+  }
+
+  private allowed(tool: AppTool, ctx: ToolContext): boolean {
+    const policy = this.policies.get(ctx.conversationId)
+    return (!policy || policy.has(tool.name)) && tool.available(ctx)
+  }
 
   register<S extends z.ZodType>(tool: AppTool<S>): void {
     if (!NAME.test(tool.name)) throw new Error(`Tên tool không hợp lệ: ${tool.name}`)
@@ -47,12 +63,12 @@ export class AppToolRegistry {
 
   /** Tên các tool dùng được trong ngữ cảnh này. */
   available(ctx: ToolContext): string[] {
-    return [...this.tools.values()].filter((t) => t.available(ctx)).map((t) => t.name)
+    return [...this.tools.values()].filter((t) => this.allowed(t, ctx)).map((t) => t.name)
   }
 
   definitions(ctx: ToolContext): ToolDefinition[] {
     return [...this.tools.values()]
-      .filter((t) => t.available(ctx))
+      .filter((t) => this.allowed(t, ctx))
       .map((t) => {
         const { $schema: _schema, ...inputSchema } = z.toJSONSchema(t.input) as Record<string, unknown>
         return { name: t.name, description: t.description, inputSchema }
@@ -63,7 +79,7 @@ export class AppToolRegistry {
     const tool = this.tools.get(name)
     if (!tool) return errorResult(`Không có công cụ "${name}".`)
     // Tính năng có thể vừa bị tắt (vd dừng khẩn cấp) giữa lúc CLI đang chạy.
-    if (!tool.available(ctx)) return errorResult('Công cụ này đang bị tắt. Hãy dừng và hỏi người dùng.')
+    if (!this.allowed(tool, ctx)) return errorResult('Công cụ này đang bị tắt. Hãy dừng và hỏi người dùng.')
     const parsed = tool.input.safeParse(rawInput ?? {})
     if (!parsed.success) return errorResult(`Tham số không hợp lệ: ${parsed.error.issues.map((i) => i.message).join('; ')}`)
     try {

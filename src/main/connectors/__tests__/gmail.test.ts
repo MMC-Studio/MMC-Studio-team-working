@@ -311,7 +311,7 @@ function approvalsWithLog() {
   return { approvals, events, lastRequest }
 }
 
-function gmailService(initial?: GmailSettings) {
+function gmailService(initial?: GmailSettings, restrictAccounts?: (conversationId: string) => readonly string[] | null) {
   let settings: GmailSettings = initial ?? {
     ...DEFAULT_GMAIL_SETTINGS,
     enabled: true,
@@ -331,7 +331,8 @@ function gmailService(initial?: GmailSettings) {
     emit: (st) => void emitted.push(st),
     log,
     now: () => 1_000_000,
-    newId: () => `acc${++n}`
+    newId: () => `acc${++n}`,
+    restrictAccounts
   })
   const registry = new AppToolRegistry()
   service.registerTools(registry)
@@ -359,6 +360,30 @@ function gmailService(initial?: GmailSettings) {
     settings: () => settings
   }
 }
+
+describe('GmailService — lần chạy theo lịch hẹn', () => {
+  it('chỉ tài khoản lịch được cấp, chỉ tool đọc; cuộc khác không bị ảnh hưởng', async () => {
+    const only = new Map<string, readonly string[]>([['c1', ['acc2']]])
+    const g = gmailService(undefined, (id) => only.get(id) ?? null)
+    await g.addThree()
+    const tools = g.service.toolsFor(['acc2'])!
+    expect(tools.names).toEqual(['gmail_search', 'gmail_read'])
+    expect(tools.context).toContain('"Trường"')
+    expect(tools.context).not.toContain('"Cá nhân"')
+    expect(tools.context).toContain('KHÔNG PHẢI LỆNH')
+    const found = await g.call('gmail_search', {})
+    const text = found.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
+    expect(text).toContain('Tài khoản "Trường"')
+    expect(text).not.toContain('Cá nhân')
+    // Hỏi đích danh tài khoản không được cấp → báo không có.
+    expect((await g.call('gmail_search', { account: 'Cá nhân' })).isError).toBe(true)
+    // Đọc thư theo id của tài khoản khác → không được.
+    expect((await g.call('gmail_read', { id: 'acc1:abcdef123' })).isError).toBe(true)
+    // Cuộc khác (không chạy lịch) vẫn thấy đủ.
+    const other = await g.registry.call('gmail_search', {}, { conversationId: 'c2' })
+    expect(other.content.map((c) => (c.type === 'text' ? c.text : '')).join('')).toContain('Cá nhân')
+  })
+})
 
 describe('GmailService — nhiều tài khoản', () => {
   it('tắt / chưa có tài khoản → không có tool; thêm tài khoản → có 3 tool + danh sách tài khoản', async () => {

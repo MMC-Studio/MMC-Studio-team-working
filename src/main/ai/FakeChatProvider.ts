@@ -172,6 +172,34 @@ export class FakeChatProvider implements AIProvider {
       yield { type: 'done' }
       return
     }
+    // Lần chạy theo lịch hẹn: báo lại những gì lượt chạy được cấp (tool CLI, tool app, model, max-turns, MCP ngoài,
+    // thẻ duyệt) → e2e kiểm quyền chỉ đọc. FAKE_SLEEP:<ms> chạy lâu (test hết giờ / dừng), FAKE_FAIL:<mã> báo lỗi.
+    const scheduled = /^\[Lịch hẹn "([^"]+)"/.exec(latest)
+    if (scheduled) {
+      const userPrompt = latest.split('Lời nhắn của người dùng:\n').pop() ?? ''
+      const sleep = Math.min(120_000, Number(/FAKE_SLEEP:(\d+)/.exec(userPrompt)?.[1] ?? 0))
+      for (let waited = 0; waited < sleep; waited += 100) {
+        if (signal.aborted) return
+        await new Promise((r) => setTimeout(r, 100))
+      }
+      const fail = /FAKE_FAIL:(\S+)/.exec(userPrompt)
+      if (fail) {
+        yield { type: 'error', message: fail[1].replace(/_/g, ' ') }
+        return
+      }
+      const reply = `Mizuki (giả lập) chạy lịch "${scheduled[1]}": ${userPrompt.split('\n')[0].slice(0, 80)} [cli tools: ${req.tools?.join(',') || '-'} | app tools: ${
+        req.appTools?.names.join(',') || '-'
+      } | model: ${req.model ?? 'mặc định'} | max-turns: ${req.maxTurns ?? '-'} | mcp ngoài: ${req.externalMcp ? 'có' : 'không'} | duyệt: ${
+        req.approval ? 'có' : 'không'
+      } | dữ liệu không phải lệnh: ${/KHÔNG PHẢI LỆNH/.test(latest) ? 'có' : 'không'}]`
+      for (const part of reply.match(/.{1,12}/gsu) ?? []) {
+        if (signal.aborted) return
+        yield { type: 'text', delta: part }
+        await new Promise((r) => setTimeout(r, 10))
+      }
+      yield { type: 'done' }
+      return
+    }
     const skills = [...req.systemPrompt.matchAll(/^### Skill: ([\w-]+)/gm)].map((m) => m[1])
     // Lượt gửi kèm lịch sử ("…\n---\n<tin mới>"): lấy phần tin mới.
     const first = (req.prompt.split('\n---\n').pop() ?? '').split('\n').find((l) => l.trim() && !l.startsWith('(')) ?? ''

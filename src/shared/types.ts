@@ -1,6 +1,17 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
+import type {
+  Schedule,
+  ScheduleInput,
+  ScheduleNoticeEvent,
+  ScheduleOpenEvent,
+  ScheduleProposalDecision,
+  ScheduleRun,
+  ScheduleErrorResult,
+  ScheduleSaveResult,
+  SchedulesStatus
+} from './schedules'
 import type { Artifact, ArtifactSummary, ArtifactVersion, MessageArtifact } from './artifacts'
 import type { MessageVoice, SpeakChunk, TranscribeResult, VoiceComponent, VoicePackState, VoiceSettings, VoiceStatus } from './voice'
 import type { SkillDetail, SkillInfo, SkillPreviewResult, SkillSource, StyleLearnResult } from './skills'
@@ -89,6 +100,8 @@ export type Conversation = {
   suggestedGroupId: string | null
   /** Dự án chứa cuộc này (null = cuộc thường). */
   projectId: string | null
+  /** Cuộc do một lần chạy lịch hẹn tạo ra (null = cuộc thường). Không hiện ở thanh bên trừ khi được ghim. */
+  scheduleId: string | null
   /**
    * Chỉ khi đang tìm kiếm và khớp nội dung tin nhắn (không phải tiêu đề): trích đoạn, chữ khớp nằm giữa
    * SNIPPET_OPEN / SNIPPET_CLOSE (`@shared/search`).
@@ -288,6 +301,30 @@ export interface TeamWorkingApi {
     /** Mở hộp thoại chọn file chữ (main) rồi thêm vào dự án. */
     addFiles(id: string): Promise<ProjectAddFilesResult>
     removeFile(fileId: string): Promise<void>
+  }
+  /** Lịch hẹn. Lỗi biết trước trả `{ status: 'error', error }` (mã lỗi → i18n). */
+  schedules: {
+    list(): Promise<Schedule[]>
+    status(): Promise<SchedulesStatus>
+    /** Quyền MỚI chưa xác nhận → `{ status: 'confirm', added }` (gọi lại với confirmed = true sau hộp xác nhận). */
+    save(input: { id?: string; input: ScheduleInput; confirmed?: boolean }): Promise<ScheduleSaveResult | ScheduleErrorResult>
+    setEnabled(id: string, enabled: boolean): Promise<{ status: 'saved'; schedule: Schedule } | ScheduleErrorResult>
+    skipNext(id: string, skip: boolean): Promise<{ status: 'saved'; schedule: Schedule } | ScheduleErrorResult>
+    remove(id: string): Promise<boolean>
+    runNow(id: string): Promise<boolean>
+    stop(): Promise<boolean>
+    runs(scheduleId: string | null, limit?: number): Promise<ScheduleRun[]>
+    markSeen(conversationId: string): Promise<boolean>
+    /** Bật / tắt tính năng (lần đầu bật phải kèm acknowledged), ẩn xuống khay khi đóng. */
+    setFeature(input: { enabled?: boolean; acknowledged?: true; trayOnClose?: boolean }): Promise<SchedulesStatus>
+    pauseAll(paused: boolean): Promise<SchedulesStatus>
+    /** Hộp chọn thư mục (main) — null = huỷ. */
+    pickFolder(): Promise<string | null>
+    respondProposal(decision: ScheduleProposalDecision): Promise<boolean>
+    onOpen(listener: (e: ScheduleOpenEvent) => void): () => void
+    onNotice(listener: (e: ScheduleNoticeEvent) => void): () => void
+    /** Chỉ e2e (MMC_FAKE_CLOCK): tua đồng hồ, giả máy thức dậy, nhấn phím dừng. */
+    test: { advance(ms: number): Promise<void>; resume(): Promise<void>; hotkey(): Promise<void> }
   }
   conversationGroups: {
     list(): Promise<ConversationGroup[]>

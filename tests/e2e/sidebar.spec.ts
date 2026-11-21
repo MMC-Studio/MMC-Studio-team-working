@@ -158,7 +158,7 @@ test('trang Artifacts: mọi artifact của mọi cuộc, lọc không dấu, b�
   await expect(library.getByTestId('artifact-library-item').filter({ hasText: 'GDD' })).toContainText('Thiết kế game', FAST)
 })
 
-test('Lịch hẹn: trang "Sắp có"; Dự án, Plugin là trang thật; mục đang mở được tô', async () => {
+test('Dự án, Lịch hẹn, Plugin là trang thật; mục đang mở được tô', async () => {
   await page.getByTestId('nav-projects').click()
   await expect(page.getByTestId('projects-page')).toBeVisible(FAST)
   await expect(page.getByTestId('nav-projects')).toHaveAttribute('aria-current', 'page')
@@ -166,10 +166,10 @@ test('Lịch hẹn: trang "Sắp có"; Dự án, Plugin là trang thật; mục 
   await expect(page.getByTestId('plugins-page')).toBeVisible(FAST)
   await expect(page.getByTestId('nav-plugins')).toHaveAttribute('aria-current', 'page')
   await page.getByTestId('nav-scheduled').click()
-  const soon = page.getByTestId('coming-soon')
-  await expect(soon).toHaveAttribute('data-section', 'scheduled', FAST)
-  await expect(soon.getByRole('heading', { level: 1 })).toHaveText('Lịch hẹn')
-  await expect(soon).toContainText('Sắp có')
+  const schedules = page.getByTestId('schedules-page')
+  await expect(schedules.getByRole('heading', { level: 1 })).toHaveText('Lịch hẹn', FAST)
+  // Mặc định TẮT: giải thích + nút bật (qua cảnh báo).
+  await expect(page.getByTestId('schedules-disabled')).toBeVisible()
   await expect(page.getByTestId('nav-scheduled')).toHaveAttribute('aria-current', 'page')
   // Bấm một cuộc trò chuyện ở thanh bên → về trang chat.
   await page.getByTestId('conversation-item').first().locator('button').first().click()

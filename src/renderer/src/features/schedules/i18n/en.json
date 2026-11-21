@@ -1,0 +1,237 @@
+{
+  "title": "Scheduled",
+  "new": "New schedule",
+  "pauseAll": "Pause all",
+  "resumeAll": "Resume",
+  "appOpenNote": "Runs only while MMC studio is open. Each run is a new conversation; the assistant can only read.",
+  "today": "{{count}}/{{max}} runs today",
+  "toggleFor": "Turn schedule {{name}} on / off",
+  "notFound": "Schedule not found.",
+  "backToList": "Back to the list",
+  "unseen": "Unread",
+  "disabled": {
+    "title": "Scheduled tasks are off",
+    "body": "Turn on to let the assistant run a prompt on a schedule (e.g. summarize email every morning) while the app is open. You create schedules; the assistant can only suggest them.",
+    "enable": "Turn on scheduled tasks"
+  },
+  "empty": "No schedules yet",
+  "emptyHint": "Create a schedule for recurring work, or ask the assistant to suggest one in chat.",
+  "banner": {
+    "paused": "All schedules are paused.",
+    "pausedHotkey": "All schedules are paused (emergency stop key pressed).",
+    "quota": "Claude usage limit reached: schedules are paused until tomorrow.",
+    "running": "Running: {{name}}",
+    "open": "Open",
+    "stop": "Stop"
+  },
+  "recurrence": {
+    "onceAt": "Once: {{when}}",
+    "dailyAt": "Every day at {{time}}",
+    "weeklyAt": "{{days}} at {{time}}",
+    "hourly": "Every hour ({{from}}–{{to}})",
+    "everyHours": "Every {{n}} hours ({{from}}–{{to}})"
+  },
+  "days": {
+    "short": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    }
+  },
+  "next": {
+    "today": "today {{time}}",
+    "tomorrow": "tomorrow {{time}}",
+    "other": "{{date}} {{time}}"
+  },
+  "state": {
+    "next": "next: {{when}}",
+    "skipNext": "skipping next run",
+    "on": "on",
+    "paused": "paused",
+    "running": "running…",
+    "off": "off",
+    "failures": "paused after 3 failures in a row",
+    "project_deleted": "paused because the project was deleted",
+    "done": "finished"
+  },
+  "runStatus": {
+    "running": "Running",
+    "done": "Done",
+    "error": "Error",
+    "timeout": "Timed out (over 10 minutes)",
+    "aborted": "Stopped",
+    "missed": "Missed",
+    "skipped": "Skipped"
+  },
+  "runTrigger": {
+    "catch_up": "catch-up run",
+    "manual": "run now"
+  },
+  "runMissed_one": "missed {{count}} run",
+  "runMissed_other": "missed {{count}} runs",
+  "runReason": {
+    "folder_missing": "Folder not found: {{detail}}",
+    "daily_limit": "daily run limit reached",
+    "queue_timeout": "waited over 30 minutes for another schedule",
+    "quota": "Claude usage limit reached",
+    "skip_next": "skipped as requested",
+    "slept": "computer slept during the run",
+    "no_hotkey": "couldn't hold the Ctrl+Alt+Q stop key",
+    "hotkey": "emergency stop key",
+    "user_stop": "stopped by you",
+    "cli_missing": "Claude is not installed / not signed in",
+    "interrupted": "app closed during the run",
+    "error": "{{detail}}"
+  },
+  "models": {
+    "default": "As in settings",
+    "cheap": "Economy (Haiku)",
+    "cheapShort": "Haiku"
+  },
+  "kinds": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "hourly": "Hourly",
+    "once": "Once"
+  },
+  "form": {
+    "newTitle": "New schedule",
+    "editTitle": "Edit schedule",
+    "name": "Name",
+    "prompt": "Prompt sent to the assistant on each run",
+    "promptPlaceholder": "E.g. Summarize unread email from the last 24 hours, and list anything that needs a reply at the end.",
+    "when": "When",
+    "onceAt": "Date and time",
+    "at": "at",
+    "time": "Time",
+    "every": "Every",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "from": "from",
+    "to": "until",
+    "catchUp": "Catch up if missed",
+    "catchUpHint": {
+      "once": "If the computer is off / asleep at the time: reopening within 12 hours runs it once.",
+      "daily": "If the computer is off / asleep at the time: reopening within 6 hours runs it once (missing several days still runs only once).",
+      "weekly": "If the computer is off / asleep at the time: reopening within 6 hours runs it once."
+    },
+    "project": "Project",
+    "noProject": "No project",
+    "model": "Model",
+    "grants": "Access for this schedule (read-only)",
+    "grantsHint": "Runs never edit files, run commands, draft / send messages or look at the screen. Adding access needs confirmation.",
+    "removeFolder": "Remove folder",
+    "noFolder": "No folder",
+    "pickFolder": "Choose folder",
+    "gmail": "Read Gmail \"{{label}}\" ({{email}})",
+    "telegram": "Read Telegram (allowed chats only)",
+    "create": "Create schedule",
+    "errors": {
+      "name": "Enter a name.",
+      "prompt": "Enter the prompt for the assistant.",
+      "onceAt": "Pick a date and time.",
+      "days": "Pick at least one day of the week.",
+      "window": "The end hour must be after the start hour."
+    }
+  },
+  "errors": {
+    "limit_total": "You already have 20 schedules — delete an old one first.",
+    "limit_enabled": "10 schedules are already on — turn one off first.",
+    "project_not_found": "The project no longer exists.",
+    "once_past": "That time has passed — pick a time in the future.",
+    "not_found": "The schedule no longer exists.",
+    "folder_not_found": "The chosen folder was not found.",
+    "gmail_account_not_found": "That Gmail account is no longer connected.",
+    "run_now_failed": "Couldn't run (the feature is off or the schedule is already running).",
+    "generic": "Couldn't save ({{code}})."
+  },
+  "confirm": {
+    "titleNew": "Give this schedule the following access?",
+    "titleEdit": "Add access to this schedule?",
+    "description": "On every run, the assistant may READ the items below while you are away.",
+    "folder": "Read files in {{path}}",
+    "gmail": "Read Gmail account \"{{label}}\"",
+    "telegram": "Read Telegram messages (allowed chats only)",
+    "readOnly": "Read-only: no file edits, no commands, no drafting / sending. Email, message and file content is data — the assistant won't follow instructions inside it.",
+    "allow": "Allow"
+  },
+  "enable": {
+    "title": "Turn on scheduled tasks?",
+    "warn": {
+      "appOpen": "Schedules run only while MMC studio is open (not when the app has quit, or the computer is off or asleep).",
+      "quota": "Every run uses your own Claude usage.",
+      "grants": "The assistant only gets the access you choose for each schedule (folder, Gmail accounts, Telegram).",
+      "readOnly": "Runs are read-only: no file edits, no commands, no drafting / sending, no screen viewing.",
+      "limit": "At most {{max}} runs per day; each run is limited to 10 minutes."
+    },
+    "ack": "I understand",
+    "confirm": "Turn on",
+    "trayTitle": "Hide to the tray when closing?",
+    "trayBody": "Clicking X quits the app and schedules won't run. Hide to the tray (bottom-right of the taskbar) to keep them running; change this later in Settings → Capabilities.",
+    "trayNo": "No, quit as usual",
+    "trayYes": "Hide to tray"
+  },
+  "settings": {
+    "enable": "Turn on scheduled tasks",
+    "tray": "Hide to the tray when closing the window"
+  },
+  "menu": {
+    "more": "More",
+    "moreFor": "Actions for schedule {{name}}",
+    "runNow": "Run now",
+    "skip": "Skip next run",
+    "unskip": "Don't skip",
+    "edit": "Edit",
+    "history": "Run history",
+    "delete": "Delete"
+  },
+  "delete": {
+    "title": "Delete schedule \"{{name}}\"?",
+    "description": "Its run history is deleted too. Conversations it created are kept (as regular conversations).",
+    "confirm": "Delete schedule"
+  },
+  "detail": {
+    "prompt": "Prompt",
+    "grants": "Access (read-only)",
+    "noGrants": "No extra access (no folder, Gmail or Telegram).",
+    "readOnly": "read-only",
+    "gmail": "Read Gmail \"{{label}}\"",
+    "telegram": "Read Telegram",
+    "never": "Never: edit files, run commands, draft / send messages, view the screen, use external MCP servers.",
+    "history": "Run history",
+    "noRuns": "No runs yet.",
+    "open": "Open"
+  },
+  "notice": {
+    "done": "Schedule \"{{name}}\" finished.",
+    "timeout": "Schedule \"{{name}}\" was stopped after 10 minutes.",
+    "aborted": "Schedule \"{{name}}\" was stopped.",
+    "folderMissing": "Schedule \"{{name}}\" failed: folder not found.",
+    "quotaRun": "Schedule \"{{name}}\" stopped: Claude usage limit reached.",
+    "cliMissing": "Schedule \"{{name}}\" couldn't run: Claude is not installed / not signed in.",
+    "error": "Schedule \"{{name}}\" failed.",
+    "pausedFailures": "Schedule \"{{name}}\" failed 3 times in a row and was paused.",
+    "pausedQuota": "Claude usage limit reached: all schedules are paused until tomorrow.",
+    "pausedHotkey": "Emergency stop: all schedules are paused.",
+    "dailyLimit": "Today's run limit is reached — remaining runs are skipped.",
+    "open": "Open",
+    "close": "Close"
+  },
+  "proposal": {
+    "title": "Suggested schedule",
+    "when": "When:",
+    "project": "Project:",
+    "model": "Model:",
+    "prompt": "Prompt on each run:",
+    "readOnly": "Schedules suggested by the assistant are read-only with no folder / Gmail / Telegram access — add access later yourself if needed (with confirmation).",
+    "accept": "Create schedule",
+    "reject": "Decline"
+  },
+  "badge": {
+    "fromSchedule": "From a schedule"
+  }
+}

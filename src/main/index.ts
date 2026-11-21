@@ -1,17 +1,21 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   app,
   BrowserWindow,
   dialog,
   globalShortcut,
+  Menu,
+  nativeImage,
   net,
+  powerMonitor,
   protocol,
   Notification,
   safeStorage,
   screen,
   session,
   shell,
+  Tray,
   type IpcMainInvokeEvent
 } from 'electron'
 import { is } from '@electron-toolkit/utils'
@@ -130,6 +134,15 @@ import { ProjectService } from './projects/service'
 import { SkillStore } from './skills/store'
 import { learnStyle } from './skills/style'
 import { DEFAULT_SKILLS_SETTINGS, skillsSettingsSchema } from '@shared/skills'
+import { DEFAULT_SCHEDULES_SETTINGS, schedulesSettingsSchema, type SchedulesSettings } from '@shared/schedules'
+import { registerSchedulesIpc } from './ipc/schedules'
+import { ScheduleProposals } from './schedules/proposals'
+import { ScheduleRepository } from './schedules/repository'
+import { startScheduledRun } from './schedules/runner'
+import { Scheduler, type ScheduleNotice } from './schedules/scheduler'
+import { ScheduleService } from './schedules/service'
+import { scheduleNoticeText } from './schedules/notice'
+import { AppTray, closeAction, trayIconBitmap } from './tray'
 import {
   DEFAULT_EXPRESSIVE_SETTINGS,
   expressiveSettingsSchema,
@@ -164,6 +177,13 @@ function resourcePath(packaged: string, dev: string): string {
 
 const log = createLogger(join(app.getPath('userData'), 'logs'))
 let mainWindow: BrowserWindow | null = null
+/** Đang thoát thật (menu khay "Thoát", cài bản cập nhật, Windows tắt máy…) — đóng cửa sổ không ẩn xuống khay nữa. */
+let quitting = false
+app.on('before-quit', () => {
+  quitting = true
+})
+/** Bấm X: ẩn xuống khay / hỏi / thoát — gán trong bootstrap (cần cài đặt lịch hẹn). */
+let onWindowClose: ((event: Electron.Event, win: BrowserWindow) => void) | null = null
 
 process.on('uncaughtException', (err) =>
   log.error(`uncaughtException: ${err.stack ?? err.message}`)
@@ -191,6 +211,9 @@ function createWindow(): BrowserWindow {
   })
 
   win.on('ready-to-show', () => win.show())
+  win.on('close', (event) => {
+    if (!quitting) onWindowClose?.(event, win)
+  })
 
   // Link ngoài mở bằng trình duyệt; không cho mở cửa sổ mới hay điều hướng khỏi app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -441,6 +464,8 @@ async function bootstrap(): Promise<void> {
     log
   })
   const connectorLimiter = new RateLimiter(() => 60)
+  // Lần chạy theo lịch hẹn: cuộc trò chuyện → tài khoản Gmail lịch được đọc (chỉ trong lúc chạy).
+  const gmailRestrict = new Map<string, readonly string[]>()
   const gmailOAuth = new OAuthLoopback()
   app.on('before-quit', () => {
     gmailOAuth.cancel()
@@ -469,7 +494,8 @@ async function bootstrap(): Promise<void> {
     approvals: draftApprovals,
     limiter: connectorLimiter,
     emit: (status) => mainWindow?.webContents.send(IPC.gmailStatusEvent, status),
-    log
+    log,
+    restrictAccounts: (conversationId) => gmailRestrict.get(conversationId) ?? null
   })
   gmail.registerTools(tools)
   const telegramApiHash = new SecretStore(secretsDir, safeStorage, 'telegram-api-hash.bin')
@@ -703,6 +729,41 @@ async function bootstrap(): Promise<void> {
     log,
     changed: () => sync.changed('conversations')
   })
+  // ---- Lịch hẹn (PR 7a): chỉ chạy khi app mở, lần chạy CHỈ ĐỌC, mặc định tắt. ----
+  // Đồng hồ giả chỉ cho e2e ở bản chưa đóng gói (MMC_FAKE_CLOCK=1): test tua giờ qua IPC.
+  const fakeClock = !app.isPackaged && process.env.MMC_FAKE_CLOCK === '1'
+  let clockOffset = 0
+  const now = (): number => Date.now() + clockOffset
+  const getSchedulesSettings = (): SchedulesSettings =>
+    settings.get('schedules', schedulesSettingsSchema, DEFAULT_SCHEDULES_SETTINGS)
+  const setSchedulesSettings = (value: SchedulesSettings): void => void settings.set('schedules', value)
+  const scheduleRepo = new ScheduleRepository(db, getOwner)
+  const scheduleProposals = new ScheduleProposals({
+    enabled: () => getSchedulesSettings().enabled,
+    projectOf: (conversationId) => {
+      const id = conversations.get(conversationId)?.projectId
+      const project = id ? projectRepo.get(id) : null
+      return project ? { id: project.id, name: project.name } : null
+    },
+    create: (input) => {
+      try {
+        const r = scheduleService.save({ input, confirmed: true }, 'assistant')
+        sync.changed('schedules')
+        return r.status === 'saved' ? { ok: true } : { ok: false, error: 'confirm_required' }
+      } catch (err) {
+        return { ok: false, error: (err as Error).message }
+      }
+    },
+    emit: (event) => {
+      if ('closed' in event) return approvalHub.remove(event.id)
+      const { conversationId, ...request } = event
+      approvalHub.add({ id: request.id, conversationId, kind: 'schedule', request }, () => scheduleProposals.touch(request.id))
+      flashForApproval()
+    },
+    log
+  })
+  scheduleProposals.registerTools(tools)
+  app.on('before-quit', () => scheduleProposals.cancelAll())
   const legacyTitles = organizer.fixLegacyTitles()
   if (legacyTitles) log.info(`Sửa ${legacyTitles} tiêu đề chat dạng lệnh tạo artifact`)
   const chat = new ChatService({
@@ -726,10 +787,17 @@ async function bootstrap(): Promise<void> {
       mcpApprovals.cancelConversation(conversationId)
       draftApprovals.cancelConversation(conversationId)
       folderAccess.cancelConversation(conversationId)
+      scheduleProposals.cancelConversation(conversationId)
       approvalHub.endRun(conversationId)
     },
     appToolsFor: (conversationId) =>
-      combineToolSets([folderAccess.toolsFor(conversationId), computer.toolsFor(), gmail.toolsFor(), telegram.toolsFor()]),
+      combineToolSets([
+        folderAccess.toolsFor(conversationId),
+        computer.toolsFor(),
+        gmail.toolsFor(),
+        telegram.toolsFor(),
+        scheduleProposals.toolsFor()
+      ]),
     expressive,
     voicePrompt: async (tease) => {
       const skill = await loadSkill(skillsDir, 'voice')
@@ -745,6 +813,128 @@ async function bootstrap(): Promise<void> {
     }
   })
   app.on('before-quit', () => chat.abortAll())
+
+  const showWindow = (): void => {
+    if (!mainWindow) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+  // Báo kết quả lần chạy: cửa sổ đang hiện + đang được chọn → báo trong app; không thì thông báo Windows (bấm → mở
+  // đúng cuộc). Chỉ có tên lịch + trạng thái, KHÔNG có nội dung trả lời (thông báo có thể hiện trên màn hình khoá).
+  const showScheduleNotice = (n: ScheduleNotice): void => {
+    const body = scheduleNoticeText(n)
+    const conversationId = n.kind === 'finished' ? n.conversationId : null
+    const inApp = !!mainWindow && mainWindow.isVisible() && mainWindow.isFocused()
+    mainWindow?.webContents.send(IPC.schedulesNotice, { ...n, text: body, inApp })
+    // e2e (đồng hồ giả): không bật thông báo Windows thật.
+    if (inApp || fakeClock || !Notification.isSupported()) return
+    const note = new Notification({ title: APP_NAME, body })
+    note.on('click', () => {
+      showWindow()
+      mainWindow?.webContents.send(IPC.schedulesOpen, { conversationId, scheduleId: 'scheduleId' in n ? n.scheduleId : null })
+    })
+    note.show()
+  }
+  const isDirectory = (path: string): boolean => {
+    try {
+      return statSync(path).isDirectory()
+    } catch {
+      return false
+    }
+  }
+  const scheduler = new Scheduler({
+    repo: scheduleRepo,
+    now,
+    getSettings: getSchedulesSettings,
+    setSettings: setSchedulesSettings,
+    getLastOwner: () => settings.get('schedulesLastOwner', z.string().nullable(), null),
+    setLastOwner: (owner) => void settings.set('schedulesLastOwner', owner),
+    startRun: (schedule, owner) =>
+      startScheduledRun(schedule, owner, {
+        createConversation: (input) => conversations.createForSchedule(input),
+        runChat: (conversationId, turn) => chat.runScheduled(conversationId, turn),
+        abortChat: (requestId) => chat.abort(requestId),
+        gmailTools: (ids) => gmail.toolsFor(ids),
+        telegramTools: () => telegram.toolsFor(true),
+        restrictTools: (conversationId, names) => tools.restrict(conversationId, names),
+        restrictGmail: (conversationId, ids) => {
+          if (ids) gmailRestrict.set(conversationId, ids)
+          else gmailRestrict.delete(conversationId)
+        },
+        now
+      }),
+    folderExists: isDirectory,
+    killSwitch,
+    notify: showScheduleNotice,
+    changed: (withConversations) => {
+      sync.changed('schedules')
+      if (withConversations) sync.changed('conversations')
+      syncTray()
+    },
+    log
+  })
+  const scheduleService = new ScheduleService({
+    repo: scheduleRepo,
+    scheduler,
+    now,
+    isDirectory,
+    gmailAccounts: () => getGmailSettings().accounts.map((a) => ({ id: a.id, label: a.label }))
+  })
+  // Ctrl+Alt+Q / nút dừng khẩn cấp: CHỈ khi đang có lần chạy → dừng + tạm dừng mọi lịch.
+  killSwitch.onStop(() => scheduler.emergencyStop())
+  const tray = new AppTray({
+    create: (icon) => new Tray(icon),
+    icon: () => nativeImage.createFromBitmap(trayIconBitmap(32), { width: 32, height: 32 }),
+    buildMenu: (template) => Menu.buildFromTemplate(template),
+    state: () => ({ pausedAll: getSchedulesSettings().pausedAll, running: scheduler.busy }),
+    actions: {
+      open: showWindow,
+      setPausedAll: (paused) => {
+        scheduler.setPausedAll(paused)
+        syncTray()
+      },
+      stopRun: () => void scheduler.stopCurrent(),
+      quit: () => {
+        quitting = true
+        app.quit()
+      }
+    }
+  })
+  function syncTray(): void {
+    const s = getSchedulesSettings()
+    tray.sync(s.enabled && s.trayOnClose)
+  }
+  syncTray()
+  onWindowClose = (event, win) => {
+    const s = getSchedulesSettings()
+    const action = closeAction(s)
+    if (action === 'quit') return
+    event.preventDefault()
+    if (action === 'hide') return win.hide()
+    // Lần đầu bấm X khi đang có lịch hẹn: nhắc một lần, người dùng chọn ẩn xuống khay hay thoát.
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'question',
+      title: APP_NAME,
+      message: 'Lịch hẹn sẽ không chạy khi app đã thoát.',
+      detail: 'Ẩn xuống khay (góc phải thanh tác vụ) để lịch hẹn vẫn chạy? Đổi lại được trong Cài đặt → Khả năng → Lịch hẹn.',
+      buttons: ['Ẩn xuống khay', 'Thoát'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    })
+    setSchedulesSettings({ ...s, closeHintShown: true, trayAsked: true, trayOnClose: choice === 0 })
+    syncTray()
+    if (choice === 0) win.hide()
+    else {
+      quitting = true
+      app.quit()
+    }
+  }
+  scheduler.start()
+  const scheduleTimer = setInterval(() => scheduler.tick(), 30_000)
+  app.on('before-quit', () => clearInterval(scheduleTimer))
+  powerMonitor.on('resume', () => scheduler.resume())
 
   const handle = createHandle(
     (event: IpcMainInvokeEvent) => event.sender === mainWindow?.webContents,
@@ -825,6 +1015,8 @@ async function bootstrap(): Promise<void> {
     const result = accountScope.set(uid)
     if (result.claimed) log.info('Đã giao trí nhớ tạo trước khi đăng nhập cho tài khoản đầu tiên')
     memory.emitCount()
+    // Lịch hẹn chỉ chạy cho tài khoản đang đăng nhập — và chỉ sau khi biết tài khoản là ai.
+    scheduler.setAccount(result.owner)
     return result
   })
   const agentExchanges = new AgentExchangeRepository(db)
@@ -932,6 +1124,29 @@ async function bootstrap(): Promise<void> {
     }
   })
   registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals, hub: approvalHub })
+  const fakeFolder = app.isPackaged ? undefined : process.env.MMC_FAKE_FOLDER
+  registerSchedulesIpc({
+    handle,
+    service: scheduleService,
+    scheduler,
+    proposals: scheduleProposals,
+    getSettings: getSchedulesSettings,
+    setSettings: setSchedulesSettings,
+    trayChanged: syncTray,
+    getWindow,
+    // Hộp chọn thư mục giả chỉ cho e2e ở bản chưa đóng gói (dùng chung biến với quyền thư mục).
+    fakeFolder: fakeFolder !== undefined ? () => fakeFolder || null : undefined,
+    test: fakeClock
+      ? {
+          advance: (ms) => {
+            clockOffset += ms
+            scheduler.tick()
+          },
+          resume: () => scheduler.resume(),
+          hotkey: () => killSwitch.trigger()
+        }
+      : undefined
+  })
   registerWorkIpc({
     handle,
     conversations,
@@ -962,6 +1177,8 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', () => {
     if (mainWindow?.isMinimized()) mainWindow.restore()
+    // Đang nằm khay (cửa sổ ẩn) → hiện lại.
+    mainWindow?.show()
     mainWindow?.focus()
   })
   app.setAppUserModelId('com.phanduongthien.teamworking')
