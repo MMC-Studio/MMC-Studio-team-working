@@ -6,6 +6,7 @@ import type { ChatSendResult, ChatStreamPayload, Conversation, ConversationGroup
 import { api } from '@renderer/lib/api'
 import { coalesce, optimistic } from '@renderer/lib/sync'
 import { applyChatEvent, isTerminalEvent } from './chatEvents'
+import { useDrafts } from './drafts'
 
 type Streaming = { requestId: string; messageId: string }
 
@@ -328,6 +329,7 @@ export const useChat = create<ChatState>((set, get) => {
       const streaming = get().streaming[id]
       if (streaming) await api.chat.abort(streaming.requestId)
       await api.conversations.remove(id)
+      useDrafts.getState().remove(id)
       set((s) => {
         const messages = { ...s.messages }
         delete messages[id]
@@ -382,6 +384,8 @@ export const useChat = create<ChatState>((set, get) => {
     },
 
     setReplyTo(conversationId, message) {
+      // Tin đang trả lời là một phần nháp của cuộc (lưu trên máy, còn sau khi tắt app).
+      useDrafts.getState().setReply(conversationId, message)
       set((s) => {
         const replyTo = { ...s.replyTo }
         if (message) replyTo[conversationId] = message

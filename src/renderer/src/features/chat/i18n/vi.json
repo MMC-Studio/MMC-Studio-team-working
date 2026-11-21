@@ -454,5 +454,6 @@
     },
     "previewLoading": "Đang tải xem trước…",
     "previewEmpty": "(Trống)"
-  }
+  },
+  "draftLabel": "Nháp:"
 }

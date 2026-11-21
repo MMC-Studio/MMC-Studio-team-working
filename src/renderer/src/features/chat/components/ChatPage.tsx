@@ -7,7 +7,8 @@ import { AssistantAvatar } from '@renderer/components/AssistantAvatar'
 import { Button } from '@renderer/components/ui/button'
 import { useCliStatus } from '@renderer/stores/cli'
 import { usePreferences } from '@renderer/stores/preferences'
-import { dragHasFiles, useComposeText, useDraft } from '../draft'
+import { dragHasFiles, useComposeText } from '../draft'
+import { newDraftKey, useDrafts } from '../drafts'
 import { useChat } from '../store'
 import { ChatHeader } from './ChatHeader'
 import { CodeBar } from './CodeBar'
@@ -56,7 +57,9 @@ export function ChatPage() {
   const mode = active?.mode ?? draftMode
   const isStreaming = !!(activeId && streaming[activeId])
   const bottomRef = useRef<HTMLDivElement>(null)
-  const addFiles = useDraft((s) => s.addFiles)
+  // Nháp theo cuộc: cuộc đang mở, hoặc "new" khi chưa tạo cuộc.
+  const draftKey = activeId ?? newDraftKey()
+  const addFiles = (files: File[]): Promise<void> => useDrafts.getState().addFiles(draftKey, files)
   // Panel artifact mở → bố cục chừa chỗ cho khung chat (thanh bên tự ẩn nếu cửa sổ hẹp).
   const artifactsOpen = useArtifacts((s) => s.open)
   // Thẻ chờ duyệt của cuộc đang mở: hiện trong khung chat; ô chat bên dưới hỏi về thẻ đầu tiên.
@@ -171,6 +174,7 @@ export function ChatPage() {
           {(mode === 'code' || active?.cwd) && <CodeBar conversation={active} busy={isStreaming} />}
           <ReplyPreview conversationId={activeId} />
           <Composer
+            draftKey={draftKey}
             mode={mode}
             onModeChange={onModeChange}
             streaming={isStreaming}

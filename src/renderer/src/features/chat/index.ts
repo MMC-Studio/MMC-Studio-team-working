@@ -1,5 +1,6 @@
 import { MessagesSquare } from 'lucide-react'
 import { api } from '@renderer/lib/api'
+import { setupDraftsFlush } from './drafts'
 import { onSync } from '@renderer/lib/sync'
 import type { FeatureDefinition } from '../types'
 import { ChatPage } from './components/ChatPage'
@@ -38,7 +39,10 @@ export const chatFeature: FeatureDefinition = {
     const offSidebarKey = setupSidebarShortcut()
     // Ctrl+K: cửa sổ tìm kiếm.
     const offPaletteKey = setupPaletteShortcut()
+    // Nháp theo cuộc: ghi ngay khi đóng cửa sổ (đang trong 500 ms chờ ghi).
+    const offDrafts = setupDraftsFlush()
     return () => {
+      offDrafts()
       offChat()
       offSidebar()
       offMessages()

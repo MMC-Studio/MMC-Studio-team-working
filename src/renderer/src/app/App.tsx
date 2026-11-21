@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { HashRouter, Route, Routes, useNavigate } from 'react-router'
 import { useChat } from '@renderer/features/chat/store'
+import { useDrafts } from '@renderer/features/chat/drafts'
 import { useMemory } from '@renderer/features/memory/store'
 import { useProjects } from '@renderer/features/projects/store'
 import type { FeatureDefinition } from '@renderer/features/types'
@@ -47,6 +48,19 @@ function NavigateFromMain() {
   return null
 }
 
+/**
+ * Nháp tin nhắn của tài khoản (sau khi main đã đổi phạm vi): bỏ nháp của cuộc không còn, khôi phục khung
+ * "Đang trả lời…" của từng cuộc.
+ */
+async function loadDrafts(uid: string | null): Promise<void> {
+  const list = await api.conversations.list()
+  useDrafts.getState().load(uid ?? 'local', new Set(list.map((c) => c.id)))
+  const replyTo = Object.fromEntries(
+    Object.entries(useDrafts.getState().drafts).flatMap(([key, d]) => (d.reply ? [[key, d.reply] as const] : []))
+  )
+  useChat.setState({ replyTo })
+}
+
 /** Đăng nhập/đăng xuất → tải hoặc dọn dữ liệu team. */
 function useAuthLifecycle(): void {
   useEffect(() => {
@@ -62,7 +76,7 @@ function useAuthLifecycle(): void {
       lastUid = uid
       if (first && uid === null) {
         // Mở app khi chưa đăng nhập: dữ liệu đã là của "trên máy" — chỉ báo main, không tải lại gì.
-        void api.account.set(null)
+        void api.account.set(null).then(() => loadDrafts(null))
         return
       }
       queryClient.clear()
@@ -76,6 +90,7 @@ function useAuthLifecycle(): void {
           useChat.getState().switchAccount(),
           useProjects.getState().reload()
         ])
+        await loadDrafts(uid)
         if (uid) await syncAssistant(uid)
       })()
     }

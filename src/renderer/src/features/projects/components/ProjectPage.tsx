@@ -11,6 +11,7 @@ import { useCliStatus } from '@renderer/stores/cli'
 import { ChatLayout, SidebarToggle } from '@renderer/features/chat/layout/ChatLayout'
 import { Composer } from '@renderer/features/chat/components/Composer'
 import { useChat } from '@renderer/features/chat/store'
+import { newDraftKey } from '@renderer/features/chat/drafts'
 import { ProjectMemoryPanel } from '@renderer/features/memory/components/ProjectMemoryPanel'
 import type { MediaItem } from '@shared/expressive'
 import type { MessageVoice } from '@shared/voice'
@@ -94,6 +95,7 @@ function NewChatInProject({ project }: { project: ProjectDetail }) {
   return (
     <div data-testid="project-composer">
       <Composer
+        draftKey={newDraftKey(project.id)}
         mode={mode}
         onModeChange={setMode}
         streaming={false}
