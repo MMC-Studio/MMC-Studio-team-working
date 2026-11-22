@@ -42,7 +42,9 @@ export function McpServersSection({
   const { t } = useTranslation('agents')
   const { servers, refreshServers } = useAgents()
   const [form, setForm] = useState(prefill ? prefillForm(prefill) : EMPTY)
-  const [adding, setAdding] = useState(startAdding || !!prefill)
+  // Form thêm server chỉ mở khi người dùng chủ động thêm (nút "Thêm server", menu Thêm → MCP, "Thêm thủ công…"),
+  // không mở cùng lúc với form nhập token (dễ nhầm hai form).
+  const [adding, setAdding] = useState((startAdding || !!prefill) && !openToken)
   const [tokenFor, setTokenFor] = useState<string | null>(openToken && highlight ? highlight : null)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,7 +74,7 @@ export function McpServersSection({
           <p className="mt-1 text-sm text-muted-foreground">{t('mcp.help')}</p>
         </div>
         {!adding && (
-          <Button variant="outline" size="sm" onClick={() => setAdding(true)} data-testid="mcp-add">
+          <Button variant="outline" size="sm" onClick={() => (setAdding(true), setTokenFor(null))} data-testid="mcp-add">
             <Plus />
             {t('mcp.add')}
           </Button>
@@ -109,7 +111,7 @@ export function McpServersSection({
                 {s.secretKeys.length > 0 && <span className="text-xs text-muted-foreground">{t('mcp.secretKeys', { keys: s.secretKeys.join(', ') })}</span>}
                 <span className="ml-auto flex items-center gap-1">
                   {s.origin && s.origin.headers.length > 0 && (
-                    <Button size="sm" variant="ghost" onClick={() => setTokenFor(tokenFor === s.id ? null : s.id)} data-testid="mcp-store-token">
+                    <Button size="sm" variant="ghost" onClick={() => (setTokenFor(tokenFor === s.id ? null : s.id), setAdding(false))} data-testid="mcp-store-token">
                       <KeyRound />
                       {t('mcp.store.setToken')}
                     </Button>
@@ -152,6 +154,7 @@ export function McpServersSection({
 
       {adding && (
         <div className="space-y-3 rounded-md border p-3" data-testid="mcp-form">
+          <h3 className="font-medium">{t('mcp.formTitle')}</h3>
           {prefill && (
             <p className="rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs" data-testid="mcp-prefill-hint">
               {t('mcp.prefillHint')}

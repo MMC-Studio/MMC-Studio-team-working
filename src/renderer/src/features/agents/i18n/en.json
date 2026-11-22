@@ -88,7 +88,7 @@
   },
   "mcp": {
     "heading": "Assistant uses other MCP servers",
-    "help": "Add MCP servers (Notion, GitHub, filesystem…) for the assistant to use in chat. Every tool call needs your approval (except tools marked \"always allow\").",
+    "help": "Add MCP servers (Notion, GitHub, filesystem…) for the assistant to use in chat. Every tool call needs your approval. Servers you add yourself: you can mark a tool \"always allow\". Servers installed from the plugin store: every call always needs approval, there is no \"always allow\".",
     "add": "Add server",
     "empty": "No MCP servers yet.",
     "name": "Name (lowercase, digits, - _)",
@@ -128,7 +128,8 @@
       "tokenHelp": "Sent only to {{host}} (added by the app, the assistant never sees it). Stored encrypted on this computer; leave empty to keep the current value.",
       "template": "Template in the plugin: {{template}}",
       "githubHint": "Tip: create a READ-ONLY fine-grained token at github.com/settings/personal-access-tokens/new (pick the repos, Read-only permissions), then enter it as \"Bearer <token>\"."
-    }
+    },
+    "formTitle": "Add a server manually"
   },
   "errors": {
     "hotkey_unavailable": "Could not register the emergency stop hotkey Ctrl+Alt+Q (another app may be using it). This can only be enabled when the stop hotkey works.",

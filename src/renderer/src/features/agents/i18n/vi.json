@@ -88,7 +88,7 @@
   },
   "mcp": {
     "heading": "Trợ lý dùng MCP server khác",
-    "help": "Thêm MCP server (Notion, GitHub, hệ thống file…) để trợ lý dùng khi trò chuyện. Mỗi lần gọi công cụ, bạn phải duyệt (trừ công cụ đã bấm \"luôn cho phép\").",
+    "help": "Thêm MCP server (Notion, GitHub, hệ thống file…) để trợ lý dùng khi trò chuyện. Mỗi lần trợ lý gọi công cụ, bạn phải duyệt. Server bạn tự thêm: có thể bấm \"luôn cho phép\" cho từng công cụ. Server cài từ kho plugin: luôn phải duyệt từng lần, không có \"luôn cho phép\".",
     "add": "Thêm server",
     "empty": "Chưa có MCP server nào.",
     "name": "Tên (chữ thường, số, - _)",
@@ -128,7 +128,8 @@
       "tokenHelp": "Chỉ gửi tới {{host}} (app tự gắn, trợ lý không thấy). Lưu mã hoá trên máy; để trống = giữ giá trị cũ.",
       "template": "Mẫu trong plugin: {{template}}",
       "githubHint": "Gợi ý: tạo token fine-grained CHỈ ĐỌC tại github.com/settings/personal-access-tokens/new (chọn đúng repo, quyền Read-only), rồi điền dạng \"Bearer <token>\"."
-    }
+    },
+    "formTitle": "Thêm server thủ công"
   },
   "errors": {
     "hotkey_unavailable": "Không đăng ký được phím dừng khẩn cấp Ctrl+Alt+Q (có thể app khác đang dùng). Chỉ bật được khi phím dừng hoạt động.",
