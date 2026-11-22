@@ -1,13 +1,32 @@
 # Bài học & lỗi đã gặp — đọc trước khi thêm tính năng
 
 File này ghi lại những lỗi team đã gặp khi làm MMC studio, để người làm sau (người hay AI) không vấp lại.
+Mỗi mục: **Quy tắc** (phải làm gì) → **Vì sao** → **Mẫu có sẵn trong repo**.
 
 ---
 
-## 0. Cách thêm bài học
+## 0. Tự rút kinh nghiệm — ghi bài học mới vào file này
 
-- Mỗi mục: **Quy tắc** (phải làm gì) → **Vì sao** → **Mẫu có sẵn trong repo**.
-- Thêm một mục vào cuối phần phù hợp, ghi kèm số PR nếu có.
+File này **tự lớn lên theo thời gian**. Người hoặc AI sửa lỗi xong thì tự ghi bài học vào đây, không cần ai nhắc.
+
+**Khi nào PHẢI ghi** (một trong các trường hợp):
+
+- Lỗi bị phát hiện khi **test tay**, do **team góp ý**, hoặc lọt tới người dùng — tức là test tự động đã không bắt được.
+- Mất nhiều thời gian tìm nguyên nhân, hoặc nguyên nhân thật khác hẳn giả thuyết ban đầu.
+- Lỗi về **an toàn / quyền** (lọt ra ngoài thư mục, lộ token, trợ lý tự nâng quyền…).
+- Lỗi do đặc thù Windows / Electron / Claude CLI mà người mới dễ không biết.
+- Cùng một kiểu lỗi xuất hiện lần thứ hai.
+
+**Khi nào KHÔNG ghi:** lỗi gõ nhầm, lỗi lint / typecheck, lỗi chỉ có ở một chỗ và không lặp lại được ở tính năng khác.
+
+**Cách ghi:**
+
+- Ghi **trong cùng PR sửa lỗi** (không để "ghi sau").
+- Đọc file trước: đã có mục tương tự → **bổ sung vào mục đó** (thêm số PR, ví dụ mới) thay vì tạo mục trùng.
+- Đặt vào phần phù hợp (Trải nghiệm / Quyền & an toàn / Windows / Test tay…), chưa có thì tạo phần mới.
+- Viết **quy tắc chung** để tránh cả loại lỗi đó, không chỉ kể lại lỗi cụ thể. Giữ ngắn: **Quy tắc** → **Vì sao** (kèm số PR) → **Mẫu có sẵn** nếu có.
+- Không ghi secret, token, đường dẫn hay tên tài khoản trên máy ai (repo public).
+- Trong báo cáo cuối PR, nói rõ "đã thêm bài học X vào docs/LESSONS.md" để chủ repo duyệt.
 
 ---
 
