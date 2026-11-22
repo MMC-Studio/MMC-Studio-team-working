@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { CommandApprovalRequest } from './commands'
 import type { DraftApprovalRequest } from './connectors'
 import type { ScheduleProposalRequest } from './schedules'
 import type { CodeApprovalRequest, FolderAccessRequest } from './types'
@@ -42,7 +43,12 @@ export function splitRevisionHint(text: string): { text: string; suggest: boolea
   return { text: out.trimEnd(), suggest }
 }
 
-export type ApprovalRequest = CodeApprovalRequest | FolderAccessRequest | DraftApprovalRequest | ScheduleProposalRequest
+export type ApprovalRequest =
+  | CodeApprovalRequest
+  | FolderAccessRequest
+  | DraftApprovalRequest
+  | ScheduleProposalRequest
+  | CommandApprovalRequest
 
 /** Một bản cũ của cùng đề xuất (chỉ để xem): nội dung, hỏi đáp và yêu cầu sửa đã khép lại bản đó. */
 export type ApprovalPastVersion<R extends ApprovalRequest = ApprovalRequest> = {
@@ -73,6 +79,7 @@ export type ApprovalCard = {
   | { kind: 'folder'; request: FolderAccessRequest; history: ApprovalPastVersion<FolderAccessRequest>[] }
   | { kind: 'draft'; request: DraftApprovalRequest; history: ApprovalPastVersion<DraftApprovalRequest>[] }
   | { kind: 'schedule'; request: ScheduleProposalRequest; history: ApprovalPastVersion<ScheduleProposalRequest>[] }
+  | { kind: 'command'; request: CommandApprovalRequest; history: ApprovalPastVersion<CommandApprovalRequest>[] }
 )
 
 /** Số câu đã hỏi trong cả chuỗi (các bản cũ + bản hiện tại). */

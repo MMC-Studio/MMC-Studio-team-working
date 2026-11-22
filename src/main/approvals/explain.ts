@@ -1,4 +1,5 @@
 import { REVISION_HINT_MARKER, type ApprovalCard, type ApprovalQa, type ApprovalRequest } from '@shared/approvals'
+import type { CommandApprovalRequest } from '@shared/commands'
 import type { DraftApprovalRequest } from '@shared/connectors'
 import type { ScheduleProposalRequest } from '@shared/schedules'
 import { describeRecurrence } from '../schedules/describe'
@@ -76,6 +77,17 @@ function describeRequest(kind: ApprovalCard['kind'], request: ApprovalRequest, m
       ]
         .filter(Boolean)
         .join('\n')
+    }
+    case 'command': {
+      const r = request as CommandApprovalRequest
+      return [
+        'Loại: CHẠY LỆNH git chỉ đọc trên máy người dùng (app tự chạy, không qua shell; không sửa file, không commit)',
+        `Lệnh: ${r.display}`,
+        `Thư mục: ${r.cwd}`,
+        `Hạn: ${Math.round(r.timeoutMs / 1000)} giây`,
+        `Lý do: ${r.reason}`,
+        `Lệnh thật app chạy (kèm cờ an toàn chặn cấu hình lạ của repo): ${[r.executable, ...r.argv].join(' ')}`
+      ].join('\n')
     }
   }
 }

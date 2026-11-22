@@ -13,6 +13,7 @@ import type {
   ScheduleRunStatus,
   ScheduleRunTrigger
 } from '@shared/schedules'
+import type { ActionLogDecision, ActionLogKind } from '@shared/actionLog'
 import type { MemoryAction, MemoryCategory, SuggestionStatus, TimeEntryKind } from '@shared/schemas'
 import type { MessageRole, MessageStatus, StoredAttachment, ToolEvent } from '@shared/types'
 
@@ -324,4 +325,27 @@ export const artifactVersions = sqliteTable(
     createdAt: integer('created_at').notNull().default(now)
   },
   (t) => [index('artifact_versions_idx').on(t.artifactId, t.version)]
+)
+
+/**
+ * Nhật ký thao tác của trợ lý cần quyền (A1: lệnh; trang Quyền & riêng tư thêm sửa file / MCP / nháp). Chỉ trên máy,
+ * theo tài khoản, giữ 90 ngày. Chỉ tên lệnh / file, không chép nội dung. Xoá cuộc trò chuyện → nhật ký vẫn còn.
+ */
+export const actionLog = sqliteTable(
+  'action_log',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull().default('local'),
+    at: integer('at').notNull(),
+    conversationId: text('conversation_id').references((): AnySQLiteColumn => conversations.id, { onDelete: 'set null' }),
+    kind: text('kind').$type<ActionLogKind>().notNull(),
+    /** Lệnh dễ đọc / đường dẫn file / tên tool. */
+    target: text('target').notNull(),
+    decision: text('decision').$type<ActionLogDecision>().notNull(),
+    exitCode: integer('exit_code'),
+    durationMs: integer('duration_ms'),
+    /** Lý do bị chặn / lỗi ngắn. */
+    detail: text('detail')
+  },
+  (t) => [index('action_log_owner_idx').on(t.owner, t.at), index('action_log_conversation_idx').on(t.conversationId)]
 )

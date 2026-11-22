@@ -212,6 +212,11 @@
         "description": "Experimental, off by default. Read the warning before turning it on.",
         "keywords": "computer screen control"
       },
+      "commands": {
+        "label": "Run git commands (read-only)",
+        "description": "The assistant may ask to run git status / diff / log / show / branch in the folder you chose. Every run shows the exact command for you to Run or Deny. Off by default.",
+        "keywords": "command git status diff log show branch run terminal"
+      },
       "plugins": {
         "label": "Plugins",
         "description": "Skills, Gmail, Telegram, MCP servers and agent connections — install, turn on / off and configure on the Plugins page.",
@@ -248,5 +253,10 @@
         "keywords": "tray minimize hide close window"
       }
     }
+  },
+  "commands": {
+    "gitAt": "git: {{path}} ({{version}})",
+    "gitNotFound": "git was not found on this computer (install Git for Windows).",
+    "gitTooOld": "git {{version}} is too old — please update Git (needs the --attr-source option)."
   }
 }

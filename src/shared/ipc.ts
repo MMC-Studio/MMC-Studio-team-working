@@ -31,6 +31,9 @@ export const IPC = {
   schedulesPauseAll: 'schedules:pauseAll',
   schedulesPickFolder: 'schedules:pickFolder',
   schedulesRespondProposal: 'schedules:respondProposal',
+  commandsStatus: 'commands:status',
+  commandsSetSettings: 'commands:setSettings',
+  commandsRespond: 'commands:respond',
   /** Kho plugin online (8a). */
   pluginStoreSources: 'pluginStore:sources',
   pluginStoreAddSource: 'pluginStore:addSource',

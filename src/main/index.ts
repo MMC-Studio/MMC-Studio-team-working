@@ -139,6 +139,11 @@ import { learnStyle } from './skills/style'
 import { DEFAULT_SKILLS_SETTINGS, skillsSettingsSchema } from '@shared/skills'
 import { DEFAULT_SCHEDULES_SETTINGS, schedulesSettingsSchema, type SchedulesSettings } from '@shared/schedules'
 import { registerSchedulesIpc } from './ipc/schedules'
+import { registerCommandsIpc } from './ipc/commands'
+import { CommandService } from './commands/service'
+import { findGit, probeGit, type GitInfo } from './commands/gitEnv'
+import { ActionLogRepository } from './audit/actionLog'
+import { commandsSettingsSchema, DEFAULT_COMMANDS_SETTINGS, type CommandsSettings } from '@shared/commands'
 import { registerPluginStoreIpc } from './ipc/pluginStore'
 import { GitHubClient } from './pluginStore/github'
 import { installedSchema, loadDefaultSources, PluginStoreService, userSourcesSchema } from './pluginStore/service'
@@ -838,6 +843,46 @@ async function bootstrap(): Promise<void> {
   })
   scheduleProposals.registerTools(tools)
   app.on('before-quit', () => scheduleProposals.cancelAll())
+  // ---- Chạy lệnh theo danh sách cho phép (A1: git chỉ đọc), mặc định tắt, duyệt từng lần, ghi nhật ký. ----
+  const actionLog = new ActionLogRepository(db, getOwner)
+  try {
+    const pruned = actionLog.prune()
+    if (pruned) log.info(`Nhật ký thao tác: dọn ${pruned} mục quá 90 ngày`)
+  } catch (err) {
+    log.warn(`Dọn nhật ký thao tác lỗi: ${String(err)}`)
+  }
+  const getCommandsSettings = (): CommandsSettings => settings.get('commands', commandsSettingsSchema, DEFAULT_COMMANDS_SETTINGS)
+  // git tìm theo đường dẫn tuyệt đối trong PATH (không bao giờ trong thư mục dự án), kiểm một lần lúc mở app.
+  let gitInfo: GitInfo | null = null
+  const gitReady = probeGit(findGit(process.env.PATH)).then((info) => {
+    gitInfo = info
+    log.info(`git cho chạy lệnh: ${'error' in info ? info.error : `${info.path} (${info.version})`}`)
+    return info
+  })
+  const commandService = new CommandService({
+    settings: getCommandsSettings,
+    git: () => gitInfo,
+    folderOf: (conversationId) => conversations.get(conversationId)?.cwd ?? null,
+    emit: (event) => {
+      if ('closed' in event) return approvalHub.remove(event.id)
+      approvalHub.add({ id: event.id, conversationId: event.conversationId, kind: 'command', request: event }, () =>
+        commandService.touch(event.id)
+      )
+      flashForApproval()
+    },
+    log: (entry) => {
+      try {
+        actionLog.add(entry)
+      } catch (err) {
+        log.warn(`Ghi nhật ký thao tác lỗi: ${String(err)}`)
+      }
+    },
+    killSwitch,
+    logger: log
+  })
+  commandService.registerTools(tools)
+  killSwitch.onStop(() => commandService.stopAll())
+  app.on('before-quit', () => commandService.stopAll('App đang đóng.'))
   const legacyTitles = organizer.fixLegacyTitles()
   if (legacyTitles) log.info(`Sửa ${legacyTitles} tiêu đề chat dạng lệnh tạo artifact`)
   const chat = new ChatService({
@@ -863,6 +908,7 @@ async function bootstrap(): Promise<void> {
       draftApprovals.cancelConversation(conversationId)
       folderAccess.cancelConversation(conversationId)
       scheduleProposals.cancelConversation(conversationId)
+      commandService.cancelConversation(conversationId)
       approvalHub.endRun(conversationId)
     },
     appToolsFor: (conversationId) =>
@@ -871,7 +917,8 @@ async function bootstrap(): Promise<void> {
         computer.toolsFor(),
         gmail.toolsFor(),
         telegram.toolsFor(),
-        scheduleProposals.toolsFor()
+        scheduleProposals.toolsFor(),
+        commandService.toolsFor(conversationId)
       ]),
     expressive,
     voicePrompt: async (tease) => {
@@ -1244,6 +1291,12 @@ async function bootstrap(): Promise<void> {
     }
   })
   registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals, hub: approvalHub })
+  registerCommandsIpc({
+    handle,
+    service: commandService,
+    status: async () => ({ settings: getCommandsSettings(), git: await gitReady }),
+    setSettings: (value) => void settings.set('commands', value)
+  })
   const fakeFolder = app.isPackaged ? undefined : process.env.MMC_FAKE_FOLDER
   registerSchedulesIpc({
     handle,

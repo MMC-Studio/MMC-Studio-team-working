@@ -81,6 +81,14 @@ File này **tự lớn lên theo thời gian**. Người hoặc AI sửa lỗi x
 
 Xem mục "Quyết định đã duyệt" trong `docs/PROGRESS.md`. Tóm tắt: trợ lý chỉ đề xuất / xin, người dùng tự chọn; mặc định TẮT với thành viên team; không có "luôn cho phép" cho thứ đến từ bên ngoài (server từ kho, lệnh chạy code).
 
+### 2.4. Lệnh "chỉ đọc" trong thư mục lạ vẫn có thể chạy code của thư mục đó
+
+**Quy tắc.** Trước khi cho trợ lý chạy một chương trình trong thư mục người dùng chọn, tìm xem chương trình đó đọc cấu hình gì **từ chính thư mục** và cấu hình đó có gọi được chương trình khác không — rồi vô hiệu từng đường, và có test đối chứng (chạy thẳng thì CÓ chạy code, qua app thì KHÔNG). Luôn gọi chương trình bằng đường dẫn tuyệt đối, không qua shell, allowlist cả tham số (không chỉ tên lệnh con).
+
+**Vì sao.** Đo thật với git 2.56: `git status` / `git diff` trong repo lạ chạy được chương trình qua `core.fsmonitor`, filter `clean` / `smudge`, `diff.<driver>.command`, `textconv` (khai trong `.git/config` + `.gitattributes`). `--attr-source=<cây rỗng>` chặn `.gitattributes` nhưng **không** chặn `.git/info/attributes` → phải ghi đè thêm mọi khoá driver đọc từ `git config --list --includes`. Unity / Blender (A2) cũng vậy: `-executeMethod`, `--python` là chạy code tuỳ ý (PR A1).
+
+**Mẫu có sẵn.** `src/main/commands/gitEnv.ts` (`safetyArgs`, `driverOverrides`, `findGit`), `gitPolicy.ts` (allowlist tham số), test đối chứng trong `src/main/commands/__tests__/service.test.ts`.
+
 ---
 
 ## 3. Windows
@@ -112,3 +120,9 @@ Test bộ cài: chạy `release/<phiên bản>/win-unpacked/MMC studio.exe` thay
 ### 4.3. E2E hỏng ở phím tắt Ctrl+Alt+Q
 
 Kiểm xem có bản MMC studio nào đang chạy và giữ phím đó không trước khi kết luận là lỗi code.
+
+### 4.4. E2E kiểm "KHÔNG có" phải chờ việc đó xong trước
+
+**Quy tắc.** `expect(x).not.toContainText(...)` / `toHaveCount(0)` pass ngay nếu UI chưa kịp đổi. Trước khi kiểm "không có", chờ một dấu hiệu việc đã xong (lượt trả lời kết thúc, có tin mới, nút Gửi hiện lại…).
+
+**Vì sao.** Test "tắt tính năng → không còn tool" pass trong 55 ms vì kiểm khi trợ lý chưa trả lời — sẽ vẫn pass kể cả khi tính năng không tắt thật (PR A1).

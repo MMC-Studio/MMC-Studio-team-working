@@ -455,5 +455,14 @@
     "previewLoading": "Đang tải xem trước…",
     "previewEmpty": "(Trống)"
   },
-  "draftLabel": "Nháp:"
+  "draftLabel": "Nháp:",
+  "command": {
+    "title": "Chạy lệnh",
+    "run": "Chạy",
+    "cwd": "Trong thư mục",
+    "timeout": "tối đa {{s}} giây",
+    "readOnly": "Lệnh git chỉ đọc: không sửa file, không commit, không gửi gì lên mạng. App tự chạy lệnh (không qua cửa sổ lệnh) và ghi vào nhật ký.",
+    "fullCommand": "Lệnh thật app sẽ chạy",
+    "fullHint": "Gồm đường dẫn git và các cờ an toàn app tự thêm để cấu hình lạ trong repo (filter, diff driver, fsmonitor…) không chạy được chương trình nào."
+  }
 }
