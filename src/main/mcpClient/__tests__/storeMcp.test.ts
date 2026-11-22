@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { McpApprovals } from '../approvals'
 import { changedTools, stableStringify, toolHash, toolHashes } from '../fingerprint'
 import { McpProxy, PROXY_HEADER, toolsFrom } from '../proxy'
-import { listServerTools, probeAuth } from '../review'
+import { isOAuthChallenge, listServerTools, probeAuth } from '../review'
 import { McpReviews } from '../reviews'
 import { McpServerStore, uniqueName } from '../store'
 import { fetchApproved, RedirectBlockedError } from '../upstream'
@@ -298,13 +298,42 @@ describe('proxy + xem danh sách tool (MCP server giả thật)', () => {
     })
   })
 
-  it('xem trước: server không đòi header mà trả 401 → cần OAuth; không lỗi → none', async () => {
+  it('xem trước: 401 trơn → maybe (vẫn cài được, không gửi gì kèm); không lỗi → none', async () => {
     up = await fakeMcp({ tools, requireAuth: 'Bearer x' })
-    expect(await probeAuth(nodeFetch, up.url)).toBe('oauth')
+    expect(await probeAuth(nodeFetch, up.url)).toBe('maybe')
     expect(up.seen[0].headers.authorization).toBeUndefined()
     up.close()
     up = await fakeMcp({ tools })
     expect(await probeAuth(nodeFetch, up.url)).toBe('none')
     expect(await listServerTools({ url: up.url.replace('/mcp', '/x'), host: up.host, secretHeaders: {}, needsHeaders: false, fetch: nodeFetch })).toMatchObject({ status: 'ok' })
+  })
+
+  it('context7 (phản hồi thật 2026-11-22): địa chỉ plugin khai báo (?client=claude-code-plugin) → 401 + Bearer resource_metadata = OAuth; cùng server, địa chỉ ẩn danh → none', async () => {
+    // Ghi lại từ https://mcp.context7.com/mcp: không tham số → 200 (ẩn danh); ?client=claude-code-plugin → 401 đòi OAuth.
+    const ctx7 = vi.fn(async (url: string, _init: RequestInit): Promise<Response> =>
+      url.includes('client=claude-code-plugin')
+        ? new Response('{"jsonrpc":"2.0","error":{"code":-32001,"message":"Authentication required. Please authenticate to use this MCP server."},"id":null}', {
+            status: 401,
+            headers: {
+              'content-type': 'application/json; charset=utf-8',
+              'www-authenticate': 'Bearer resource_metadata="https://mcp.context7.com/.well-known/oauth-protected-resource/mcp"'
+            }
+          })
+        : new Response('{"jsonrpc":"2.0","id":1,"result":{}}', { status: 200, headers: { 'content-type': 'application/json' } })
+    )
+    expect(await probeAuth(ctx7, 'https://mcp.context7.com/mcp?client=claude-code-plugin')).toBe('oauth')
+    expect(await probeAuth(ctx7, 'https://mcp.context7.com/mcp')).toBe('none')
+    // Thử kết nối không kèm header / dữ liệu người dùng, không theo redirect.
+    const init = ctx7.mock.calls[0][1]
+    expect(Object.keys(init.headers as Record<string, string>).sort()).toEqual(['accept', 'content-type'])
+    expect(init.redirect).toBe('manual')
+  })
+
+  it('chỉ coi là OAuth khi có Bearer + resource_metadata', () => {
+    expect(isOAuthChallenge('Bearer resource_metadata="https://x/.well-known/oauth-protected-resource"')).toBe(true)
+    expect(isOAuthChallenge('Bearer realm="x", resource_metadata="https://x/m", scope="a"')).toBe(true)
+    expect(isOAuthChallenge('Bearer')).toBe(false)
+    expect(isOAuthChallenge('Basic realm="x"')).toBe(false)
+    expect(isOAuthChallenge(null)).toBe(false)
   })
 })

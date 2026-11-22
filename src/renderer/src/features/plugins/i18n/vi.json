@@ -185,7 +185,6 @@
       "hooks": "Hook (tự chạy lệnh) — không bao giờ chạy",
       "commands": "{{count}} lệnh (/command) — app chưa hỗ trợ",
       "agents": "{{count}} agent — app chưa hỗ trợ",
-      "mcp": "MCP server — sẽ có ở bản sau (8b), mỗi server phải duyệt riêng",
       "other": "{{count}} file khác ngoài thư mục skill"
     },
     "sourcesTitle": "Nguồn kho plugin",
@@ -221,7 +220,7 @@
       "manual": "Thêm thủ công…",
       "notPinned": "Lệnh không khoá phiên bản (mỗi lần chạy có thể là code khác) nên app không cho thêm từ đây.",
       "needsHeaders": "Cần nhập: {{keys}} (nhập khi bật).",
-      "oauth": "Cần đăng nhập OAuth — chưa hỗ trợ.",
+      "oauth": "Cần đăng nhập OAuth với địa chỉ này (server trả 401 kèm thông tin đăng nhập) — app chưa hỗ trợ.",
       "removed": "Gỡ MCP",
       "reason": {
         "not_https": "Chỉ hỗ trợ địa chỉ https://.",
@@ -233,10 +232,12 @@
         "added": "Mới",
         "url_changed": "Đổi địa chỉ — phải tick lại",
         "headers_changed": "Đổi header"
-      }
+      },
+      "maybeAuth": "Server trả lời \"chưa đăng nhập\" khi thử — có thể cần đăng nhập. Vẫn cài được; khi bật, app kết nối lại và báo rõ."
     },
     "installMcp": "Cài {{count}} MCP server",
-    "installBoth": "Cài {{skills}} skill + {{mcp}} MCP server"
+    "installBoth": "Cài {{skills}} skill + {{mcp}} MCP server",
+    "installNothing": "Cài"
   },
   "mcpReview": {
     "title": "Bật {{name}}",

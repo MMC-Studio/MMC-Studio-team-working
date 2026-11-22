@@ -88,7 +88,7 @@ export type PluginStoreDeps = {
   /** MCP server HTTP của plugin (8b) — McpServerStore + huỷ thẻ duyệt / dừng lượt khi gỡ. */
   mcp?: StoreMcpPort
   /** Thử kết nối không kèm thông tin gì (xem server có đòi OAuth không). */
-  probe?(url: string): Promise<'none' | 'oauth' | 'unknown'>
+  probe?(url: string): Promise<'none' | 'oauth' | 'maybe' | 'unknown'>
   /** Chỉ e2e bản chưa đóng gói: chấp nhận MCP `http://127.0.0.1` (máy chủ giả). */
   allowLocalHttp?: boolean
   changed(): void

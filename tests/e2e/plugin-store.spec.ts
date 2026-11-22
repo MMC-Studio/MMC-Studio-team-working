@@ -92,7 +92,11 @@ test.beforeAll(async () => {
     for await (const c of req) chunks.push(c as Buffer)
     const path = new URL(req.url!, 'http://x').pathname
     mcpSeen.push({ path, auth: req.headers.authorization, proxyHeader: 'x-mmc-proxy' in req.headers })
-    if (path === '/oauth' || (path === '/gh' && req.headers.authorization !== 'Bearer tok-ok')) return void res.writeHead(401, { 'www-authenticate': 'Bearer' }).end()
+    // /oauth: như context7 với ?client=claude-code-plugin (401 + Bearer resource_metadata). /maybe: 401 trơn.
+    if (path === '/oauth')
+      return void res.writeHead(401, { 'www-authenticate': `Bearer resource_metadata="http://${mcpHost}/.well-known/oauth-protected-resource/mcp"` }).end()
+    if (path === '/maybe') return void res.writeHead(401).end()
+    if (path === '/gh' && req.headers.authorization !== 'Bearer tok-ok') return void res.writeHead(401, { 'www-authenticate': 'Bearer' }).end()
     if (req.method !== 'POST') return void res.writeHead(405).end()
     const mcp = new McpServer({ name: 'demo', version: '1' })
     mcp.registerTool('echo', { description: echoDescription, inputSchema: { text: z.string(), kem: z.any().optional() } }, async ({ text }) => ({
@@ -111,6 +115,7 @@ test.beforeAll(async () => {
         demo: { type: 'http', url: `http://${mcpHost}/mcp` },
         gh: { type: 'http', url: `http://${mcpHost}/gh`, headers: { Authorization: 'Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}' } },
         linear: { type: 'http', url: `http://${mcpHost}/oauth` },
+        maybe: { type: 'http', url: `http://${mcpHost}/maybe` },
         plain: { type: 'http', url: 'http://plain.example/mcp' },
         local: { command: 'npx', args: ['-y', '@demo/srv@1.2.3'] },
         latest: { command: 'npx', args: ['-y', 'srv'] }
@@ -195,7 +200,8 @@ test('xem trước: SHA, license, file bị bỏ, phần không lấy, cảnh b�
   await expect(preview.getByTestId('store-preview-license')).toHaveText('MIT')
   await expect(preview.getByTestId('store-skill-skipped')).toContainText('scripts/tao.py')
   await expect(preview.getByTestId('store-preview-ignored')).toContainText('Hook')
-  await expect(preview.getByTestId('store-preview-ignored')).toContainText('MCP server')
+  // MCP có mục riêng (8b) — không còn dòng "MCP server — sẽ có ở bản sau" trong "phần không lấy".
+  await expect(preview.getByTestId('store-preview-ignored')).not.toContainText('MCP server')
   await expect(preview.locator('[data-testid="store-warning"][data-kind="injection"]').first()).toBeVisible()
   await expect(preview.locator('[data-testid="store-warning"][data-kind="missing_file"]').first()).toContainText('có thể không chạy đúng')
   await preview.getByTestId('store-install').click()
@@ -383,8 +389,11 @@ test('MCP từ kho — xem trước: tên miền chữ to, OAuth ghi rõ, lệnh
   await expect(mcpRow('local').getByTestId('store-mcp-manual')).toBeVisible()
   await expect(mcpRow('latest').getByTestId('store-mcp-not-pinned')).toBeVisible()
   await expect(mcpRow('plain').getByTestId('store-mcp-unsupported')).toHaveAttribute('data-reason', 'not_https')
-  // Không skill, chưa tick gì → không cài được.
+  // Không skill, chưa tick gì → nút "Cài" mờ (không ghi "Cài 0 skill").
   await expect(page.getByTestId('store-install')).toBeDisabled()
+  await expect(page.getByTestId('store-install')).toHaveText('Cài')
+  await expect(mcpRow('maybe').getByTestId('store-mcp-maybe-auth')).toBeVisible()
+  await expect(mcpRow('maybe').getByTestId('store-mcp-tick')).toBeEnabled()
   await mcpRow('demo').getByTestId('store-mcp-tick').check()
   await mcpRow('gh').getByTestId('store-mcp-tick').check()
   await mcpRow('demo').scrollIntoViewIfNeeded()

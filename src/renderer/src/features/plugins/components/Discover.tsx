@@ -442,7 +442,9 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
               ? t('store.reinstall')
               : preview?.update
                 ? t('store.update')
-                : ticked.size === 0
+                : total === 0
+                  ? t('store.installNothing')
+                  : ticked.size === 0
                   ? t('store.install', { count: installable.length })
                   : installable.length === 0
                     ? t('store.installMcp', { count: ticked.size })
@@ -527,6 +529,11 @@ function McpSection({ list, ticked, onTick, onClose }: { list: PreviewMcpServer[
                   {m.auth === 'oauth' && (
                     <span className="block text-xs font-medium text-destructive" data-testid="store-mcp-oauth">
                       {t('store.mcp.oauth')}
+                    </span>
+                  )}
+                  {m.auth === 'maybe' && (
+                    <span className="block text-xs text-orange-700 dark:text-orange-300" data-testid="store-mcp-maybe-auth">
+                      {t('store.mcp.maybeAuth')}
                     </span>
                   )}
                   {m.reason && (
@@ -664,7 +671,6 @@ function Ignored({ ignored }: { ignored: PluginPreview['ignored'] }) {
     ignored.hooks && t('store.ignored.hooks'),
     ignored.commands > 0 && t('store.ignored.commands', { count: ignored.commands }),
     ignored.agents > 0 && t('store.ignored.agents', { count: ignored.agents }),
-    ignored.mcp && t('store.ignored.mcp'),
     ignored.otherFiles > 0 && t('store.ignored.other', { count: ignored.otherFiles })
   ].filter((x): x is string => !!x)
   if (!items.length) return null

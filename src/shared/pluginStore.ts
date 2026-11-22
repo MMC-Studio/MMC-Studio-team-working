@@ -105,8 +105,12 @@ export type PreviewMcpServer = {
   pinned: boolean
   /** Vì sao không cài được. */
   reason: 'not_https' | 'sse' | 'variables' | 'bad_url' | null
-  /** Thử kết nối không kèm thông tin gì: oauth = cần đăng nhập OAuth (app chưa hỗ trợ) · token = cần header. */
-  auth: 'none' | 'token' | 'oauth' | 'unknown'
+  /**
+   * Thử kết nối không kèm thông tin gì. oauth = 401 / 403 kèm `WWW-Authenticate: Bearer … resource_metadata` (chuẩn
+   * OAuth của MCP — app chưa hỗ trợ, không cài được) · maybe = 401 / 403 không có thông tin đó (có thể cần đăng nhập,
+   * vẫn cài được, lúc bật app kiểm lại) · token = server khai báo header · unknown = không thử được.
+   */
+  auth: 'none' | 'token' | 'oauth' | 'maybe' | 'unknown'
   /** Cập nhật: so với server đang cài của plugin. */
   change: 'added' | 'url_changed' | 'headers_changed' | 'unchanged' | null
 }

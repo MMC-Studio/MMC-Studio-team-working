@@ -185,7 +185,6 @@
       "hooks": "Hooks (run commands automatically) — never run",
       "commands": "{{count}} commands (/command) — not supported yet",
       "agents": "{{count}} agents — not supported yet",
-      "mcp": "MCP servers — coming in a later version (8b), each server approved separately",
       "other": "{{count}} other files outside the skill folders"
     },
     "sourcesTitle": "Plugin store sources",
@@ -221,7 +220,7 @@
       "manual": "Add manually…",
       "notPinned": "The command is not pinned to a version (each run may be different code), so it cannot be added from here.",
       "needsHeaders": "Needs: {{keys}} (entered when turning on).",
-      "oauth": "Requires OAuth sign-in — not supported yet.",
+      "oauth": "Requires OAuth sign-in for this address (the server answered 401 with sign-in details) — not supported yet.",
       "removed": "Remove MCP",
       "reason": {
         "not_https": "Only https:// addresses are supported.",
@@ -233,10 +232,12 @@
         "added": "New",
         "url_changed": "Address changed — tick again",
         "headers_changed": "Headers changed"
-      }
+      },
+      "maybeAuth": "The server answered \"not signed in\" when probed — it may need sign-in. You can still install it; turning it on checks again."
     },
     "installMcp": "Install {{count}} MCP server(s)",
-    "installBoth": "Install {{skills}} skill(s) + {{mcp}} MCP server(s)"
+    "installBoth": "Install {{skills}} skill(s) + {{mcp}} MCP server(s)",
+    "installNothing": "Install"
   },
   "mcpReview": {
     "title": "Turn on {{name}}",

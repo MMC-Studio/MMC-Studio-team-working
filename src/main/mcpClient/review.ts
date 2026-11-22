@@ -58,6 +58,9 @@ export async function listServerTools(opts: {
   }
 }
 
+/** `WWW-Authenticate` kiểu Bearer có `resource_metadata` (MCP Authorization, RFC 9728) → server dùng OAuth. */
+export const isOAuthChallenge = (header: string | null): boolean => !!header && /^\s*Bearer\b/i.test(header) && /\bresource_metadata\s*=/i.test(header)
+
 /** Lỗi gốc (SDK đôi khi bọc lỗi của fetch trong `cause`). */
 function errorOf(e: unknown): unknown {
   let cur = e
@@ -70,10 +73,14 @@ function errorOf(e: unknown): unknown {
 }
 
 /**
- * Lúc xem trước plugin: thử kết nối KHÔNG kèm thông tin gì (không header, không dữ liệu người dùng) để biết server có
- * đòi đăng nhập OAuth không. Không theo redirect. Lỗi mạng → unknown (không chặn cài).
+ * Lúc xem trước plugin: thử `initialize` KHÔNG kèm thông tin gì (không header, không dữ liệu người dùng) để biết server có
+ * đòi đăng nhập OAuth không. Không theo redirect.
+ * - 401 / 403 + `WWW-Authenticate: Bearer … resource_metadata=…` (chuẩn OAuth của MCP) → oauth: chắc chắn phải đăng nhập.
+ *   Vd context7 với địa chỉ plugin khai báo (`?client=claude-code-plugin`) — cùng server, bỏ tham số đó thì ẩn danh được.
+ * - 401 / 403 không có thông tin đó → maybe (không chặn; lúc bật app kết nối lại và báo đúng lỗi).
+ * - Lỗi mạng / mã khác → unknown (không chặn).
  */
-export async function probeAuth(fetchImpl: FetchLike, url: string): Promise<'none' | 'oauth' | 'unknown'> {
+export async function probeAuth(fetchImpl: FetchLike, url: string): Promise<'none' | 'oauth' | 'maybe' | 'unknown'> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS)
   try {
@@ -90,7 +97,7 @@ export async function probeAuth(fetchImpl: FetchLike, url: string): Promise<'non
       signal: controller.signal
     })
     await res.body?.cancel().catch(() => undefined)
-    if (res.status === 401 || (res.status === 403 && res.headers.has('www-authenticate'))) return 'oauth'
+    if (res.status === 401 || res.status === 403) return isOAuthChallenge(res.headers.get('www-authenticate')) ? 'oauth' : 'maybe'
     return res.ok ? 'none' : 'unknown'
   } catch {
     return 'unknown'
