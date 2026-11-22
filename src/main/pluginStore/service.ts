@@ -408,7 +408,13 @@ export class PluginStoreService {
 
   private async writeInPlace(dest: string, files: Map<string, Uint8Array>, hashes: Record<string, string>): Promise<ErrorDetail | null> {
     const old = new Map<string, Uint8Array>()
-    for (const p of await listFiles(dest)) old.set(p, await readFile(join(dest, ...p.split('/'))))
+    for (const p of await listFiles(dest))
+      try {
+        old.set(p, await readFile(join(dest, ...p.split('/'))))
+      } catch (e) {
+        // Chưa ghi gì → bản cũ còn nguyên.
+        return { reason: isLocked(e) ? 'locked' : 'write_failed', file: p, code: errCode(e) }
+      }
     const restore = async (): Promise<void> => {
       for (const p of await listFiles(dest).catch(() => [] as string[]))
         if (!old.has(p)) await rm(join(dest, ...p.split('/')), { force: true }).catch(() => undefined)

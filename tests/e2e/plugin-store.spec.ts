@@ -1,3 +1,4 @@
+import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer, type Server } from 'node:http'
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -17,6 +18,8 @@ const SLOW = { timeout: 15_000 }
 const SHA1 = '1'.repeat(40)
 const SHA2 = '2'.repeat(40)
 const SHA3 = '3'.repeat(40)
+const SHA4 = '4'.repeat(40)
+const SHA5 = '5'.repeat(40)
 let app: ElectronApplication
 let page: Page
 let userData: string
@@ -35,11 +38,49 @@ const V1 = {
   'plugins/van/hooks/hooks.json': '{}',
   'plugins/van/.mcp.json': '{}'
 }
-const MARKET = { name: 'mmc', plugins: [{ name: 'van', source: './plugins/van', description: 'Văn phong cho báo cáo', category: 'viết' }] }
+const MARKET = {
+  name: 'mmc',
+  plugins: [
+    { name: 'van', source: './plugins/van', description: 'Văn phong cho báo cáo', category: 'viết' },
+    // Trỏ sang repo khác, SHA khoá sẵn (như ui-theme-designer trong marketplace của Anthropic).
+    { name: 'ngoai', source: { source: 'git-subdir', url: 'https://github.com/sap/ngoai.git', path: 'plugins/ngoai', sha: SHA4 }, description: 'Plugin ở repo ngoài' },
+    { name: 'lon', source: { source: 'github', repo: 'mmc/lon', sha: SHA5 }, description: 'Plugin quá nhiều file' }
+  ]
+}
+const NGOAI = {
+  'plugins/ngoai/skills/ngoai-skill/SKILL.md': skillMd('ngoai-skill', 'Skill ở repo ngoài', 'Đọc huong-dan.md trước khi làm.'),
+  'plugins/ngoai/skills/ngoai-skill/huong-dan.md': '# Hướng dẫn',
+  'plugins/ngoai/skills/ngoai-skill/package-lock.json': JSON.stringify({ packages: { a: { resolved: 'https://registry.npmjs.org/a/-/a-1.0.0.tgz' } } })
+}
+const LON: Record<string, string> = Object.fromEntries([
+  ['skills/lon/SKILL.md', skillMd('lon', 'Skill lớn', 'Nhiều file')],
+  ...Array.from({ length: 1001 }, (_, i) => [`skills/lon/f${i}.md`, 'x'])
+])
+const ngoaiSkillDir = (): string => {
+  const plugins = join(userData, 'plugins')
+  return join(plugins, readdirSync(plugins).find((d) => d.startsWith('ngoai-'))!, 'ngoai-skill')
+}
+/** Tiến trình con giữ thư mục / file (như Explorer, trình soạn thảo trên Windows). Đợi tới khi khoá xong. */
+const hold = (cmd: string, args: string[], cwd?: string): Promise<ChildProcess> =>
+  new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'inherit'] })
+    child.stdout?.on('data', (d: Buffer) => d.toString().includes('ready') && resolve(child))
+    child.on('error', reject)
+    child.on('exit', (c) => reject(new Error(`tiến trình giữ khoá thoát sớm (${c})`)))
+  })
+const release = (child: ChildProcess): Promise<void> =>
+  new Promise((resolve) => {
+    if (child.exitCode !== null) return resolve()
+    child.removeAllListeners('exit')
+    child.on('exit', () => resolve())
+    child.kill()
+  })
 
 test.beforeAll(async () => {
   userData = mkdtempSync(join(tmpdir(), 'mmc-store-e2e-'))
   publish('mmc/kho', SHA1, MARKET, V1)
+  publish('sap/ngoai', SHA4, null, NGOAI)
+  publish('mmc/lon', SHA5, null, LON)
   publish('ban/kho-rieng', SHA3, { plugins: [{ name: 'rieng', source: './p', description: 'Plugin nguồn tự thêm' }] }, {
     'p/skills/rieng/SKILL.md': skillMd('rieng', 'Skill riêng', 'Nội dung riêng')
   })
@@ -203,6 +244,74 @@ test('gỡ plugin → hết ở "Đã cài", skill biến mất', async () => {
   await expect(installedRow('ban/kho-rieng#rieng')).toHaveCount(0, FAST)
   await page.getByTestId('plugins-tab-skills').click()
   await expect(page.locator('[data-testid="plugin-row"][data-key="store:rieng"]')).toHaveCount(0, FAST)
+})
+
+test('plugin trỏ repo ngoài (git-subdir, SHA khoá): lock file bị bỏ, không cảnh báo link trong lock file → cài', async () => {
+  await openDiscover()
+  await card('mmc/kho#ngoai').click()
+  const preview = page.getByTestId('store-preview')
+  await expect(preview.getByTestId('store-preview-sha')).toContainText(`sap/ngoai/plugins/ngoai@${SHA4.slice(0, 7)}`, SLOW)
+  await expect(preview.locator('[data-testid="store-skipped-group"][data-reason="lock_file"]')).toContainText('package-lock.json')
+  await expect(preview.locator('[data-testid="store-warning"][data-kind="url"]')).toHaveCount(0)
+  await preview.getByTestId('store-install').click()
+  await expect(installedRow('mmc/kho#ngoai')).toBeVisible(SLOW)
+  expect(readdirSync(ngoaiSkillDir()).sort()).toEqual(['SKILL.md', 'huong-dan.md'])
+})
+
+test('Cài lại khi thư mục plugin đang mở (như Explorer / cửa sổ lệnh) → thành công', async () => {
+  test.skip(process.platform !== 'win32', 'khoá thư mục chỉ có trên Windows')
+  const file = join(ngoaiSkillDir(), 'SKILL.md')
+  const original = readFileSync(file, 'utf8')
+  writeFileSync(file, `${original}\nSửa ngoài app.`)
+  await openDiscover()
+  await expect(installedRow('mmc/kho#ngoai').getByTestId('store-modified')).toBeVisible(SLOW)
+  const child = await hold(process.execPath, ['-e', "console.log('ready'); setInterval(() => {}, 1000)"], ngoaiSkillDir())
+  try {
+    await installedRow('mmc/kho#ngoai').getByTestId('store-update').click()
+    await expect(page.getByTestId('store-preview-sha')).toBeVisible(SLOW)
+    await page.getByTestId('store-install').click()
+    await expect(installedRow('mmc/kho#ngoai').getByTestId('store-modified')).toHaveCount(0, SLOW)
+    await expect(page.getByTestId('store-install-error')).toHaveCount(0)
+    expect(readFileSync(file, 'utf8')).toBe(original)
+  } finally {
+    await release(child)
+  }
+})
+
+test('file bị khoá → hộp lỗi kèm tên file, bản cũ giữ; bỏ khoá → bấm lại được', async () => {
+  test.skip(process.platform !== 'win32', 'khoá file chỉ có trên Windows')
+  const file = join(ngoaiSkillDir(), 'SKILL.md')
+  const original = readFileSync(file, 'utf8')
+  writeFileSync(file, `${original}\nSửa lần 2.`)
+  await openDiscover()
+  await expect(installedRow('mmc/kho#ngoai').getByTestId('store-modified')).toBeVisible(SLOW)
+  await installedRow('mmc/kho#ngoai').getByTestId('store-update').click()
+  await expect(page.getByTestId('store-preview-sha')).toBeVisible(SLOW)
+  const ps = `$f=[IO.File]::Open('${file.replace(/'/g, "''")}','Open','ReadWrite','None'); Write-Output ready; Start-Sleep 120`
+  const child = await hold('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps])
+  try {
+    await page.getByTestId('store-install').click()
+    const err = page.getByTestId('store-install-error')
+    await expect(err).toHaveAttribute('data-reason', 'locked', SLOW)
+    await expect(err.getByTestId('store-error-file')).toHaveText('ngoai-skill/SKILL.md')
+    await expect(err).toBeInViewport()
+  } finally {
+    await release(child)
+  }
+  expect(readFileSync(file, 'utf8')).toContain('Sửa lần 2.')
+  await page.getByTestId('store-install').click()
+  await expect(installedRow('mmc/kho#ngoai').getByTestId('store-modified')).toHaveCount(0, SLOW)
+  expect(readFileSync(file, 'utf8')).toBe(original)
+})
+
+test('plugin quá nhiều file → hộp lỗi xem trước too_many_files, không cài được', async () => {
+  await openDiscover()
+  await card('mmc/kho#lon').click()
+  const err = page.getByTestId('store-preview-error')
+  await expect(err).toHaveAttribute('data-reason', 'too_many_files', SLOW)
+  await expect(page.getByTestId('store-install')).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(installedRow('mmc/kho#lon')).toHaveCount(0)
 })
 
 test('GitHub hết lượt → báo giờ thử lại, danh mục đã lưu vẫn hiện', async () => {

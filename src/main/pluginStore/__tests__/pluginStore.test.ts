@@ -1,3 +1,4 @@
+import { spawn, type ChildProcess } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -216,6 +217,7 @@ describe('PluginStoreService', () => {
   let disabled: string[]
   let skills: SkillStore
   let store: PluginStoreService
+  let logs: string[]
 
   const marketplace = { plugins: [{ name: 'p', source: './plugins/p', description: 'Plugin P', category: 'viết' }] }
   const v1 = { LICENSE: 'MIT License', 'plugins/p/skills/sach/SKILL.md': skillMd('sach', 'Bản 1'), 'plugins/p/skills/sach/ghi-chu.md': 'ghi chú' }
@@ -234,13 +236,14 @@ describe('PluginStoreService', () => {
       forgetSkills: (names) => skills.forget(names),
       changed: () => {},
       now: () => clock,
-      log: { info: () => {}, warn: () => {} }
+      log: { info: (m: string) => void logs.push(m), warn: (m: string) => void logs.push(m) }
     })
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'mmc-plugins-'))
     userDir = mkdtempSync(join(tmpdir(), 'mmc-skills-'))
     gh = fakeGithub()
+    logs = []
     gh.publish('mmc/kho', 'main', SHA1, marketplace, v1)
     sources = []
     installed = []
@@ -371,6 +374,73 @@ describe('PluginStoreService', () => {
     expect(disabled).toEqual([])
     expect((await skills.list()).some((s) => s.source === 'plugin')).toBe(false)
   })
+
+  /** Tiến trình con giữ thư mục / file (như Explorer, trình soạn thảo trên Windows). Đợi tới khi khoá xong. */
+  const hold = (cmd: string, args: string[], cwd?: string): Promise<ChildProcess> =>
+    new Promise((resolve, reject) => {
+      const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'inherit'] })
+      child.stdout?.on('data', (d: Buffer) => d.toString().includes('ready') && resolve(child))
+      child.on('error', reject)
+      child.on('exit', (c) => reject(new Error(`tiến trình giữ khoá thoát sớm (${c})`)))
+    })
+  const release = (child: ChildProcess): Promise<void> =>
+    new Promise((resolve) => {
+      if (child.exitCode !== null) return resolve()
+      child.removeAllListeners('exit')
+      child.on('exit', () => resolve())
+      child.kill()
+    })
+
+  it.runIf(process.platform === 'win32')('cài lại khi thư mục đang mở (cwd của tiến trình khác) → ghi đè tại chỗ, bản mới', async () => {
+    const r = await store.preview('mmc/kho#p')
+    if (r.status !== 'ok') throw new Error()
+    await store.install(r.preview.token)
+    const folder = join(dir, installed[0].dir)
+    const child = await hold(process.execPath, ['-e', "console.log('ready'); setInterval(() => {}, 1000)"], join(folder, 'sach'))
+    try {
+      gh.publish('mmc/kho', 'main', SHA2, marketplace, v2)
+      clock += 2 * 60 * 60 * 1000
+      await store.catalog()
+      const again = await store.preview('mmc/kho#p')
+      if (again.status !== 'ok') throw new Error()
+      const done = await store.install(again.preview.token)
+      expect(done).toMatchObject({ status: 'ok', plugin: { location: { sha: SHA2 }, modified: false } })
+      expect(logs.some((m) => m.includes('ghi đè từng file'))).toBe(true)
+      expect(readFileSync(join(folder, 'sach', 'SKILL.md'), 'utf8')).toContain('Bản 2')
+      expect(existsSync(join(folder, 'sach', 'ghi-chu.md'))).toBe(false)
+      expect(existsSync(join(folder, 'moi', 'SKILL.md'))).toBe(true)
+      store.recheck()
+      expect(store.installed()[0].modified).toBe(false)
+    } finally {
+      await release(child)
+    }
+  }, 30_000)
+
+  it.runIf(process.platform === 'win32')('file bị khoá → lỗi locked + tên file, bản cũ giữ nguyên; bỏ khoá → bấm lại cùng token được', async () => {
+    const r = await store.preview('mmc/kho#p')
+    if (r.status !== 'ok') throw new Error()
+    await store.install(r.preview.token)
+    const file = join(dir, installed[0].dir, 'sach', 'SKILL.md')
+    gh.publish('mmc/kho', 'main', SHA2, marketplace, v2)
+    clock += 2 * 60 * 60 * 1000
+    await store.catalog()
+    const again = await store.preview('mmc/kho#p')
+    if (again.status !== 'ok') throw new Error()
+    const ps = `$f=[IO.File]::Open('${file.replace(/'/g, "''")}','Open','ReadWrite','None'); Write-Output ready; Start-Sleep 120`
+    const child = await hold('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps])
+    let failed
+    try {
+      failed = await store.install(again.preview.token)
+    } finally {
+      await release(child)
+    }
+    expect(failed).toMatchObject({ status: 'error', error: 'install_failed', detail: { reason: 'locked', file: 'sach/SKILL.md' } })
+    expect(readFileSync(file, 'utf8')).toContain('Bản 1')
+    expect(installed[0].location.sha).toBe(SHA1)
+    const done = await store.install(again.preview.token)
+    expect(done).toMatchObject({ status: 'ok', plugin: { location: { sha: SHA2 } } })
+    expect(readFileSync(file, 'utf8')).toContain('Bản 2')
+  }, 30_000)
 
   it('GitHub hết lượt: báo lỗi nguồn + giờ thử lại, danh mục cũ vẫn hiện', async () => {
     await store.catalog()

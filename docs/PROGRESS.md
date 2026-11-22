@@ -1,4 +1,4 @@
-# Tiến độ nâng cấp trợ lý cá nhân (cập nhật 2026-11-21)
+# Tiến độ nâng cấp trợ lý cá nhân (cập nhật 2026-11-22)
 
 ## Đã xong (đã merge vào main)
 | PR | Nội dung |
@@ -181,27 +181,13 @@ Tiến độ:
   - **Skill từ kho trong prompt** (`SkillStore`): nguồn `plugin`, chỉ khi gọi đích danh (`explicitSkills`), không khi file bị sửa, không trong lần chạy theo lịch (`ChatService` truyền `scheduled`); bọc `<skill nguon="kho:repo@sha7" ten="…">` + câu dặn `PLUGIN_SKILL_RULE`; thẻ `<skill` giả trong nội dung bị vô hiệu. Trùng tên skill có sẵn / tự cài / plugin khác → skill đó không cài.
   - **Giao diện**: tab **Khám phá** (danh mục, lọc loại, ô tìm chung, Nguồn, Làm mới, Đã cài từ kho + Kiểm tra cập nhật / Cập nhật / Cài lại / Gỡ, banner lỗi nguồn kèm giờ thử lại), hộp xem trước (nguồn + nhãn, commit, license, cảnh báo, thay đổi kèm diff, skill + file + file bị bỏ + trùng tên, phần không lấy), hộp Nguồn (thêm phải tick cảnh báo; nguồn mặc định không xoá được). Skill của plugin hiện ở "Của bạn" (bật / tắt; gỡ = gỡ cả plugin).
   - Test: unit `pluginStore.test.ts` (15: ETag / hết lượt / không header token, marketplace, đọc gói, đệm + Làm mới, cài đúng bản đã xem, bị sửa ngoài app, chỉ gọi đích danh + không lịch hẹn, cập nhật có diff, trùng tên + nguồn tự thêm + xoá nguồn, gỡ, hết lượt dùng bản đệm); e2e `plugin-store.spec.ts` (9, máy chủ GitHub giả `MMC_FAKE_GITHUB` + `MMC_FAKE_PLUGIN_SOURCES`, chỉ bản chưa đóng gói).
-- **Đang làm dở (8a) — sau test tay của chủ repo, trên nhánh `feat/plugin-store-8a` (PR #40, commit wip):**
-  - **Lỗi 1: "Cài lại" plugin `ui-theme-designer` không được.** Marketplace `anthropics/claude-plugins-official` trỏ sang repo khác (`SAP/ui-theme-designer-plugins-for-coding-agents` @3eff583, git-subdir).
-    - Đã xem `main.log`: lần cài đầu thành công. Mọi lần cài lại sau đó lỗi `EPERM: rename <plugins>\ui-theme-designer-fe08b559 -> .old-…`. Trên Windows, thư mục đang mở trong Explorer / trình soạn thảo / cửa sổ lệnh (bước test 5 bảo mở thư mục đó) thì không đổi tên được.
-    - Đã tải gói thật: plugin có 8 file, khoảng 37 KB, không vượt giới hạn. Vậy các giả thuyết repo ngoài / vượt 2 MB / cùng SHA đều không phải nguyên nhân.
-    - Giao diện chỉ báo mã chung `install_failed`, đặt ở cuối vùng cuộn nên dễ khuất. Token cũng đã bị xoá nên bấm lại sẽ ra "hết hạn".
-    - **Đã sửa (chưa test xong):**
-      - `service.ts` `writePlugin`: đổi tên bị EPERM / EBUSY / EACCES thì chuyển sang `writeInPlace` (ghi đè từng file, kiểm hash, xoá file thừa; lỗi giữa chừng thì ghi lại nội dung cũ).
-      - Lỗi trả kèm `detail: ErrorDetail {reason: locked | write_failed | hash_mismatch | too_many_files | too_many_bytes | archive_too_big, file, code}` (`@shared/pluginStore`, kiểu mới `InstallResult`).
-      - Cài lỗi thì GIỮ token để bấm lại được; chặn bấm hai lần (`installing`).
-      - UI: `ErrorBox` (`store-install-error` / `store-preview-error`, có `data-reason`, `store-error-file`) đặt ngoài vùng cuộn, ngay trên nút; bắt cả IPC bị reject.
-  - **Góp ý 2: bỏ lock file.**
-    - Đã làm trong `inspect.ts`: `LOCK_FILES` / `isLockFile` (package-lock, yarn.lock, pnpm-lock.yaml, uv.lock, poetry.lock, Cargo.lock, go.sum…) — không cài, không quét, không tính "nhắc file bị bỏ".
-    - `PreviewSkill.skipped` đổi thành `{path, reason: not_text | lock_file | too_big | over_limit}[]`; UI nhóm "Bị bỏ" theo lý do (`store-skipped-group`); i18n `store.skipped.*`, `store.failReasons.*`, `store.failFile`.
-    - Lỗi `too_large` có kèm chi tiết (file lớn nhất hoặc giới hạn số file).
-  - **Bước tiếp theo:**
-    1. Chạy `npx vitest run src/main/pluginStore`. Đã sửa test `skipped` và thêm 2 test (lock file, over_limit / too_large); còn phải thêm unit test cài lại khi thư mục bị khoá — giữ khoá bằng tiến trình con có `cwd` trong thư mục plugin (CI chạy windows-latest), và khoá file bằng PowerShell `[IO.File]::Open(p,'Open','ReadWrite','None')` → kỳ vọng `detail.reason = locked` + tên file, bỏ khoá thì bấm lại cùng token được.
-    2. E2e trong `plugin-store.spec.ts`:
-       - plugin trỏ sang repo ngoài (git-subdir, máy chủ giả phục vụ repo thứ hai) → cài → giữ thư mục bằng tiến trình con → **Cài lại** thành công;
-       - khoá file → hộp hiện `store-install-error` có tên file → bỏ khoá → bấm lại được;
-       - plugin vượt giới hạn (hơn 1000 file) → `store-preview-error` với `data-reason="too_many_files"`; skill có lock file → nhóm `lock_file`, không có cảnh báo link.
-    3. Chạy lint / typecheck / test / e2e (không CLI) bằng mã thoát; cập nhật mô tả PR #40 và CHANGELOG; push; chờ CI; báo danh sách test tay (thêm bước: mở thư mục plugin trong Explorer rồi bấm Cài lại).
+- **Sửa sau test tay của chủ repo (8a, PR #40) — xong, chờ test tay lại:**
+  - **Lỗi 1: "Cài lại" `ui-theme-designer` không được.** Marketplace `anthropics/claude-plugins-official` trỏ sang `SAP/ui-theme-designer-plugins-for-coding-agents` @3eff583 (git-subdir). `main.log`: lần cài đầu được; mọi lần cài lại lỗi `EPERM: rename <plugins>\ui-theme-designer-fe08b559 -> .old-…` — Windows không cho đổi tên thư mục đang mở trong Explorer / trình soạn thảo / cửa sổ lệnh (bước test 5 bảo mở thư mục đó). Gói thật 8 file ~37 KB → không phải do repo ngoài / vượt giới hạn / cùng SHA. Giao diện chỉ báo `install_failed` ở cuối vùng cuộn, token bị xoá nên bấm lại ra "hết hạn".
+    - `service.ts` `writePlugin`: đổi tên bị EPERM / EBUSY / EACCES → `writeInPlace` (ghi đè từng file, kiểm hash, xoá file thừa; lỗi giữa chừng ghi lại nội dung cũ; đọc bản cũ bị khoá → báo ngay, chưa ghi gì).
+    - Lỗi kèm `detail: ErrorDetail {reason: locked | write_failed | hash_mismatch | too_many_files | too_many_bytes | archive_too_big, file, code}` (`@shared/pluginStore`, kiểu `InstallResult`). Cài lỗi GIỮ token để bấm lại; chặn bấm hai lần.
+    - UI: `ErrorBox` (`store-install-error` / `store-preview-error`, `data-reason`, `store-error-file`) ngoài vùng cuộn, ngay trên nút; bắt cả IPC bị reject.
+  - **Góp ý 2: bỏ lock file** — `inspect.ts` `LOCK_FILES` / `isLockFile` (package-lock, yarn.lock, pnpm-lock.yaml, uv.lock, poetry.lock, Cargo.lock, go.sum…): không cài, không quét, không tính "nhắc file bị bỏ". `PreviewSkill.skipped` = `{path, reason: not_text | lock_file | too_big | over_limit}[]`, UI nhóm "Bị bỏ" theo lý do (`store-skipped-group`). `too_large` kèm chi tiết (file lớn nhất / giới hạn số file).
+  - Test: unit +4 (lock file; over_limit / too_large; cài lại khi thư mục là cwd của tiến trình khác → đi nhánh ghi đè tại chỗ; file khoá bằng PowerShell `FileShare None` → `locked` + `sach/SKILL.md`, bản cũ giữ, bỏ khoá bấm lại cùng token được — 2 test cuối chỉ chạy trên Windows). E2e +4 (plugin git-subdir repo ngoài có lock file; Cài lại khi thư mục đang mở; file khoá → hộp lỗi có tên file, nằm trong khung nhìn, bấm lại được; plugin > 1000 file → `too_many_files`).
   - **Việc sau 8a (PR riêng):** `electron-builder.yml` mục `resources/stickers` có dòng `filter: ['desktop_server.py', 'requirements.txt']`, có vẻ dán nhầm từ mục sidecar, nên bộ cài có thể không kèm sticker. Kiểm tra lại rồi sửa.
   - Quyết định PR 8 (8a / 8b) đã ghi ở "Quyết định đã duyệt" → Kho plugin online. Khảo sát marketplace Anthropic (317 plugin; 1.276 / 2.726 skill thuần chữ; 184 plugin có ít nhất một skill thuần chữ; 15 plugin hoàn toàn thuần chữ, không có MCP) đã báo chủ repo, chờ quyết có thêm làm nguồn mặc định không.
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
