@@ -37,6 +37,12 @@
 | #42 | Nguồn plugin mặc định `anthropics/claude-plugins-official` (`MMC-Studio/team-skill` chờ tạo repo) — test tay 2026-11-22 ổn |
 | #44 | Đợt "giống Claude" PR 8b: MCP server HTTP từ kho plugin — tick từng server, OAuth ghi rõ, bật lần đầu xem danh sách tool, proxy cục bộ (header chỉ đúng tên miền, tool đổi → tự tắt), thẻ duyệt tên miền + tham số, không "luôn cho phép" — test tay 2026-11-22 ổn |
 
+## Các mức quyền thêm — đang làm
+- **`fix/realpath-containment`** (PR đầu tiên của đợt, xem kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm):
+  - **Lỗ hổng:** `insideProject` chỉ so chữ → junction / symlink trong thư mục dự án trỏ ra ngoài vẫn qua bước kiểm của app (thẻ duyệt sửa file). Đo thật với CLI 2.1.330 (2026-11-22): `--restricted` của CLI đã tự chặn Read và Write qua junction ("resolves through a symlink … outside"), nên bản hiện tại chưa lọt thực tế — nhưng app không được dựa vào CLI, và từ A1 (`run_command`), C (tự duyệt) lớp kiểm của app là lớp chặn duy nhất.
+  - **Sửa:** module chung `src/main/code/paths.ts` — `insideProject` (chữ; `..foo` là tên hợp lệ), `realRelative` / `realInside` (realpath; phần chưa tồn tại → realpath thư mục cha gần nhất có thật rồi nối phần còn lại; lỗi khác ENOENT → coi là ngoài). `describeChange` từ chối `link_outside` và kiểm thư mục bảo vệ theo cả đường dẫn thật (junction `Assets/lib` → `Library/` bị chặn). Lịch hẹn hoãn duyệt (`deferred.ts`) bỏ bản `realInside` riêng, dùng bản chung + kiểm thư mục bảo vệ theo đường dẫn thật.
+  - Test: `paths.test.ts` (junction ra ngoài / trong dự án, file và thư mục chưa tồn tại, gốc không tồn tại), `change.test.ts` (Edit / Write qua junction, junction vào `Library/`), `deferred.test.ts` (đề xuất qua junction).
+
 ## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
   1. **Thanh trên khung chat:** nút Artifacts bỏ định vị tuyệt đối, vào chung thanh flex với tiêu đề + Gợi ý ghi nhớ; khung hẹp (container query, < 42rem) chỉ còn biểu tượng + tooltip; tiêu đề dài cắt bằng …. E2E `chat-header.spec.ts` đo khung ở 900 / 1100 / 1280px và khi mở panel Artifacts (ảnh `test-results/chat-header-*.png`).

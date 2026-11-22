@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -134,6 +134,16 @@ describe('DeferredService — hoãn duyệt', () => {
     expect((await propose('anh.png', 'x')).isError).toBe(true)
     for (let i = 0; i < PROPOSE_MAX_FILES; i++) expect((await propose(`f${i}.txt`, 'x')).isError).toBeUndefined()
     expect(text(await propose('f99.txt', 'x'))).toContain(`tối đa ${PROPOSE_MAX_FILES} file`)
+  })
+
+  it('junction trong thư mục trỏ ra ngoài → không đề xuất được', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'mmc-outside-'))
+    try {
+      symlinkSync(outside, join(folder, 'link'), 'junction')
+      expect(text(await propose('link/moi.txt', 'x'))).toContain('symlink')
+    } finally {
+      rmSync(outside, { recursive: true, force: true })
+    }
   })
 
   it('ngoài lần chạy (hoặc lịch không có quyền sửa) → không có tool', async () => {

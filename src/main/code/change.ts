@@ -1,7 +1,10 @@
 import { readFile } from 'node:fs/promises'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { createTwoFilesPatch } from 'diff'
+import { insideProject, realRelative } from './paths'
 import { detectProject, protectedReason } from './projectProfile'
+
+export { insideProject }
 
 export type FileChange = {
   /** Đường dẫn tương đối trong thư mục dự án. */
@@ -14,18 +17,10 @@ export type FileChange = {
 
 export type ChangeResult =
   | FileChange
-  | { error: 'outside_project' | 'unsupported_tool' | 'old_string_not_found' | 'invalid_input' }
+  | { error: 'outside_project' | 'link_outside' | 'unsupported_tool' | 'old_string_not_found' | 'invalid_input' }
   | { error: 'protected_path'; reason: string }
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
-
-/** Đường dẫn có nằm TRONG thư mục dự án không (chặn ../ và ổ đĩa khác). */
-export function insideProject(root: string, target: string): string | null {
-  const abs = isAbsolute(target) ? resolve(target) : resolve(root, target)
-  const rel = relative(resolve(root), abs)
-  if (!rel || rel.startsWith('..') || isAbsolute(rel)) return null
-  return rel.replace(/\\/g, '/')
-}
 
 async function readOrEmpty(path: string): Promise<{ text: string; exists: boolean }> {
   try {
@@ -56,9 +51,15 @@ export async function describeChange(root: string, toolName: string, input: unkn
   if (typeof data.file_path !== 'string') return { error: 'invalid_input' }
   const rel = insideProject(root, data.file_path)
   if (!rel) return { error: 'outside_project' }
-  const reason = protectedReason(detectProject(root), rel)
+  const profile = detectProject(root)
+  const reason = protectedReason(profile, rel)
   if (reason) return { error: 'protected_path', reason }
   const abs = resolve(root, rel)
+  // Symlink / junction trong dự án có thể trỏ ra ngoài (hoặc vào thư mục bảo vệ) dù đường dẫn chữ nằm trong.
+  const realRel = await realRelative(root, abs)
+  if (!realRel) return { error: 'link_outside' }
+  const realReason = realRel !== rel ? protectedReason(profile, realRel) : null
+  if (realReason) return { error: 'protected_path', reason: realReason }
   const before = await readOrEmpty(abs)
 
   let after: string
