@@ -215,7 +215,15 @@ export class FakeChatProvider implements AIProvider {
       yield { type: 'done' }
       return
     }
-    const skills = [...req.systemPrompt.matchAll(/^### Skill: ([\w-]+)/gm)].map((m) => m[1])
+    // Skill tự cài (### Skill: x) + skill từ kho (<skill nguon="kho:…" ten="x">) — chế độ session: nằm trong khối đầu tin.
+    const skillText = `${req.systemPrompt}\n${input.prompt}`
+    // Bỏ trùng: chế độ session có thể thấy cùng skill ở cả system prompt lẫn khối đầu tin.
+    const skills = [
+      ...new Set([
+        ...[...skillText.matchAll(/^### Skill: ([\w-]+)/gm)].map((m) => m[1]),
+        ...[...skillText.matchAll(/<skill nguon="(kho:[^"]+)" ten="([\w-]+)">/g)].map((m) => `${m[2]} (${m[1]})`)
+      ])
+    ]
     // Lượt gửi kèm lịch sử ("…\n---\n<tin mới>"): lấy phần tin mới.
     const first = (req.prompt.split('\n---\n').pop() ?? '').split('\n').find((l) => l.trim() && !l.startsWith('(')) ?? ''
     const expressive = req.systemPrompt.includes('## Biểu cảm')

@@ -40,12 +40,14 @@ export async function setPluginEnabled(item: PluginItem, on: boolean): Promise<b
         () => api.mcp.setEnabled(id, on)
       )
     }
-    case 'skill': {
+    case 'skill':
+    case 'storeSkill': {
+      const source = item.type === 'skill' ? 'user' : 'plugin'
       const before = useSkills.getState().skills
       const result = await optimistic({
         topic: 'skills',
         apply: () =>
-          useSkills.setState({ skills: before?.map((x) => (x.source === 'user' && x.name === item.name ? { ...x, enabled: on } : x)) ?? null }),
+          useSkills.setState({ skills: before?.map((x) => (x.source === source && x.name === item.name ? { ...x, enabled: on } : x)) ?? null }),
         rollback: () => useSkills.setState({ skills: before }),
         save: async () => (await api.skills.setEnabled(item.name, on), true)
       })

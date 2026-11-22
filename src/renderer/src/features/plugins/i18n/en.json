@@ -5,7 +5,8 @@
   "tabs": {
     "all": "All",
     "connectors": "Connectors",
-    "skills": "Skills"
+    "skills": "Skills",
+    "discover": "Discover"
   },
   "filter": {
     "label": "Filter by status",
@@ -55,7 +56,8 @@
     "noClients": "no agents yet",
     "builtin": "built into the app",
     "installedFrom": "installed from {{source}}",
-    "byApp": "supported by the app"
+    "byApp": "supported by the app",
+    "fromStore": "from store {{source}}"
   },
   "describe": {
     "gmail": "The assistant reads, summarizes and drafts replies — drafts always need your approval, nothing is sent.",
@@ -90,5 +92,125 @@
     "back": "Plugins",
     "notFound": "Plugin not found (it may have been removed).",
     "files": "Files: {{files}}"
+  },
+  "store": {
+    "skillNote": "Skill from plugin \"{{plugin}}\" installed from the store. Used only when you name it (\"use skill <name>\"), never in scheduled runs. To remove: Discover tab → Uninstall.",
+    "modified": "The skill files were changed / deleted outside the app — the skill is not used. Reinstall it on the Discover tab.",
+    "sourceRemoved": "Source removed",
+    "sourceBuiltin": "Approved source",
+    "sourceUser": "Source you added — not reviewed",
+    "intro": "Text-only skills from GitHub stores. Preview before installing; the app never runs bundled scripts / hooks.",
+    "sources": "Sources ({{count}})",
+    "refresh": "Refresh",
+    "errors": {
+      "rate_limited": "GitHub is rate-limiting — try again at {{time}} (showing the saved list).",
+      "not_found": "Repository / branch not found on GitHub.",
+      "no_marketplace": "This repository has no .claude-plugin/marketplace.json.",
+      "bad_marketplace": "marketplace.json has an invalid format.",
+      "network": "Couldn't reach GitHub.",
+      "unsupported_source": "Invalid source (needs owner/repo on GitHub).",
+      "plugin_not_found": "The plugin is no longer in the source.",
+      "too_large": "The plugin exceeds the limits — cannot install.",
+      "bad_archive": "Couldn't read the download.",
+      "no_skills": "This plugin has no usable skills (the app installs text-only skills).",
+      "preview_expired": "The preview expired — open it again.",
+      "source_removed": "The plugin's source was removed — it can't be updated.",
+      "source_exists": "This source already exists.",
+      "too_many_sources": "You already have 20 sources.",
+      "builtin_source": "Default sources can't be removed.",
+      "install_failed": "Install failed — the previous version (if any) is kept."
+    },
+    "installed": "Installed from the store",
+    "checkUpdates": "Check for updates",
+    "modifiedBadge": "Changed outside the app",
+    "updateAvailable": "Update available ({{sha}})",
+    "installedMeta": "Skills: {{skills}} · {{repo}}@{{sha}}",
+    "reinstall": "Reinstall",
+    "update": "Update",
+    "uninstall": "Uninstall",
+    "catalog": "Plugins in your sources",
+    "category": "Category",
+    "allCategories": "All categories",
+    "loading": "Loading the list…",
+    "noSources": "No sources yet. Click \"Sources\" to add a GitHub marketplace repository.",
+    "empty": "No matching plugins.",
+    "uninstallTitle": "Uninstall plugin \"{{name}}\"?",
+    "uninstallBody": "Removes the skills: {{skills}} and the version record. Conversations and memories are kept.",
+    "installedBadge": "Installed",
+    "unsupported": {
+      "bad_path": "invalid path",
+      "bad_repo": "invalid repository",
+      "not_github": "not on GitHub — not supported yet",
+      "unsupported_kind": "unsupported source format"
+    },
+    "preview": {
+      "title": "Install plugin \"{{name}}\"",
+      "updateTitle": "Update plugin \"{{name}}\"",
+      "loading": "Downloading the exact version from GitHub…",
+      "source": "Source",
+      "version": "Version (commit)",
+      "from": "currently {{sha}}",
+      "license": "License",
+      "noLicense": "No license given",
+      "userSourceWarning": "Plugin from a source you added — not reviewed. Read the skill content carefully before installing.",
+      "rules": "Only text skills (.md, .txt, .json) are installed. Scripts, hooks and binaries are always dropped and never run. Store skills are used only when you name them, never in scheduled runs, and grant the assistant no extra permissions.",
+      "changes": "Changes from the installed version",
+      "noChanges": "Skill content is unchanged.",
+      "skills": "Skills ({{count}})",
+      "warningsTitle": "{{count}} things to read carefully",
+      "warningsHint": "This doesn't block installing — it's for you to check. An unknown skill may try to push the assistant to act against your intent.",
+      "files": "Files: {{files}}",
+      "reinstallTitle": "Reinstall plugin \"{{name}}\""
+    },
+    "install": "Install {{count}} skill(s)",
+    "warnings": {
+      "injection": "text that may push the assistant to ignore its rules: \"{{excerpt}}\"",
+      "app_tool": "mentions the app tool {{tool}}",
+      "url": "contains a link {{url}}",
+      "base64": "contains a long encoded block (base64)",
+      "shell": "contains a command: \"{{excerpt}}\"",
+      "missing_file": "mentions {{target}} — that file isn't installed (script / dropped), the skill may not work as intended"
+    },
+    "change": {
+      "added": "added",
+      "modified": "changed",
+      "removed": "removed"
+    },
+    "conflict": {
+      "builtin": "Same name as a built-in skill — this skill won't be installed.",
+      "user": "Same name as a skill you installed — this skill won't be installed (rename / remove the other first).",
+      "plugin": "Same name as another plugin's skill — this skill won't be installed."
+    },
+    "ignored": {
+      "title": "Parts of the plugin the app does NOT use",
+      "hooks": "Hooks (run commands automatically) — never run",
+      "commands": "{{count}} commands (/command) — not supported yet",
+      "agents": "{{count}} agents — not supported yet",
+      "mcp": "MCP servers — coming in a later version (8b), each server approved separately",
+      "other": "{{count}} other files outside the skill folders"
+    },
+    "sourcesTitle": "Plugin store sources",
+    "sourcesHelp": "Public GitHub repositories with .claude-plugin/marketplace.json. Default sources are reviewed by the app owner; sources you add are your responsibility.",
+    "removeSource": "Remove source",
+    "removeSourceHint": "Removing a source keeps plugins installed from it (labelled \"Source removed\"), but they can't be updated.",
+    "addSource": "Add a source (owner/repo or GitHub link)",
+    "refPlaceholder": "branch / tag",
+    "addSourceWarning": "I understand: this source isn't reviewed; its skills are written by strangers and may contain text that tries to push the assistant. I'll read carefully before installing.",
+    "addSourceButton": "Add source",
+    "skipped": {
+      "not_text": "Dropped (script / not a text file — never run): {{files}}",
+      "lock_file": "Dropped (package-manager lock file — not skill content, not scanned): {{files}}",
+      "too_big": "Dropped (single file over 512 KB): {{files}}",
+      "over_limit": "Dropped (skill over 100 files / 2 MB): {{files}}"
+    },
+    "failReasons": {
+      "locked": "The folder or a file is open in another program (Explorer, an editor, a terminal…). Close it and try again.",
+      "write_failed": "Could not write to disk (out of space or no permission).",
+      "hash_mismatch": "A file changed right after being written (antivirus / sync tool?) — not installed.",
+      "too_many_files": "The plugin has more than {{limit}} files — too large to read.",
+      "too_many_bytes": "The plugin exceeds the read limit ({{limit}} bytes). Largest file:",
+      "archive_too_big": "The archive from GitHub is over 40 MB:"
+    },
+    "failFile": "File:"
   }
 }

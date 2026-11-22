@@ -37,6 +37,9 @@ export function pluginSubtitle(item: PluginItem, t: TFunction): string {
     case 'builtinSkill':
       source = t('plugins:meta.builtin')
       break
+    case 'storeSkill':
+      source = t('plugins:meta.fromStore', { source: (item.meta.source ?? '').replace(/^kho:/, '') })
+      break
   }
   return source ? `${kind} · ${source}` : kind
 }

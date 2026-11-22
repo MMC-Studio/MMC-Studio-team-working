@@ -12,7 +12,8 @@ export const STYLE_SKILL = 'my-style'
 export const skillThemeSchema = themeSchema
 export type SkillTheme = Theme
 
-export type SkillSource = 'builtin' | 'user'
+/** `plugin` = skill của plugin cài từ kho online (chỉ dùng khi gọi đích danh). */
+export type SkillSource = 'builtin' | 'user' | 'plugin'
 
 export type SkillInfo = {
   name: string
@@ -25,6 +26,8 @@ export type SkillInfo = {
   installedAt?: string
   files: string[]
   themes: SkillTheme[]
+  /** Skill của plugin từ kho: plugin nào, nguồn đã duyệt hay tự thêm, file có bị sửa ngoài app không. */
+  plugin?: { key: string; name: string; builtinSource: boolean; modified: boolean }
 }
 
 export type SkillDetail = SkillInfo & { body: string }

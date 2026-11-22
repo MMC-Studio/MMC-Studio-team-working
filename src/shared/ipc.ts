@@ -31,6 +31,17 @@ export const IPC = {
   schedulesPauseAll: 'schedules:pauseAll',
   schedulesPickFolder: 'schedules:pickFolder',
   schedulesRespondProposal: 'schedules:respondProposal',
+  /** Kho plugin online (8a). */
+  pluginStoreSources: 'pluginStore:sources',
+  pluginStoreAddSource: 'pluginStore:addSource',
+  pluginStoreRemoveSource: 'pluginStore:removeSource',
+  pluginStoreCatalog: 'pluginStore:catalog',
+  pluginStorePreview: 'pluginStore:preview',
+  pluginStoreCancelPreview: 'pluginStore:cancelPreview',
+  pluginStoreInstall: 'pluginStore:install',
+  pluginStoreUninstall: 'pluginStore:uninstall',
+  pluginStoreInstalled: 'pluginStore:installed',
+  pluginStoreCheckUpdates: 'pluginStore:checkUpdates',
   /** Thẻ hoãn duyệt (lịch hẹn 7b). */
   deferredList: 'deferred:list',
   deferredApproveFiles: 'deferred:approveFiles',

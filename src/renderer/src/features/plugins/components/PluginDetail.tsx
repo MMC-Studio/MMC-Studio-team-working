@@ -125,15 +125,16 @@ export function PluginDetail({ path }: { path: string[] }) {
     )
   }
 
-  if (type === 'skill' && (source === 'user' || source === 'builtin') && rawName) {
+  if (type === 'skill' && (source === 'user' || source === 'builtin' || source === 'plugin') && rawName) {
     const name = decodeURIComponent(rawName)
-    const item = all.find((x) => x.type === (source === 'user' ? 'skill' : 'builtinSkill') && x.name === name)
+    const want = source === 'user' ? 'skill' : source === 'plugin' ? 'storeSkill' : 'builtinSkill'
+    const item = all.find((x) => x.type === want && x.name === name)
     return <SkillPage key={`${source}:${name}`} source={source} name={name} item={item} />
   }
   return <NotFound />
 }
 
-function SkillPage({ source, name, item }: { source: 'user' | 'builtin'; name: string; item?: PluginItem }) {
+function SkillPage({ source, name, item }: { source: 'user' | 'builtin' | 'plugin'; name: string; item?: PluginItem }) {
   const { t } = useTranslation(['plugins', 'settings'])
   const skills = useSkills((s) => s.skills)
   const [detail, setDetail] = useState<SkillDetail | null | undefined>(undefined)
@@ -158,6 +159,12 @@ function SkillPage({ source, name, item }: { source: 'user' | 'builtin'; name: s
           {detail.origin && (
             <p className="break-all text-xs text-muted-foreground">
               {t('settings:skills.preview.origin')}: <code>{detail.origin}</code>
+            </p>
+          )}
+          {detail.plugin && (
+            <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs" data-testid="skill-store-note">
+              {t('plugins:store.skillNote', { plugin: detail.plugin.name })}
+              {detail.plugin.modified && <span className="mt-1 block text-orange-700 dark:text-orange-300">{t('plugins:store.modified')}</span>}
             </p>
           )}
           <p className="text-xs text-muted-foreground">{t('settings:skills.howToCall')}</p>

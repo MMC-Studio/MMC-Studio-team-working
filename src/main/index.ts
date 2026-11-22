@@ -136,6 +136,9 @@ import { learnStyle } from './skills/style'
 import { DEFAULT_SKILLS_SETTINGS, skillsSettingsSchema } from '@shared/skills'
 import { DEFAULT_SCHEDULES_SETTINGS, schedulesSettingsSchema, type SchedulesSettings } from '@shared/schedules'
 import { registerSchedulesIpc } from './ipc/schedules'
+import { registerPluginStoreIpc } from './ipc/pluginStore'
+import { GitHubClient } from './pluginStore/github'
+import { installedSchema, loadDefaultSources, PluginStoreService, userSourcesSchema } from './pluginStore/service'
 import { ScheduleProposals } from './schedules/proposals'
 import { ScheduleRepository } from './schedules/repository'
 import { startScheduledRun } from './schedules/runner'
@@ -706,6 +709,30 @@ async function bootstrap(): Promise<void> {
     userDir: join(app.getPath('userData'), 'skills'),
     getSettings: () => settings.get('skills', skillsSettingsSchema, DEFAULT_SKILLS_SETTINGS),
     setSettings: (value) => settings.set('skills', value),
+    log,
+    pluginSkills: () => pluginStore.skillFiles()
+  })
+  // Kho plugin online (8a): GitHub KHÔNG token; chỉ skill bằng chữ, cài theo commit SHA. Máy chủ GitHub giả chỉ cho
+  // e2e ở bản chưa đóng gói (MMC_FAKE_GITHUB = địa chỉ máy chủ giả).
+  const fakeGithub = devOverride('MMC_FAKE_GITHUB')
+  const pluginStore = new PluginStoreService({
+    github: new GitHubClient(
+      (url, init) => net.fetch(url, init),
+      Date.now,
+      fakeGithub ? { api: `${fakeGithub}/api`, raw: `${fakeGithub}/raw`, codeload: `${fakeGithub}/codeload` } : undefined
+    ),
+    dir: join(userData, 'plugins'),
+    defaultSources: fakeGithub && process.env.MMC_FAKE_PLUGIN_SOURCES
+      ? loadDefaultSources(process.env.MMC_FAKE_PLUGIN_SOURCES)
+      : loadDefaultSources(resourcePath('plugin-sources.json', 'resources/plugin-sources.json')),
+    getUserSources: () => settings.get('pluginSources', userSourcesSchema, []),
+    setUserSources: (list) => void settings.set('pluginSources', list),
+    getInstalled: () => settings.get('pluginsInstalled', installedSchema, []),
+    setInstalled: (list) => void settings.set('pluginsInstalled', list),
+    takenSkillNames: () => skillStore.takenNames(),
+    forgetSkills: (names) => skillStore.forget(names),
+    changed: () => sync.changed('pluginStore', 'skills'),
+    now: Date.now,
     log
   })
   const memory = new MemoryService({
@@ -778,7 +805,7 @@ async function bootstrap(): Promise<void> {
     getMemoryContext: (query, conversationId) => memory.contextFor(query, conversationId),
     projectPromptFor: (conversationId) => projects.promptFor(conversationId),
     loadModeSkill: (mode) => loadModeSkill(skillsDir, mode),
-    userSkillsFor: (text) => skillStore.promptFor(text),
+    userSkillsFor: (text, opts) => skillStore.promptFor(text, opts),
     workspaceDir,
     emit: (payload) => mainWindow?.webContents.send(IPC.chatEvent, payload),
     log,
@@ -1152,6 +1179,7 @@ async function bootstrap(): Promise<void> {
         : undefined
   })
   registerExpressiveIpc({ handle, expressive, giphyKey: giphyUserKey })
+  registerPluginStoreIpc({ handle, service: pluginStore })
   registerArtifactsIpc({ handle, service: artifacts, themes: artifactThemes, getWindow, log, templatesDir: join(skillsDir, 'artifacts', 'templates') })
   registerVoiceIpc({
     handle,
