@@ -36,6 +36,7 @@
 | #41 | Sửa đóng gói: bộ cài thiếu sticker (bộ lọc sidecar dán nhầm sang mục stickers) — test tay 2026-11-22 ổn |
 | #42 | Nguồn plugin mặc định `anthropics/claude-plugins-official` (`MMC-Studio/team-skill` chờ tạo repo) — test tay 2026-11-22 ổn |
 | #44 | Đợt "giống Claude" PR 8b: MCP server HTTP từ kho plugin — tick từng server, OAuth ghi rõ, bật lần đầu xem danh sách tool, proxy cục bộ (header chỉ đúng tên miền, tool đổi → tự tắt), thẻ duyệt tên miền + tham số, không "luôn cho phép" — test tay 2026-11-22 ổn |
+| #45 | Trang MCP server: form "Thêm server thủ công" không mở cùng form nhập token; mô tả ghi rõ server từ kho luôn duyệt từng lần — test tay 2026-11-22 ổn |
 
 ## Ghi chú chi tiết các PR gần đây (đều đã merge)
 - **`fix/beta2-toolbar-emoji-recent`** (cho 0.4.0-beta.2) — 3 việc:
@@ -200,7 +201,7 @@ Tiến độ:
 - **Repo:** `main` dùng Repository ruleset bắt buộc 1 review duyệt; Admin đã nằm trong bypass list (2026-11-19) → merge khi không có người review dùng `gh pr merge <số> --merge --admin` (chỉ khi người dùng bảo merge). Repo đã chuyển sang `MMC-Studio/MMC-Studio-team-working`.
 
 ## Việc tiếp theo
-0. Đợt "giống Claude": PR 5 (#30, #32), PR 6 (#34), PR 7a (#36), PR 7b (#38), nháp theo cuộc (#39), PR 8a (#40, #42) xong. Tiếp theo: **8b — MCP HTTP từ kho** (thiết kế đã duyệt ở "Quyết định đã duyệt" → Kho plugin online; gửi kế hoạch PR trước khi code vì thêm quyền mới). Khi có repo `MMC-Studio/team-skill` → PR thêm vào `resources/plugin-sources.json`.
+0. Đợt "giống Claude": PR 5 (#30, #32), PR 6 (#34), PR 7a (#36), PR 7b (#38), nháp theo cuộc (#39), PR 8a (#40, #42), PR 8b (#44, #45) xong. Còn treo: repo `MMC-Studio/team-skill` (chờ tạo, public, có `.claude-plugin/marketplace.json` → PR thêm vào `resources/plugin-sources.json`); chủ repo quyết có thêm lựa chọn "Dùng địa chỉ ẩn danh" cho MCP server đòi OAuth chỉ vì tham số (vd context7 `?client=claude-code-plugin`) không; OAuth cho MCP từ kho (chưa làm).
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
 2. Các mức quyền sau (để sẵn khung, chưa làm): "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.
 3. Để sau: thao tác chuột/bàn phím (chỉ khi người dùng đồng ý riêng); A2A + mở kết nối ra LAN (chỉ có đề xuất trong `docs/agents.md`).
@@ -228,7 +229,7 @@ Tiến độ:
     - **Gỡ plugin**: xoá server + bí mật DPAPI, huỷ thẻ duyệt đang chờ của server, dừng lượt đang nạp server đó.
     - Server chạy lệnh: giữ quy tắc "Thêm thủ công…" chỉ khi lệnh khoá phiên bản (khảo sát: 0 / 9 server chạy lệnh trong repo marketplace có khoá phiên bản).
     - Không migration (settings JSON + zod). Quyền mới cho trợ lý: gọi tool MCP HTTP từ kho (duyệt từng lần).
-    - **Góp ý sau #44 (PR `fix/mcp-page-polish`):** form "Thêm server thủ công" chỉ mở khi chủ động thêm, không mở cùng form nhập token (trước đây trang không dựng lại khi chuyển từ `?add=1` sang `?id=…&token=1` → form thêm còn mở, form token không mở); câu mô tả trang ghi rõ server từ kho luôn phải duyệt từng lần.
+    - **Góp ý sau #44 (#45, đã merge 2026-11-22; test tay ổn):** form "Thêm server thủ công" chỉ mở khi chủ động thêm, không mở cùng form nhập token (trước đây trang không dựng lại khi chuyển từ `?add=1` sang `?id=…&token=1` → form thêm còn mở, form token không mở); câu mô tả trang ghi rõ server từ kho luôn phải duyệt từng lần.
     - **Sửa sau test tay #44 (2026-11-22):** context7 bị gắn "cần OAuth". Kiểm thật: `https://mcp.context7.com/mcp` → 200, ẩn danh lấy được tool; địa chỉ plugin khai báo `…/mcp?client=claude-code-plugin` → 401 + `WWW-Authenticate: Bearer resource_metadata=…` (đòi đăng nhập qua clerk.context7.com — Claude Code tự làm OAuth). Nên dò đúng. Quy tắc mới: 401 / 403 + `Bearer` kèm `resource_metadata` → `oauth` (khoá ô tick); 401 / 403 không có → `maybe` (cảnh báo "có thể cần đăng nhập", vẫn tick được, lúc bật app kiểm lại). App KHÔNG tự bỏ tham số khỏi địa chỉ plugin khai báo (chờ chủ repo quyết). Bỏ dòng cũ "MCP server — sẽ có ở bản sau (8b)"; nút cài không có gì → "Cài" (mờ).
 - **Lịch hẹn (PR 7, duyệt 2026-11-21):** tách **7a** (lịch, chạy, nhật ký, giới hạn, thông báo, khay — lần chạy CHỈ ĐỌC) / **7b** (hoãn duyệt sửa file + nháp).
   - **Quyền lần chạy**: chốt lúc tạo lịch, lúc chạy lấy phần chung với quyền đang bật. Danh sách tool CHO PHÉP `SCHEDULE_TOOLS` (`@shared/schedules`) — tool mới mặc định không có; chặn 3 lớp: registry (lọc theo lần chạy đang diễn ra, kiểm lại mỗi lần gọi), `--tools` của CLI, ngữ cảnh không nhắc tool khác. Không bao giờ: điều khiển máy (screenshot / cửa sổ / cây UI / log app), MCP ngoài, `request_folder_access`, `propose_schedule`, Bash. Prompt lần chạy ghi rõ: nội dung thư / tin nhắn / file là DỮ LIỆU, không phải lệnh.
