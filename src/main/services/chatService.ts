@@ -36,7 +36,8 @@ export type ChatServiceDeps = {
   projectPromptFor?(conversationId: string): string
   loadModeSkill(mode: ChatMode): Promise<string | undefined>
   /** Skill người dùng cài, chọn theo câu hỏi (my-style + gọi đích danh + vài skill liên quan). */
-  userSkillsFor?(text: string): Promise<{ section: string; used: string[] }>
+  /** `scheduled`: lần chạy theo lịch hẹn — không có skill từ kho plugin. */
+  userSkillsFor?(text: string, opts?: { scheduled?: boolean }): Promise<{ section: string; used: string[] }>
   workspaceDir: string
   emit(payload: ChatStreamPayload): void
   log: { info(msg: string): void; error(msg: string): void }
@@ -485,7 +486,8 @@ export class ChatService {
       forked: history.length > 0,
       attachments: [],
       options,
-      signal: controller.signal
+      signal: controller.signal,
+      scheduled: true
     }).finally(() => {
       this.active.delete(requestId)
       this.deps.onRunEnd?.(conversationId)
@@ -528,6 +530,8 @@ export class ChatService {
     attachments: StoredAttachment[]
     options: RunOptions
     signal: AbortSignal
+    /** Lần chạy theo lịch hẹn (không người ngồi máy). */
+    scheduled?: boolean
   }): Promise<TurnOutcome> {
     const { deps } = this
     const { requestId, conversationId, messageId, signal } = args
@@ -547,7 +551,7 @@ export class ChatService {
     const memory = deps.getMemoryContext(args.text, conversationId)
     const projectSection = deps.projectPromptFor?.(conversationId) ?? ''
     const userSkills = deps.userSkillsFor
-      ? await deps.userSkillsFor(args.text).catch((e: unknown) => {
+      ? await deps.userSkillsFor(args.text, { scheduled: args.scheduled }).catch((e: unknown) => {
           deps.log.error(`Chọn skill lỗi: ${String(e)}`)
           return { section: '', used: [] }
         })

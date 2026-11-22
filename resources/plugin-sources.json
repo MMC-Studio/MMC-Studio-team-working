@@ -1,0 +1,4 @@
+{
+  "$comment": "Nguồn kho plugin MẶC ĐỊNH (đã được chủ repo duyệt) — đóng gói cùng app. Chỉ đổi qua PR có chủ repo duyệt (CODEOWNERS). Mỗi nguồn: { \"repo\": \"owner/repo\", \"ref\": \"main\" }.",
+  "sources": []
+}
