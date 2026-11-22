@@ -114,7 +114,9 @@ export function PluginDetail({ path }: { path: string[] }) {
     const items = new Map(all.filter((x) => x.type === 'mcp').map((x) => [x.key, x]))
     return (
       <DetailLayout title={t('kind.mcp')} experimental>
+        {/* Dựng lại mỗi lần điều hướng (vd từ ?add=1 sang ?id=…&token=1): form cũ không còn mở sót. */}
         <McpServersSection
+          key={location.key}
           startAdding={params.get('add') === '1'}
           highlight={params.get('id') ?? undefined}
           openToken={params.get('token') === '1'}
