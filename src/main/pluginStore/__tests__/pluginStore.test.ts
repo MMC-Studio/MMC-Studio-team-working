@@ -9,7 +9,7 @@ import { SkillStore } from '../../skills/store'
 import { GitHubClient, GitHubError } from '../github'
 import { inspectArchive, licenseName, scanText } from '../inspect'
 import { parseMarketplace } from '../marketplace'
-import { PluginStoreService, type InstalledRecord, type UserSource } from '../service'
+import { loadDefaultSources, PluginStoreService, type InstalledRecord, type UserSource } from '../service'
 
 const SHA1 = 'a'.repeat(40)
 const SHA2 = 'b'.repeat(40)
@@ -88,6 +88,15 @@ describe('GitHubClient — không token', () => {
     await new GitHubClient(gh.fetch as never).resolveSha('mmc/kho', 'main')
     const headers = gh.fetch.mock.calls[0][1]!.headers as Record<string, string>
     expect(Object.keys(headers).map((h) => h.toLowerCase())).not.toContain('authorization')
+  })
+})
+
+describe('nguồn mặc định (resources/plugin-sources.json)', () => {
+  it('đóng gói đúng nguồn đã duyệt: claude-plugins-official; mọi nguồn hợp lệ, không trùng', () => {
+    const list = loadDefaultSources(join(__dirname, '..', '..', '..', '..', 'resources', 'plugin-sources.json'))
+    expect(list).toContainEqual({ repo: 'anthropics/claude-plugins-official', ref: 'main' })
+    for (const s of list) expect(parseRepo(s.repo)).toBe(s.repo)
+    expect(new Set(list.map((s) => s.repo.toLowerCase())).size).toBe(list.length)
   })
 })
 
