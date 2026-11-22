@@ -36,6 +36,7 @@ import type {
   AgentServerStatus,
   McpApprovalDecision,
   McpApprovalRequest,
+  McpReviewResult,
   McpServerInfo,
   NewAgentToken
 } from './agents'
@@ -350,7 +351,8 @@ export interface TeamWorkingApi {
     catalog(force?: boolean): Promise<Catalog>
     preview(key: string): Promise<PreviewResult>
     cancelPreview(token: string): Promise<void>
-    install(token: string): Promise<InstallResult>
+    /** `mcp`: tên các MCP server (trong gói) người dùng đã tick xác nhận. */
+    install(token: string, mcp?: string[]): Promise<InstallResult>
     uninstall(key: string): Promise<boolean>
     installed(): Promise<InstalledPlugin[]>
     checkUpdates(): Promise<InstalledPlugin[]>
@@ -557,6 +559,12 @@ export interface TeamWorkingApi {
     revokeAlways(id: string, tool: string): Promise<void>
     onApproval(listener: (req: McpApprovalRequest) => void): () => void
     respond(id: string, decision: McpApprovalDecision): Promise<boolean>
+    /** Server từ kho: kết nối, lấy danh sách tool + mô tả để người dùng xem trước khi bật. */
+    review(id: string): Promise<McpReviewResult>
+    /** Bật sau khi xem (token của lần xem); false = hết hạn, xem lại. */
+    approveReview(token: string): Promise<boolean>
+    /** Nhập header bí mật (vd token) cho server từ kho — chỉ các khoá plugin khai báo. */
+    setStoreHeaders(id: string, headers: Record<string, string>): Promise<McpServerInfo | { error: string }>
   }
   sidecar: {
     state(): Promise<SidecarState>

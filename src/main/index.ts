@@ -73,6 +73,9 @@ import { agentPrompt, agentSystemPrompt } from './agents/prompt'
 import { KillSwitch } from './computer/killSwitch'
 import { registerAgentsIpc } from './ipc/agents'
 import { McpApprovals } from './mcpClient/approvals'
+import { McpProxy } from './mcpClient/proxy'
+import { probeAuth } from './mcpClient/review'
+import { McpReviews } from './mcpClient/reviews'
 import { McpServerStore } from './mcpClient/store'
 import { ActionLog } from './computer/actionLog'
 import { electronCapture, fakeCapture } from './computer/electronCapture'
@@ -287,6 +290,21 @@ async function bootstrap(): Promise<void> {
     emit: (req) => mainWindow?.webContents.send(IPC.mcpApprovalEvent, req),
     log
   })
+  // MCP server HTTP cài từ kho plugin (8b): CLI đi qua proxy cục bộ — header bí mật chỉ tới đúng tên miền đã duyệt,
+  // danh sách tool đổi → tự tắt server. Dùng fetch của Node (redirect: 'manual' trả đúng mã 3xx để kiểm tên miền).
+  const mcpFetch = (url: string, init: RequestInit): Promise<Response> => fetch(url, init)
+  const mcpProxy = new McpProxy({
+    target: (id) => mcpStore.proxyTarget(id),
+    toolsChanged: (id) => {
+      mcpStore.markToolsChanged(id)
+      sync.changed('mcpServers')
+    },
+    fetch: mcpFetch,
+    log
+  })
+  await mcpProxy.start()
+  app.on('before-quit', () => mcpProxy.stop())
+  const mcpReviews = new McpReviews({ store: mcpStore, fetch: mcpFetch, log })
 
   // Mọi thẻ chờ duyệt (sửa file, quyền thư mục, nháp) hiện trong khung chat + "Hỏi lại": gọi Claude MỘT lần riêng,
   // cùng model đang chat, KHÔNG tool, không resume session → lượt CLI đang chờ duyệt không bị đụng.
@@ -677,7 +695,8 @@ async function bootstrap(): Promise<void> {
     !app.isPackaged && process.env.MMC_FAKE_CHAT === '1' ? new FakeChatProvider(
           (name, input, conversationId) => tools.call(name, input, { conversationId }),
           (conversationId, toolName, input) => approvals.decide(conversationId, toolName, input),
-          process.env.MMC_FAKE_CLI_SESSIONS === '1'
+          process.env.MMC_FAKE_CLI_SESSIONS === '1',
+          (conversationId) => mcpStore.forCli((id) => mcpProxy.endpoint(id), conversationId)
         )
       : null
 
@@ -696,7 +715,7 @@ async function bootstrap(): Promise<void> {
         url: toolBridge.url,
         token: toolBridge.token
       }),
-      () => mcpStore.forCli()
+      (conversationId) => mcpStore.forCli((id) => mcpProxy.endpoint(id), conversationId)
     ),
     'anthropic-api': new AnthropicApiProvider(() => secrets.get())
   }
@@ -713,6 +732,11 @@ async function bootstrap(): Promise<void> {
     pluginSkills: () => pluginStore.skillFiles()
   })
   // Kho plugin online (8a): GitHub KHÔNG token; chỉ skill bằng chữ, cài theo commit SHA. Máy chủ GitHub giả chỉ cho
+  /** Gỡ / đổi URL MCP server từ kho: huỷ thẻ duyệt đang chờ của server, dừng lượt chat đang nạp server đó. */
+  const stopStoreServer = (id: string, name: string): void => {
+    mcpApprovals.cancelServer(name)
+    for (const c of mcpStore.conversationsUsing(id)) chat.abortConversation(c)
+  }
   // e2e ở bản chưa đóng gói (MMC_FAKE_GITHUB = địa chỉ máy chủ giả).
   const fakeGithub = devOverride('MMC_FAKE_GITHUB')
   const pluginStore = new PluginStoreService({
@@ -731,6 +755,25 @@ async function bootstrap(): Promise<void> {
     setInstalled: (list) => void settings.set('pluginsInstalled', list),
     takenSkillNames: () => skillStore.takenNames(),
     forgetSkills: (names) => skillStore.forget(names),
+    mcp: {
+      forPlugin: (key) => mcpStore.forPlugin(key),
+      syncPlugin: (plugin, decls) => {
+        const before = mcpStore.forPlugin(plugin.key)
+        const dropped = before.filter((s) => !decls.some((d) => d.server === s.server))
+        const moved = before.filter((s) => decls.some((d) => d.server === s.server && (d.url !== s.url || d.host !== s.host)))
+        for (const s of [...dropped, ...moved]) stopStoreServer(s.id, s.name)
+        const names = mcpStore.syncPlugin(plugin, decls)
+        sync.changed('mcpServers')
+        return names
+      },
+      removePlugin: (key) => {
+        for (const s of mcpStore.forPlugin(key)) stopStoreServer(s.id, s.name)
+        mcpStore.removePlugin(key)
+        sync.changed('mcpServers')
+      }
+    },
+    probe: (url) => probeAuth(mcpFetch, url),
+    allowLocalHttp: devOverride('MMC_FAKE_MCP_LOCAL') === '1',
     changed: () => sync.changed('pluginStore', 'skills'),
     now: Date.now,
     log
@@ -816,6 +859,7 @@ async function bootstrap(): Promise<void> {
       void organizer.afterRun(conversationId).catch((e: unknown) => log.warn(`Đặt tiêu đề tự động lỗi: ${String(e)}`))
       approvals.cancelConversation(conversationId)
       mcpApprovals.cancelConversation(conversationId)
+      mcpStore.endRun(conversationId)
       draftApprovals.cancelConversation(conversationId)
       folderAccess.cancelConversation(conversationId)
       scheduleProposals.cancelConversation(conversationId)
@@ -1143,6 +1187,7 @@ async function bootstrap(): Promise<void> {
     hub: agentHub,
     mcp: mcpStore,
     mcpApprovals,
+    mcpReviews,
     bridge: {
       exe: process.execPath,
       script: resourcePath('mizuki-mcp-bridge.cjs', 'resources/mizuki-mcp-bridge.cjs')

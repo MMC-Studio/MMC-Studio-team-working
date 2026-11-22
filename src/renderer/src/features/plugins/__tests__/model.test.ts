@@ -34,7 +34,8 @@ const mcp = (id: string, enabled = true): McpServerInfo => ({
   url: null,
   enabled,
   secretKeys: [],
-  alwaysAllow: []
+  alwaysAllow: [],
+  origin: null
 })
 const src = (extra: Partial<PluginSources> = {}): PluginSources => ({
   skills: [skill('bao-cao', 'user'), skill('my-style', 'user'), skill('study-tutor', 'builtin')],
@@ -85,6 +86,24 @@ describe('buildPlugins', () => {
     expect(g.yours.map((x) => x.key)).toEqual(['gmail', 'telegram', 'agents', 'skill:bao-cao'])
     // Đang tắt thì không tính "cần chú ý".
     expect(g.yours.every((x) => !x.attention)).toBe(true)
+  })
+
+  it('MCP server từ kho: bật = xem danh sách công cụ, không gỡ lẻ (gỡ cả plugin), tự tắt vì đổi → cần chú ý', () => {
+    const origin = { pluginKey: 'k#p', pluginName: 'p', server: 's', sha: 'a', host: 'mcp.ok.dev', headers: [], approvedTools: 1, review: null }
+    const g = buildPlugins(
+      src({
+        mcp: [
+          { ...mcp('a'), type: 'http', url: 'https://mcp.ok.dev/mcp', origin },
+          { ...mcp('b', false), type: 'http', url: 'https://mcp.ok.dev/mcp', origin: { ...origin, review: 'tools' } }
+        ]
+      })
+    )
+    const a = g.yours.find((x) => x.key === 'mcp:a')!
+    const b = g.yours.find((x) => x.key === 'mcp:b')!
+    expect(a).toMatchObject({ reviewEnable: true, removable: false, attention: false, meta: { source: 'mcp.ok.dev · p' } })
+    expect(b).toMatchObject({ reviewEnable: true, attention: true, enabled: false })
+    expect(g.yours.find((x) => x.key === 'mcp:x')).toBeUndefined()
+    expect(buildPlugins(src({ mcp: [mcp('c')] })).yours.find((x) => x.key === 'mcp:c')).toMatchObject({ reviewEnable: false, removable: true })
   })
 
   it('nguồn chưa tải (null) thì bỏ qua', () => {

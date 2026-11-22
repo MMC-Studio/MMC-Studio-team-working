@@ -74,7 +74,47 @@ export type McpServerInfo = {
   secretKeys: string[]
   /** Tool người dùng đã bấm "luôn cho phép". */
   alwaysAllow: string[]
+  /** Server cài từ kho plugin (8b) — null = người dùng tự thêm. */
+  origin: McpStoreOrigin | null
 }
 
-export type McpApprovalRequest = { id: string; server: string; tool: string; input: unknown }
+/**
+ * MCP server HTTP cài từ kho plugin: tên miền đã duyệt, header cần nhập, trạng thái duyệt danh sách tool.
+ * Không có "luôn cho phép"; CLI gọi qua proxy cục bộ của app (header chỉ gửi đúng tên miền đã duyệt).
+ */
+export type McpStoreOrigin = {
+  pluginKey: string
+  pluginName: string
+  /** Tên server trong gói plugin (.mcp.json). */
+  server: string
+  sha: string
+  host: string
+  /** Header cần nhập (tên khoá) + mẫu giá trị trong gói (vd `Bearer ${GITHUB_TOKEN}`) để gợi ý. */
+  headers: { key: string; template: string }[]
+  /** Số tool đã duyệt (null = chưa duyệt lần nào). */
+  approvedTools: number | null
+  /** Phải xem lại trước khi bật: lần đầu · URL / tên miền đổi (cập nhật plugin) · danh sách tool / mô tả đổi. */
+  review: 'first' | 'url' | 'tools' | null
+}
+
+/** Tool của server lúc "bật lần đầu" — người dùng xem rồi mới bật. */
+export type McpToolPreview = { name: string; description: string; inputSchema: unknown; changed: boolean }
+
+export type McpReviewResult =
+  | { status: 'ok'; token: string; host: string; url: string; tools: McpToolPreview[] }
+  | {
+      status: 'error'
+      /** oauth_required: server cần đăng nhập OAuth (app chưa hỗ trợ) · needs_secret: chưa nhập header bí mật · unauthorized: header sai. */
+      error: 'oauth_required' | 'needs_secret' | 'unauthorized' | 'redirect_blocked' | 'network' | 'not_found' | 'no_tools'
+      detail?: string | null
+    }
+
+export type McpApprovalRequest = {
+  id: string
+  server: string
+  tool: string
+  input: unknown
+  /** Server từ kho: hiện tên miền chữ to, không có "luôn cho phép". */
+  origin: { host: string; pluginName: string } | null
+}
 export type McpApprovalDecision = 'once' | 'always' | 'deny'

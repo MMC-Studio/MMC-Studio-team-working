@@ -1,4 +1,4 @@
-import { Bot, TriangleAlert, Wrench, X } from 'lucide-react'
+import { Bot, Globe, TriangleAlert, Wrench, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@renderer/components/ui/button'
 import { Dialog, DialogContent } from '@renderer/components/ui/dialog'
@@ -39,25 +39,46 @@ export function AgentsOverlay() {
 
       {!pairing && approval && (
         <Dialog open>
-          <DialogContent title={t('mcpApproval.title')} className="max-w-lg" data-testid="mcp-approval">
+          <DialogContent title={approval.origin ? t('mcpApproval.storeTitle') : t('mcpApproval.title')} className="max-w-lg" data-testid="mcp-approval">
             <div className="space-y-3 text-sm">
-              <p className="flex items-center gap-2">
-                <Wrench className="size-4" />
-                {t('mcpApproval.body', { tool: approval.tool, server: approval.server })}
-              </p>
-              <pre className="max-h-60 overflow-auto rounded-md border bg-muted/50 p-3 text-xs whitespace-pre-wrap" data-testid="mcp-approval-input">
+              {approval.origin ? (
+                <>
+                  {/* Server từ kho plugin: tên miền chữ to + TOÀN BỘ tham số sẽ gửi đi; không có "luôn cho phép". */}
+                  <p className="flex items-center gap-2">
+                    <Wrench className="size-4" />
+                    {t('mcpApproval.storeBody', { tool: approval.tool, plugin: approval.origin.pluginName })}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Globe className="size-5 shrink-0" />
+                    <span className="text-xl font-semibold break-all" data-testid="mcp-approval-host">
+                      {approval.origin.host}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t('mcpApproval.storeParams')}</p>
+                </>
+              ) : (
+                <p className="flex items-center gap-2">
+                  <Wrench className="size-4" />
+                  {t('mcpApproval.body', { tool: approval.tool, server: approval.server })}
+                </p>
+              )}
+              <pre className="max-h-72 overflow-auto rounded-md border bg-muted/50 p-3 text-xs whitespace-pre-wrap" data-testid="mcp-approval-input">
                 {JSON.stringify(approval.input, null, 2)}
               </pre>
-              <p className="text-xs text-muted-foreground">{t('mcpApproval.hint')}</p>
+              <p className="text-xs text-muted-foreground">{approval.origin ? t('mcpApproval.storeHint') : t('mcpApproval.hint')}</p>
             </div>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={() => void respondApproval(approval.id, 'deny')}>
+              <Button variant="outline" onClick={() => void respondApproval(approval.id, 'deny')} data-testid="mcp-approval-deny">
                 {t('mcpApproval.deny')}
               </Button>
-              <Button variant="outline" onClick={() => void respondApproval(approval.id, 'always')}>
-                {t('mcpApproval.always')}
+              {!approval.origin && (
+                <Button variant="outline" onClick={() => void respondApproval(approval.id, 'always')} data-testid="mcp-approval-always">
+                  {t('mcpApproval.always')}
+                </Button>
+              )}
+              <Button onClick={() => void respondApproval(approval.id, 'once')} data-testid="mcp-approval-once">
+                {t('mcpApproval.once')}
               </Button>
-              <Button onClick={() => void respondApproval(approval.id, 'once')}>{t('mcpApproval.once')}</Button>
             </div>
           </DialogContent>
         </Dialog>

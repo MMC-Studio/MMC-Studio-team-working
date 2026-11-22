@@ -56,7 +56,7 @@ export class ClaudeCliProvider implements AIProvider {
     /** Cầu nối tool của app (chụp màn hình…); null nếu chưa sẵn sàng. */
     private readonly getToolBridge: () => ToolBridgeInfo | null = () => null,
     /** MCP server người dùng thêm (đang bật) + tool được "luôn cho phép"; null nếu không có. */
-    private readonly getExternalMcp: () => { servers: Record<string, object>; allowedTools: string[] } | null = () => null
+    private readonly getExternalMcp: (conversationId: string) => { servers: Record<string, object>; allowedTools: string[] } | null = () => null
   ) {}
 
   async isAvailable(): Promise<{ ok: boolean; reason?: string }> {
@@ -84,7 +84,7 @@ export class ClaudeCliProvider implements AIProvider {
     const tools = withRead(req.tools ?? [])
 
     // MCP server người dùng thêm: tool chưa "luôn cho phép" phải qua bước duyệt của app.
-    let external = req.externalMcp ? this.getExternalMcp() : null
+    let external = req.externalMcp ? this.getExternalMcp(req.externalMcp.conversationId) : null
     // Duyệt quyền (MCP twperm chạy bằng chính Electron): sửa file ở chế độ Code, hoặc tool MCP ngoài.
     let mcpConfigFile: string | undefined
     const bridge = req.approval || external ? this.getApprovalBridge() : null

@@ -86,6 +86,33 @@ export type PreviewSkill = {
 
 export type FileChange = { path: string; change: 'added' | 'modified' | 'removed'; patch: string | null }
 
+/**
+ * MCP server khai báo trong plugin (8b). Chỉ HTTP `https://` cài được (tắt sẵn, bật phải xem danh sách tool);
+ * server chạy lệnh chỉ hiển thị nguyên văn (Thêm thủ công khi lệnh khoá phiên bản).
+ */
+export type PreviewMcpServer = {
+  /** Tên trong gói (.mcp.json / plugin.json). */
+  name: string
+  kind: 'http' | 'stdio' | 'unsupported'
+  url: string | null
+  host: string | null
+  /** Header cần nhập (tên khoá) + mẫu giá trị trong gói. */
+  headers: { key: string; template: string }[]
+  /** Server chạy lệnh: lệnh nguyên văn (hiện trong khung đỏ) + argv tách sẵn (lệnh, tham số…) để "Thêm thủ công". */
+  command: string | null
+  argv: string[]
+  /** Lệnh khoá phiên bản (pkg@1.2.3, pkg==1.2.3, image@sha256…) → được "Thêm thủ công". */
+  pinned: boolean
+  /** Vì sao không cài được. */
+  reason: 'not_https' | 'sse' | 'variables' | 'bad_url' | null
+  /** Thử kết nối không kèm thông tin gì: oauth = cần đăng nhập OAuth (app chưa hỗ trợ) · token = cần header. */
+  auth: 'none' | 'token' | 'oauth' | 'unknown'
+  /** Cập nhật: so với server đang cài của plugin. */
+  change: 'added' | 'url_changed' | 'headers_changed' | 'unchanged' | null
+}
+
+export const mcpInstallable = (m: PreviewMcpServer): boolean => m.kind === 'http' && m.auth !== 'oauth'
+
 export type PluginPreview = {
   token: string
   key: string
@@ -98,8 +125,10 @@ export type PluginPreview = {
   /** Phần plugin có nhưng app không lấy (hook, lệnh, agent, MCP, script…). */
   ignored: { hooks: boolean; commands: number; agents: number; mcp: boolean; otherFiles: number }
   warnings: PreviewWarning[]
-  /** Cập nhật plugin đã cài: SHA cũ + thay đổi từng file. */
-  update: { fromSha: string; changes: FileChange[] } | null
+  /** MCP server của plugin (8b). */
+  mcp: PreviewMcpServer[]
+  /** Cập nhật plugin đã cài: SHA cũ + thay đổi từng file + MCP server bị bỏ khỏi plugin (sẽ gỡ). */
+  update: { fromSha: string; changes: FileChange[]; mcpRemoved: string[] } | null
 }
 
 export type InstalledPlugin = {
@@ -110,6 +139,8 @@ export type InstalledPlugin = {
   location: { repo: string; path: string; sha: string }
   license: string | null
   skills: string[]
+  /** MCP server đã cài từ plugin (tên trong app). */
+  mcp: string[]
   installedAt: number
   updatedAt: number
   /** File bị sửa / xoá ngoài app (hash lệch) → skill không được dùng tới khi cài lại. */
@@ -160,6 +191,12 @@ export const sourceInputSchema = z.object({
 })
 
 export const pluginKeySchema = z.string().min(3).max(300)
+
+/** Cài: token xem trước + tên các MCP server người dùng đã tick xác nhận. */
+export const installInputSchema = z.object({
+  token: z.uuid(),
+  mcp: z.array(z.string().min(1).max(100)).max(20).default([])
+})
 
 /** "owner/repo" từ chữ người dùng nhập (cả link GitHub); null nếu không hợp lệ. */
 export function parseRepo(input: string): string | null {

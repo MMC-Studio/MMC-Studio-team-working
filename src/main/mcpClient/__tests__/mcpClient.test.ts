@@ -21,7 +21,7 @@ let store: McpServerStore
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'mmc-mcp-'))
   list = []
-  store = new McpServerStore({ get: () => list, set: (l) => void (list = l) }, dir, crypto)
+  store = new McpServerStore({ get: () => list, set: (l) => void (list = l as McpServerInfo[]) }, dir, crypto)
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 

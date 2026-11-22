@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ChatEvent } from '@shared/ai'
@@ -13,6 +15,9 @@ import { EXPLAIN_MARKER } from '../approvals/explain'
 export type FakeEditDecider = (conversationId: string, toolName: string, input: unknown) => Promise<{ allow: boolean; message?: string }>
 
 export type FakeToolCaller = (name: string, input: unknown, conversationId: string) => Promise<ToolResult>
+
+/** Cấu hình MCP ngoài của lượt (= thứ CLI nhận qua --mcp-config). */
+export type FakeExternalMcp = (conversationId: string) => { servers: Record<string, object> } | null
 
 /**
  * CHỈ cho test e2e ở bản chưa đóng gói (MMC_FAKE_CHAT=1): trả lời giả lập, không gọi Claude.
@@ -38,7 +43,8 @@ export class FakeChatProvider implements AIProvider {
   constructor(
     private readonly callTool?: FakeToolCaller,
     private readonly decideEdit?: FakeEditDecider,
-    cliSessions = false
+    cliSessions = false,
+    private readonly externalMcp?: FakeExternalMcp
   ) {
     this.stateful = cliSessions
   }
@@ -232,6 +238,42 @@ export class FakeChatProvider implements AIProvider {
       : / sticker\b/i.test(` ${first}`)
         ? ' [[react:🥰]] [[sticker:local/vui]]'
         : ' [[react:❤️]] [[gif:happy cat]]'
+    // FAKE_MCP:<server> <tool> <json>: như CLI với MCP server ngoài — kết nối đúng cấu hình lượt này (server từ kho:
+    // địa chỉ proxy cục bộ), liệt kê tool, xin duyệt (thẻ duyệt), được duyệt mới gọi; in kết quả / lỗi.
+    const mcpCall = /FAKE_MCP:([a-z0-9_-]+)\s+(\S+)\s+(\{.*\})/.exec(latest)
+    if (mcpCall && req.externalMcp && this.decideEdit) {
+      const conversationId = req.externalMcp.conversationId
+      const entry = this.externalMcp?.(conversationId)?.servers[mcpCall[1]] as { url?: string; headers?: Record<string, string> } | undefined
+      if (!entry?.url) {
+        yield { type: 'text', delta: `MCP: không có server ${mcpCall[1]} trong lượt này.` }
+        yield { type: 'done' }
+        return
+      }
+      const input: unknown = JSON.parse(mcpCall[3])
+      const client = new Client({ name: 'fake-cli', version: '1' })
+      try {
+        await client.connect(new StreamableHTTPClientTransport(new URL(entry.url), { requestInit: { headers: entry.headers ?? {} } }))
+        const tools = await client.listTools()
+        yield { type: 'text', delta: `MCP tools: ${tools.tools.map((t) => t.name).join(', ')}\n` }
+        const name = `mcp__${mcpCall[1]}__${mcpCall[2]}`
+        yield { type: 'tool', name, input }
+        const decision = await this.decideEdit(conversationId, name, input)
+        if (signal.aborted) return
+        if (!decision.allow) {
+          yield { type: 'text', delta: `MCP bị từ chối: ${decision.message ?? ''}` }
+        } else {
+          const result = await client.callTool({ name: mcpCall[2], arguments: input as Record<string, unknown> })
+          const content = (result.content as { type: string; text?: string }[]) ?? []
+          yield { type: 'text', delta: `KẾT QUẢ MCP: ${content.map((c) => c.text ?? '').join(' ')}` }
+        }
+      } catch (e) {
+        yield { type: 'text', delta: `LỖI MCP: ${(e as Error).message}` }
+      } finally {
+        await client.close().catch(() => undefined)
+      }
+      yield { type: 'done' }
+      return
+    }
     // FAKE_TOOL:<tên> <json>: gọi tool của app nếu lượt chat này được cấp tool đó, rồi in kết quả.
     const toolCall = /FAKE_TOOL:([a-z_]+)\s+(\{.*\})/.exec(latest)
     if (toolCall && this.callTool && req.appTools?.names.includes(toolCall[1])) {

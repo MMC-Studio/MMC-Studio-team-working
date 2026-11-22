@@ -10,6 +10,7 @@ import {
 } from '@shared/schemas'
 import type { AgentHub } from '../agents/hub'
 import type { McpApprovals } from '../mcpClient/approvals'
+import type { McpReviews } from '../mcpClient/reviews'
 import type { McpServerStore } from '../mcpClient/store'
 import type { HandleFn } from './register'
 
@@ -18,6 +19,7 @@ export type AgentsIpcDeps = {
   hub: AgentHub
   mcp: McpServerStore
   mcpApprovals: McpApprovals
+  mcpReviews: McpReviews
   /** Lệnh chạy cầu nối stdio cho Claude Desktop (exe + script). */
   bridge: { exe: string; script: string }
 }
@@ -25,7 +27,7 @@ export type AgentsIpcDeps = {
 const errorOf = (err: unknown): { error: string } => ({ error: (err as Error).message })
 
 /** IPC trang "Kết nối agent": MCP server của Mizuki + MCP server người dùng thêm. */
-export function registerAgentsIpc({ handle, hub, mcp, mcpApprovals, bridge }: AgentsIpcDeps): void {
+export function registerAgentsIpc({ handle, hub, mcp, mcpApprovals, mcpReviews, bridge }: AgentsIpcDeps): void {
   const A = { changes: 'agents' } as const
   const M = { changes: 'mcpServers' } as const
   handle(IPC.agentsStatus, z.undefined(), () => hub.status())
@@ -55,4 +57,19 @@ export function registerAgentsIpc({ handle, hub, mcp, mcpApprovals, bridge }: Ag
   handle(IPC.mcpSetEnabled, z.object({ id: idSchema, enabled: z.boolean() }), ({ id, enabled }) => mcp.setEnabled(id, enabled), M)
   handle(IPC.mcpRevokeAlways, z.object({ id: idSchema, tool: z.string().min(1).max(200) }), ({ id, tool }) => mcp.revokeAlways(id, tool), M)
   handle(IPC.mcpRespond, mcpApprovalResponseSchema, ({ id, decision }) => mcpApprovals.respond(id, decision), M)
+  // Server từ kho (8b): xem danh sách tool trước khi bật; header bí mật chỉ các khoá plugin khai báo.
+  handle(IPC.mcpReview, idSchema, (id) => mcpReviews.review(id))
+  handle(IPC.mcpApproveReview, z.uuid(), (token) => mcpReviews.approve(token), M)
+  handle(
+    IPC.mcpSetStoreHeaders,
+    z.object({ id: idSchema, headers: z.record(z.string().regex(/^[A-Za-z0-9-]{1,64}$/), z.string().max(4000)) }),
+    ({ id, headers }) => {
+      try {
+        return mcp.setStoreHeaders(id, headers)
+      } catch (err) {
+        return errorOf(err)
+      }
+    },
+    M
+  )
 }

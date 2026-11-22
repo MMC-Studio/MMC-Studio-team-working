@@ -1,12 +1,12 @@
 import { ChevronRight, ShieldCheck } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import type { SkillDetail } from '@shared/skills'
 import { api } from '@renderer/lib/api'
 import { ChatLayout, SidebarToggle } from '@renderer/features/chat/layout/ChatLayout'
 import { AgentsPanel } from '@renderer/features/agents/components/AgentsPanel'
-import { McpServersSection } from '@renderer/features/agents/components/McpServersSection'
+import { McpServersSection, type McpPrefill } from '@renderer/features/agents/components/McpServersSection'
 import { GmailSection } from '@renderer/features/connectors/components/GmailSection'
 import { TelegramSection } from '@renderer/features/connectors/components/TelegramSection'
 import { useConnectors } from '@renderer/features/connectors/store'
@@ -94,6 +94,7 @@ export function PluginDetail({ path }: { path: string[] }) {
   const gmail = useConnectors((s) => s.gmail)
   const telegram = useConnectors((s) => s.telegram)
   const [params] = useSearchParams()
+  const location = useLocation()
   const [type, source, rawName] = path
 
   if (type === 'gmail' || type === 'telegram' || type === 'agents') {
@@ -116,6 +117,8 @@ export function PluginDetail({ path }: { path: string[] }) {
         <McpServersSection
           startAdding={params.get('add') === '1'}
           highlight={params.get('id') ?? undefined}
+          openToken={params.get('token') === '1'}
+          prefill={(location.state as { prefill?: McpPrefill } | null)?.prefill}
           renderMenu={(s) => {
             const item = items.get(`mcp:${s.id}`)
             return item ? <PluginMenu item={item} showSettings={false} /> : null

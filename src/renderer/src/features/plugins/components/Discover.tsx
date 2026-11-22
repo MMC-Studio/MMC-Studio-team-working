@@ -1,4 +1,5 @@
-import { AlertTriangle, ChevronDown, ChevronRight, Download, GitCommit, Loader2, Package, RefreshCw, Settings2, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Download, GitCommit, Globe, Loader2, Package, RefreshCw, Server, Settings2, ShieldCheck, Terminal, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type {
@@ -9,10 +10,12 @@ import type {
   PluginPreview,
   PluginSourceInfo,
   PluginStoreError,
+  PreviewMcpServer,
   PreviewResult,
   PreviewWarning,
   SkipReason
 } from '@shared/pluginStore'
+import { mcpInstallable } from '@shared/pluginStore'
 import { matchesAllWords } from '@shared/text'
 import { DiffView } from '@renderer/components/DiffView'
 import { Button } from '@renderer/components/ui/button'
@@ -21,6 +24,7 @@ import { Input, Label, Select } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
 import { notifyChanged, optimistic, useSyncedState } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
+import { PLUGINS_ROUTE } from '../model'
 import { SkillBody } from './skillParts'
 
 type Data = { catalog: Catalog; installed: InstalledPlugin[]; sources: PluginSourceInfo[] }
@@ -159,7 +163,13 @@ export function DiscoverView({ query }: { query: string }) {
                     )}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {t('store.installedMeta', { skills: p.skills.join(', '), repo: p.location.repo, sha: short(p.location.sha) })}
+                    {[
+                      p.skills.length ? t('store.installedSkills', { skills: p.skills.join(', ') }) : null,
+                      p.mcp.length ? t('store.installedMcp', { names: p.mcp.join(', ') }) : null,
+                      `${p.location.repo}@${short(p.location.sha)}`
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                     {p.license && ` · ${p.license}`}
                   </span>
                 </span>
@@ -274,14 +284,27 @@ function CatalogCard({ plugin: p, onOpen }: { plugin: CatalogPlugin; onOpen(): v
   )
 }
 
+/** MCP tick sẵn: chỉ server ĐANG cài, cùng địa chỉ (cập nhật). Server mới / đổi địa chỉ → người dùng phải tự tick. */
+const defaultTicks = (p: PluginPreview): Set<string> =>
+  new Set(p.mcp.filter((m) => mcpInstallable(m) && (m.change === 'unchanged' || m.change === 'headers_changed')).map((m) => m.name))
+
 /** Xem trước trước khi cài / cập nhật: tải đúng commit, CHƯA ghi gì. Bấm Cài mới ghi (từ chính bản vừa xem). */
 function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string; onClose(): void; onDone(): void }) {
   const { t } = useTranslation('plugins')
   // Tải MỘT lần khi mở (không làm mới khi quay lại cửa sổ — mỗi lần xem trước là một lần tải từ GitHub + token mới).
   const [result, setResult] = useState<PreviewResult | null>(null)
+  // MCP server: mỗi server một ô tick. Cập nhật: server đang cài, cùng tên miền → tick sẵn; server mới / đổi URL → phải tick lại.
+  const [ticked, setTicked] = useState<Set<string>>(new Set())
   useEffect(() => {
     let alive = true
-    void api.pluginStore.preview(pluginKey).then((r) => alive && setResult(r), () => alive && setResult({ status: 'error', error: 'network' }))
+    void api.pluginStore.preview(pluginKey).then(
+      (r) => {
+        if (!alive) return
+        setResult(r)
+        if (r.status === 'ok') setTicked(defaultTicks(r.preview))
+      },
+      () => alive && setResult({ status: 'error', error: 'network' })
+    )
     return () => {
       alive = false
     }
@@ -290,6 +313,7 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
   const [error, setError] = useState<{ error: PluginStoreError; detail: ErrorDetail | null } | null>(null)
   const preview: PluginPreview | null = result?.status === 'ok' ? result.preview : null
   const installable = preview?.skills.filter((s) => !s.conflict) ?? []
+  const total = installable.length + ticked.size
   // Plugin đã cài, cùng commit → cài lại (vd file bị sửa ngoài app), không phải cập nhật.
   const same = !!preview?.update && preview.update.fromSha === preview.location.sha
 
@@ -303,11 +327,11 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
     setError(null)
     // Mọi lỗi (kể cả IPC hỏng) phải hiện trong hộp — không bao giờ im lặng.
     const r = await api.pluginStore
-      .install(preview.token)
+      .install(preview.token, [...ticked])
       .catch((e: unknown) => ({ status: 'error' as const, error: 'install_failed' as const, detail: { reason: 'write_failed' as const, file: null, code: String(e) } }))
     setBusy(false)
     if (r.status === 'error') return setError({ error: r.error, detail: r.detail ?? null })
-    notifyChanged(['pluginStore', 'skills'])
+    notifyChanged(['pluginStore', 'skills', 'mcpServers'])
     onDone()
     onClose()
   }
@@ -357,24 +381,49 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
                 {preview.update && (
                   <section data-testid="store-preview-changes">
                     <h3 className="pb-1 font-medium">{t('store.preview.changes')}</h3>
-                    {preview.update.changes.length === 0 ? (
+                    {preview.update.changes.length === 0 && preview.update.mcpRemoved.length === 0 ? (
                       <p className="text-xs text-muted-foreground">{t('store.preview.noChanges')}</p>
                     ) : (
                       <ul className="space-y-1">
                         {preview.update.changes.map((c) => (
                           <ChangeRow key={c.path} change={c} />
                         ))}
+                        {preview.update.mcpRemoved.map((name) => (
+                          <li key={name} className="flex items-center gap-1.5 pl-5 text-xs" data-testid="store-mcp-removed">
+                            <span className="rounded bg-red-500/15 px-1">{t('store.mcp.removed')}</span>
+                            <Server className="size-3.5" />
+                            <code>{name}</code>
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </section>
                 )}
 
-                <section className="space-y-2" data-testid="store-preview-skills">
-                  <h3 className="font-medium">{t('store.preview.skills', { count: preview.skills.length })}</h3>
-                  {preview.skills.map((s) => (
-                    <SkillCard key={s.name} skill={s} />
-                  ))}
-                </section>
+                {preview.skills.length > 0 && (
+                  <section className="space-y-2" data-testid="store-preview-skills">
+                    <h3 className="font-medium">{t('store.preview.skills', { count: preview.skills.length })}</h3>
+                    {preview.skills.map((s) => (
+                      <SkillCard key={s.name} skill={s} />
+                    ))}
+                  </section>
+                )}
+
+                {preview.mcp.length > 0 && (
+                  <McpSection
+                    list={preview.mcp}
+                    ticked={ticked}
+                    onTick={(name, on) =>
+                      setTicked((prev) => {
+                        const next = new Set(prev)
+                        if (on) next.add(name)
+                        else next.delete(name)
+                        return next
+                      })
+                    }
+                    onClose={close}
+                  />
+                )}
 
                 <Ignored ignored={preview.ignored} />
               </>
@@ -387,13 +436,112 @@ function StorePreviewDialog({ pluginKey, onClose, onDone }: { pluginKey: string;
           <Button variant="outline" onClick={close}>
             {t('common:actions.cancel')}
           </Button>
-          <Button disabled={!preview || installable.length === 0 || busy} onClick={() => void install()} data-testid="store-install">
+          <Button disabled={!preview || total === 0 || busy} onClick={() => void install()} data-testid="store-install">
             {busy ? <Loader2 className="animate-spin" /> : <Download />}
-            {same ? t('store.reinstall') : preview?.update ? t('store.update') : t('store.install', { count: installable.length })}
+            {same
+              ? t('store.reinstall')
+              : preview?.update
+                ? t('store.update')
+                : ticked.size === 0
+                  ? t('store.install', { count: installable.length })
+                  : installable.length === 0
+                    ? t('store.installMcp', { count: ticked.size })
+                    : t('store.installBoth', { skills: installable.length, mcp: ticked.size })}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/**
+ * MCP server của plugin (8b). HTTP: tick từng server sau khi đọc tên miền — không tick thì không cài; cài xong vẫn TẮT,
+ * bật phải xem danh sách tool. Cần OAuth → ghi rõ, không tick được. Chạy lệnh trên máy: chỉ hiện nguyên văn (khung đỏ);
+ * "Thêm thủ công…" chỉ khi lệnh khoá phiên bản (mở form MCP có sẵn, tắt sẵn).
+ */
+function McpSection({ list, ticked, onTick, onClose }: { list: PreviewMcpServer[]; ticked: Set<string>; onTick(name: string, on: boolean): void; onClose(): void }) {
+  const { t } = useTranslation('plugins')
+  const navigate = useNavigate()
+  return (
+    <section className="space-y-2" data-testid="store-preview-mcp">
+      <h3 className="font-medium">{t('store.mcp.title', { count: list.length })}</h3>
+      <p className="text-xs text-muted-foreground">{t('store.mcp.hint')}</p>
+      <ul className="space-y-2">
+        {list.map((m) => (
+          <li key={m.name} className="rounded-md border p-3" data-testid="store-mcp" data-name={m.name} data-kind={m.kind} data-auth={m.auth}>
+            {m.kind === 'stdio' ? (
+              <div className="space-y-2">
+                <p className="flex items-center gap-2 font-medium">
+                  <Terminal className="size-4" />
+                  {m.name}
+                  <span className="text-xs font-normal text-muted-foreground">{t('store.mcp.stdio')}</span>
+                </p>
+                <pre className="overflow-x-auto rounded border border-destructive/50 bg-destructive/10 p-2 text-xs whitespace-pre-wrap text-destructive" data-testid="store-mcp-command">
+                  {m.command}
+                </pre>
+                {m.pinned ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    data-testid="store-mcp-manual"
+                    onClick={() => {
+                      onClose()
+                      void navigate(`${PLUGINS_ROUTE}/mcp?add=1`, { state: { prefill: { name: m.name, argv: m.argv } } })
+                    }}
+                  >
+                    {t('store.mcp.manual')}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground" data-testid="store-mcp-not-pinned">
+                    {t('store.mcp.notPinned')}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <label className={cn('flex items-start gap-3', mcpInstallable(m) ? 'cursor-pointer' : 'opacity-80')}>
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  disabled={!mcpInstallable(m)}
+                  checked={ticked.has(m.name)}
+                  onChange={(e) => onTick(m.name, e.target.checked)}
+                  data-testid="store-mcp-tick"
+                />
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Globe className="size-4 shrink-0" />
+                    <span className="text-base font-semibold break-all" data-testid="store-mcp-host">
+                      {m.host ?? m.url ?? m.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{m.name}</span>
+                    {m.change && m.change !== 'unchanged' && (
+                      <span className="rounded bg-orange-500/15 px-1 text-xs" data-testid="store-mcp-change" data-change={m.change}>
+                        {t(`store.mcp.change.${m.change}`)}
+                      </span>
+                    )}
+                  </span>
+                  {m.url && <code className="block text-xs break-all text-muted-foreground">{m.url}</code>}
+                  {m.headers.length > 0 && (
+                    <span className="block text-xs">{t('store.mcp.needsHeaders', { keys: m.headers.map((h) => h.key).join(', ') })}</span>
+                  )}
+                  {m.auth === 'oauth' && (
+                    <span className="block text-xs font-medium text-destructive" data-testid="store-mcp-oauth">
+                      {t('store.mcp.oauth')}
+                    </span>
+                  )}
+                  {m.reason && (
+                    <span className="block text-xs text-destructive" data-testid="store-mcp-unsupported" data-reason={m.reason}>
+                      {t(`store.mcp.reason.${m.reason}`)}
+                    </span>
+                  )}
+                  {mcpInstallable(m) && <span className="block text-xs text-muted-foreground">{t('store.mcp.tickHint', { host: m.host })}</span>}
+                </span>
+              </label>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

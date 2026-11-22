@@ -7,9 +7,11 @@ import { Dialog, DialogClose, DialogContent } from '@renderer/components/ui/dial
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@renderer/components/ui/menu'
 import { cn } from '@renderer/lib/utils'
 import { useConnectors } from '@renderer/features/connectors/store'
+import { useAgents } from '@renderer/features/agents/store'
 import { pluginName } from '../labels'
 import type { PluginItem } from '../model'
 import { removePlugin, setPluginEnabled } from '../store'
+import { McpReviewDialog } from './McpReviewDialog'
 
 /**
  * Menu ⋯ của MỘT plugin (dòng trên trang Plugin và đầu trang chi tiết): Cài đặt / Xem, Bật / Tắt, Gỡ.
@@ -20,12 +22,14 @@ import { removePlugin, setPluginEnabled } from '../store'
 export function PluginMenu({ item, showSettings = true, className }: { item: PluginItem; showSettings?: boolean; className?: string }) {
   const { t } = useTranslation('plugins')
   const navigate = useNavigate()
-  const [dialog, setDialog] = useState<'enable' | 'remove' | null>(null)
+  const [dialog, setDialog] = useState<'enable' | 'remove' | 'review' | null>(null)
+  const server = useAgents((s) => (item.type === 'mcp' ? s.servers.find((x) => `mcp:${x.id}` === item.key) : undefined))
   const name = pluginName(item, t)
   const builtin = item.type === 'builtinSkill'
 
   const turnOn = (): void => {
-    if (item.confirmEnable) setDialog('enable')
+    if (item.reviewEnable) setDialog('review')
+    else if (item.confirmEnable) setDialog('enable')
     else void setPluginEnabled(item, true)
   }
 
@@ -70,6 +74,7 @@ export function PluginMenu({ item, showSettings = true, className }: { item: Plu
       </Menu>
       {dialog === 'enable' && <EnableDialog item={item} onClose={() => setDialog(null)} />}
       {dialog === 'remove' && <RemoveDialog item={item} onClose={() => setDialog(null)} />}
+      {dialog === 'review' && server && <McpReviewDialog server={server} onClose={() => setDialog(null)} />}
     </>
   )
 }
