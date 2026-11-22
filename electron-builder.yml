@@ -31,7 +31,6 @@ extraResources:
     to: artifact-runtime
   - from: resources/stickers
     to: stickers
-    filter: ['desktop_server.py', 'requirements.txt']
   - from: resources/plugin-sources.json
     to: plugin-sources.json
 asarUnpack:
