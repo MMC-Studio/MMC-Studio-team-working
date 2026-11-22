@@ -23,6 +23,7 @@ import type { SettingsTab } from '../catalog'
 import { AiConnectionRows, AutoSuggestRow, OrganizeRows } from './AiSection'
 import { SettingRow, SettingsSection } from './rows'
 import { StyleNotes } from './StyleNotes'
+import { CommandsRow } from './CommandsRow'
 import { UpdateRows } from './UpdateSection'
 
 /** Nút "Mở" / "Quản lý" dẫn sang trang riêng của tính năng (cửa sổ Cài đặt tự đóng khi đổi trang). */
@@ -260,6 +261,7 @@ function CapabilitiesTab() {
         <VoiceSettings />
       </SettingRow>
       <SettingRow id="computer" control={<OpenLink to="/computer" testId="open-computer" />} />
+      <CommandsRow />
       <SettingRow
         id="schedules"
         control={

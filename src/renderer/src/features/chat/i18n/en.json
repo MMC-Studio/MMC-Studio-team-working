@@ -455,5 +455,14 @@
     "previewLoading": "Loading preview…",
     "previewEmpty": "(Empty)"
   },
-  "draftLabel": "Draft:"
+  "draftLabel": "Draft:",
+  "command": {
+    "title": "Run command",
+    "run": "Run",
+    "cwd": "In folder",
+    "timeout": "up to {{s}} s",
+    "readOnly": "Read-only git command: no file changes, no commits, nothing sent over the network. The app runs it directly (no shell) and logs it.",
+    "fullCommand": "Exact command the app will run",
+    "fullHint": "Includes the git path and safety flags the app adds so unusual repo config (filters, diff drivers, fsmonitor…) cannot run any program."
+  }
 }

@@ -1,5 +1,6 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
+import type { CommandDecision, CommandsSettings, CommandsStatus } from './commands'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
 import type {
   Schedule,
@@ -306,6 +307,12 @@ export interface TeamWorkingApi {
     removeFile(fileId: string): Promise<void>
   }
   /** Lịch hẹn. Lỗi biết trước trả `{ status: 'error', error }` (mã lỗi → i18n). */
+  /** Chạy lệnh theo danh sách cho phép (git chỉ đọc) — mỗi lần đều qua thẻ duyệt. */
+  commands: {
+    status(): Promise<CommandsStatus>
+    setSettings(settings: CommandsSettings): Promise<CommandsStatus>
+    respond(decision: CommandDecision): Promise<boolean>
+  }
   schedules: {
     list(): Promise<Schedule[]>
     status(): Promise<SchedulesStatus>

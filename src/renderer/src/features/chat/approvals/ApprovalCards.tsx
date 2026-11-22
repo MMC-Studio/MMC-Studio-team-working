@@ -12,7 +12,9 @@ import {
   MessageCircle,
   MessageCircleQuestion,
   PencilLine,
+  Play,
   Send,
+  SquareTerminal,
   X
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
@@ -25,6 +27,7 @@ import {
   type ApprovalQa,
   type ApprovalRequest
 } from '@shared/approvals'
+import type { CommandApprovalRequest } from '@shared/commands'
 import type { DraftApprovalRequest } from '@shared/connectors'
 import type { ScheduleProposalRequest } from '@shared/schedules'
 import { recurrenceText } from '@renderer/features/schedules/view'
@@ -37,6 +40,7 @@ import { usePreferences } from '@renderer/stores/preferences'
 import { Markdown } from '../components/Markdown'
 import { useChat } from '../store'
 import { useApprovals } from './store'
+import { CommandView } from './CommandView'
 
 type T = (key: string, opts?: Record<string, unknown>) => string
 
@@ -68,7 +72,15 @@ function ApprovalCardView({ card }: { card: ApprovalCard }) {
     <div className="rounded-xl border bg-card p-4 shadow-sm" data-testid="approval-card" data-kind={card.kind}>
       <div
         data-testid={
-          card.kind === 'code' ? 'code-approval' : card.kind === 'folder' ? 'folder-access' : card.kind === 'schedule' ? 'schedule-proposal' : 'draft-approval'
+          card.kind === 'code'
+            ? 'code-approval'
+            : card.kind === 'folder'
+              ? 'folder-access'
+              : card.kind === 'schedule'
+                ? 'schedule-proposal'
+                : card.kind === 'command'
+                  ? 'command-approval'
+                  : 'draft-approval'
         }
         className="space-y-3 text-sm"
       >
@@ -178,6 +190,8 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         return api.drafts.respond({ id: card.id, approve: false, feedback: note })
       case 'schedule':
         return api.schedules.respondProposal({ id: card.id, approve: false, feedback: note })
+      case 'command':
+        return api.commands.respond({ id: card.id, approve: false, feedback: note })
     }
   }
 
@@ -185,6 +199,7 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
     if (card.kind === 'code') void decide(card.id, () => api.code.respond(card.id, true))
     else if (card.kind === 'draft') void decide(card.id, () => api.drafts.respond({ id: card.id, approve: true, body }))
     else if (card.kind === 'schedule') void decide(card.id, () => api.schedules.respondProposal({ id: card.id, approve: true }))
+    else if (card.kind === 'command') void decide(card.id, () => api.commands.respond({ id: card.id, approve: true }))
     else {
       // Mở hộp chọn thư mục của Windows; đóng hộp mà chưa chọn → thẻ vẫn chờ.
       setBusy(true)
@@ -230,7 +245,9 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         ? t('folderAccess.choose')
         : card.kind === 'schedule'
           ? ts('proposal.accept')
-          : tc(`draft.approve.${card.request.service}`)
+          : card.kind === 'command'
+            ? t('command.run')
+            : tc(`draft.approve.${card.request.service}`)
   const rejectLabel = card.kind === 'folder' ? t('folderAccess.deny') : card.kind === 'schedule' ? ts('proposal.reject') : t('code.reject')
 
   return (
@@ -255,6 +272,8 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         <DraftView request={card.request} body={body} onBody={setBody} />
       ) : card.kind === 'schedule' ? (
         <ScheduleProposalView request={card.request} current />
+      ) : card.kind === 'command' ? (
+        <CommandView request={card.request} current />
       ) : (
         <RequestView kind="code" request={card.request} />
       )}
@@ -330,10 +349,16 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           disabled={busy || (card.kind === 'draft' && !body.trim())}
           onClick={() => void accept()}
           data-testid={
-            card.kind === 'folder' ? 'folder-access-choose' : card.kind === 'draft' ? 'draft-approve' : card.kind === 'schedule' ? 'schedule-proposal-accept' : 'approval-accept'
+            card.kind === 'folder'
+              ? 'folder-access-choose'
+              : card.kind === 'draft'
+                ? 'draft-approve'
+                : card.kind === 'schedule'
+                  ? 'schedule-proposal-accept'
+                  : 'approval-accept'
           }
         >
-          {card.kind === 'folder' ? <FolderOpen /> : card.kind === 'schedule' ? <Clock /> : <Check />}
+          {card.kind === 'folder' ? <FolderOpen /> : card.kind === 'schedule' ? <Clock /> : card.kind === 'command' ? <Play /> : <Check />}
           {accentLabel}
         </Button>
       </div>
@@ -377,6 +402,7 @@ function RequestView({ kind, request }: { kind: ApprovalCard['kind']; request: A
     )
   }
   if (kind === 'schedule') return <ScheduleProposalView request={request as ScheduleProposalRequest} />
+  if (kind === 'command') return <CommandView request={request as CommandApprovalRequest} />
   return <DraftView request={request as DraftApprovalRequest} />
 }
 
@@ -518,6 +544,7 @@ function summary(kind: ApprovalCard['kind'], request: ApprovalRequest): string {
     return r.suggestedPath ?? r.reason
   }
   if (kind === 'schedule') return (request as ScheduleProposalRequest).name
+  if (kind === 'command') return (request as CommandApprovalRequest).display
   const r = request as DraftApprovalRequest
   return r.subject ? `${r.target} · ${r.subject}` : r.target
 }
@@ -540,5 +567,7 @@ function cardHeader(card: ApprovalCard, t: T, tc: T, ts: T): { icon: ReactNode; 
       }
     case 'schedule':
       return { icon: <Clock className="size-4" />, title: ts('proposal.title') }
+    case 'command':
+      return { icon: <SquareTerminal className="size-4" />, title: t('command.title') }
   }
 }

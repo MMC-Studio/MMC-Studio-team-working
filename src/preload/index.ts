@@ -52,6 +52,11 @@ const api: TeamWorkingApi = {
     addFiles: (id) => ipcRenderer.invoke(IPC.projectsAddFiles, id),
     removeFile: (fileId) => ipcRenderer.invoke(IPC.projectsRemoveFile, fileId)
   },
+  commands: {
+    status: () => ipcRenderer.invoke(IPC.commandsStatus),
+    setSettings: (settings) => ipcRenderer.invoke(IPC.commandsSetSettings, settings),
+    respond: (decision) => ipcRenderer.invoke(IPC.commandsRespond, decision)
+  },
   schedules: {
     list: () => ipcRenderer.invoke(IPC.schedulesList),
     status: () => ipcRenderer.invoke(IPC.schedulesStatus),
