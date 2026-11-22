@@ -100,6 +100,7 @@ export class CodeApprovals {
       if (change.error === 'protected_path') return { allow: false, message: `Không được sửa file này. ${change.reason}` }
       const reasons = {
         outside_project: 'Chỉ được sửa file trong thư mục dự án đã chọn.',
+        link_outside: 'Đường dẫn đi qua symlink / junction trỏ ra ngoài thư mục dự án — không được sửa.',
         unsupported_tool: `Tool này không được phép trong ${APP_NAME}.`,
         old_string_not_found: 'Không tìm thấy đoạn cần sửa trong file.',
         invalid_input: 'Yêu cầu sửa file không hợp lệ.'

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -22,6 +22,27 @@ describe('insideProject', () => {
 })
 
 describe('describeChange', () => {
+  it('junction trong dự án trỏ ra ngoài → từ chối (Edit lẫn Write file mới), không đọc file bên ngoài', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'tw-outside-'))
+    try {
+      writeFileSync(join(outside, 'secret.txt'), 'bí mật')
+      symlinkSync(outside, join(root, 'link'), 'junction')
+      expect(await describeChange(root, 'Edit', { file_path: 'link/secret.txt', old_string: 'bí mật', new_string: 'x' })).toEqual({ error: 'link_outside' })
+      expect(await describeChange(root, 'Write', { file_path: join(root, 'link', 'moi.txt'), content: 'x' })).toEqual({ error: 'link_outside' })
+    } finally {
+      rmSync(outside, { recursive: true, force: true })
+    }
+  })
+
+  it('junction trỏ vào thư mục bảo vệ của Unity → từ chối theo đường dẫn thật', async () => {
+    mkdirSync(join(root, 'Assets'))
+    mkdirSync(join(root, 'ProjectSettings'))
+    mkdirSync(join(root, 'Library'))
+    symlinkSync(join(root, 'Library'), join(root, 'Assets', 'lib'), 'junction')
+    const r = await describeChange(root, 'Write', { file_path: 'Assets/lib/x.txt', content: 'x' })
+    expect(r).toMatchObject({ error: 'protected_path' })
+  })
+
   it('Edit → diff đúng dòng thay đổi', async () => {
     const r = await describeChange(root, 'Edit', { file_path: join(root, 'app.ts'), old_string: 'const b = 2', new_string: 'const b = 3' })
     expect(r).toMatchObject({ path: 'app.ts', isNewFile: false, added: 1, removed: 1 })

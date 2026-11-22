@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
 import { createTwoFilesPatch } from 'diff'
 import { z } from 'zod'
@@ -18,7 +18,7 @@ import {
   type DeferredStatus
 } from '@shared/deferred'
 import type { ScheduleGrants } from '@shared/schedules'
-import { insideProject } from '../code/change'
+import { insideProject, realInside, realRelative } from '../code/paths'
 import { detectProject, protectedReason } from '../code/projectProfile'
 import type { AppDatabase } from '../db/client'
 import { deferredApprovals, schedules } from '../db/schema'
@@ -89,28 +89,6 @@ function count(patch: string): { added: number; removed: number } {
     else if (line.startsWith('-') && !line.startsWith('---')) removed++
   }
   return { added, removed }
-}
-
-/** Đường dẫn thật (giải symlink) vẫn nằm trong thư mục — phần chưa tồn tại thì lấy thư mục cha gần nhất. */
-async function realInside(root: string, abs: string): Promise<boolean> {
-  let realRoot: string
-  try {
-    realRoot = await realpath(root)
-  } catch {
-    return false
-  }
-  let probe = abs
-  for (;;) {
-    try {
-      const real = await realpath(probe)
-      const rel = relative(realRoot, real)
-      return rel === '' || (!rel.startsWith('..') && !rel.includes(`..${sep}`) && !/^[a-zA-Z]:/.test(rel))
-    } catch {
-      const parent = dirname(probe)
-      if (parent === probe) return false
-      probe = parent
-    }
-  }
 }
 
 async function readCurrent(abs: string): Promise<{ exists: false } | { exists: true; buf: Buffer }> {
@@ -209,7 +187,10 @@ export class DeferredService {
     if (reason) return errorResult(`Không đề xuất sửa file này: ${reason}`)
     if (Buffer.byteLength(content, 'utf8') > PROPOSE_MAX_BYTES) return errorResult('Nội dung quá 256 KB.')
     const abs = resolve(folder, rel)
-    if (!(await realInside(folder, abs))) return errorResult('Đường dẫn trỏ ra ngoài thư mục (symlink) — không đề xuất được.')
+    const realRel = await realRelative(folder, abs)
+    if (!realRel) return errorResult('Đường dẫn trỏ ra ngoài thư mục (symlink) — không đề xuất được.')
+    const realReason = realRel !== rel ? protectedReason(detectProject(folder), realRel) : null
+    if (realReason) return errorResult(`Không đề xuất sửa file này: ${realReason}`)
 
     const row = this.changesetRow(run.runId)
     const payload = (row?.payload as ChangesetPayload | undefined) ?? { kind: 'changeset', folder, files: [] }
@@ -438,7 +419,9 @@ export class DeferredService {
     if (protectedReason(detectProject(folder), rel)) return 'protected'
     if (Buffer.byteLength(f.proposed, 'utf8') > PROPOSE_MAX_BYTES) return 'too_large'
     const abs = resolve(folder, rel)
-    if (!(await realInside(folder, abs))) return 'outside'
+    const realRel = await realRelative(folder, abs)
+    if (!realRel) return 'outside'
+    if (realRel !== rel && protectedReason(detectProject(folder), realRel)) return 'protected'
     const current = await readCurrent(abs)
     if (f.baseHash === null && current.exists) return 'exists'
     if (f.baseHash !== null && (!current.exists || sha(current.buf) !== f.baseHash)) return 'changed'
