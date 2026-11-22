@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { posix } from 'node:path'
 import { unzipSync } from 'fflate'
 import { SKILL_NAME_RE } from '@shared/skills'
-import type { ErrorDetail, PreviewSkill, PreviewWarning, SkippedFile } from '@shared/pluginStore'
+import type { ErrorDetail, PreviewMcpServer, PreviewSkill, PreviewWarning, SkippedFile } from '@shared/pluginStore'
 import { parseSkillMd } from '../skills/format'
 import { asText, LIMITS } from '../skills/package'
 
@@ -51,11 +51,73 @@ const MAX_WARNINGS = 50
 
 export type InspectedSkill = PreviewSkill & { contents: Map<string, Uint8Array> }
 
+/** MCP server trong gói — chưa thử kết nối (auth do service điền), chưa so với bản đang cài (change). */
+export type InspectedMcp = Omit<PreviewMcpServer, 'change'>
+
 export type InspectedPlugin = {
   skills: InspectedSkill[]
   license: string | null
   ignored: { hooks: boolean; commands: number; agents: number; mcp: boolean; otherFiles: number }
   warnings: PreviewWarning[]
+  mcp: InspectedMcp[]
+}
+
+const MAX_MCP = 20
+
+/**
+ * Lệnh khoá phiên bản → được "Thêm thủ công" (vẫn tắt sẵn). Lệnh lấy bản mới nhất (npx pkg, uvx pkg, image:latest) thì
+ * mỗi lần chạy có thể là code khác → không.
+ */
+export function isPinnedCommand(command: string, args: string[]): boolean {
+  const cmd = posix.basename(command.replace(/\\/g, '/')).toLowerCase().replace(/\.(cmd|exe|bat)$/, '')
+  const firstArg = (from: number): string => args.slice(from).find((a) => !a.startsWith('-')) ?? ''
+  const npmPinned = (pkg: string): boolean => /^(@[^/@\s]+\/)?[^@/\s]+@\d+\.\d+\.\d+([-+][\w.-]+)?$/.test(pkg)
+  if (['npx', 'bunx', 'pnpx'].includes(cmd)) return npmPinned(firstArg(0))
+  if ((cmd === 'pnpm' && args[0] === 'dlx') || (cmd === 'bun' && args[0] === 'x') || (cmd === 'npm' && args[0] === 'exec')) return npmPinned(firstArg(1))
+  if (cmd === 'uvx' || (cmd === 'uv' && args[0] === 'tool' && args[1] === 'run') || (cmd === 'pipx' && args[0] === 'run')) {
+    const from = args.indexOf('--from')
+    const pkg = from >= 0 ? (args[from + 1] ?? '') : firstArg(cmd === 'uvx' ? 0 : cmd === 'uv' ? 2 : 1)
+    return /^[\w.-]+(\[[\w,.-]+\])?(==\d+(\.\d+)*|@\d+\.\d+(\.\d+)*)$/.test(pkg)
+  }
+  if (cmd === 'docker' && args[0] === 'run') return args.some((a) => /@sha256:[0-9a-f]{64}$/.test(a))
+  return false
+}
+
+const quoteArg = (a: string): string => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a)
+
+/** Đọc một mục server (.mcp.json / plugin.json). `allowLocalHttp`: chỉ e2e bản chưa đóng gói (máy chủ MCP giả). */
+export function parseMcpEntry(name: string, v: unknown, allowLocalHttp = false): InspectedMcp | null {
+  if (!v || typeof v !== 'object') return null
+  const e = v as Record<string, unknown>
+  const base: InspectedMcp = { name: name.slice(0, 100), kind: 'unsupported', url: null, host: null, headers: [], command: null, argv: [], pinned: false, reason: null, auth: 'unknown' }
+  if (typeof e.url === 'string' || e.type === 'http' || e.type === 'sse' || e.type === 'streamable-http') {
+    const url = typeof e.url === 'string' ? e.url.trim().slice(0, 500) : ''
+    const headers = e.headers && typeof e.headers === 'object' ? Object.entries(e.headers as Record<string, unknown>) : []
+    const out: InspectedMcp = {
+      ...base,
+      url: url || null,
+      headers: headers.filter(([k]) => /^[A-Za-z0-9-]{1,64}$/.test(k)).slice(0, 10).map(([key, t]) => ({ key, template: String(t).slice(0, 200) }))
+    }
+    if (out.headers.length) out.auth = 'token'
+    if (e.type === 'sse') return { ...out, reason: 'sse' }
+    if (url.includes('${')) return { ...out, reason: 'variables' }
+    let parsed: URL
+    try {
+      parsed = new URL(url)
+    } catch {
+      return { ...out, reason: 'bad_url' }
+    }
+    const local = allowLocalHttp && parsed.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(parsed.hostname)
+    if (parsed.protocol !== 'https:' && !local) return { ...out, host: parsed.host, reason: 'not_https' }
+    if (parsed.username || parsed.password) return { ...out, reason: 'bad_url' }
+    return { ...out, kind: 'http', host: parsed.host }
+  }
+  if (typeof e.command === 'string' && e.command.trim()) {
+    const args = Array.isArray(e.args) ? e.args.filter((a): a is string => typeof a === 'string').slice(0, 50).map((a) => a.slice(0, 500)) : []
+    const command = e.command.trim().slice(0, 300)
+    return { ...base, kind: 'stdio', command: [command, ...args].map(quoteArg).join(' '), argv: [command, ...args], pinned: isPinnedCommand(command, args) }
+  }
+  return null
 }
 
 export class InspectError extends Error {
@@ -117,7 +179,7 @@ export function scanText(file: string, text: string, skipped: ReadonlySet<string
  * Đọc gói zip (codeload: thư mục gốc `<repo>-<sha>/`) — CHỈ giải nén thư mục plugin + LICENSE ở gốc repo, giới hạn
  * số file / dung lượng như skill tự cài. Mỗi `skills/<tên>/SKILL.md` là một skill; trong thư mục skill chỉ giữ file chữ.
  */
-export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLicense: string | null): InspectedPlugin {
+export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLicense: string | null, allowLocalHttp = false): InspectedPlugin {
   const files = new Map<string, Uint8Array>()
   let top: string | null = null
   let total = 0
@@ -184,7 +246,9 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
   const skillDirs = inPlugin
     .filter((p) => /^skills\/[^/]+\/SKILL\.md$/i.test(p))
     .map((p) => p.slice(0, p.lastIndexOf('/') + 1))
-  if (skillDirs.length === 0) throw new InspectError('no_skills')
+  const mcp = readMcp(inPlugin, rel, manifest, allowLocalHttp)
+  // Không skill, không MCP → không có gì để xem / cài.
+  if (skillDirs.length === 0 && mcp.length === 0) throw new InspectError('no_skills')
 
   const warnings: PreviewWarning[] = []
   const skills: InspectedSkill[] = []
@@ -240,7 +304,7 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
       contents
     })
   }
-  if (skills.length === 0) throw new InspectError('no_skills')
+  if (skills.length === 0 && mcp.length === 0) throw new InspectError('no_skills')
 
   const outside = inPlugin.filter((p) => !p.startsWith('skills/'))
   const hasMcpField = typeof manifest.mcpServers === 'object' && manifest.mcpServers !== null
@@ -254,6 +318,36 @@ export function inspectArchive(zip: Uint8Array, pluginPath: string, fallbackLice
       mcp: outside.includes('.mcp.json') || hasMcpField,
       otherFiles: outside.filter((p) => !/^(hooks|commands|agents)\//i.test(p) && p !== '.mcp.json' && !p.startsWith('.claude-plugin/') && !/^LICEN[CS]E/i.test(p) && !/^README/i.test(p)).length
     },
-    warnings
+    warnings,
+    mcp
   }
+}
+
+/** MCP server: `.mcp.json` ở gốc plugin + `mcpServers` trong plugin.json (object, đường dẫn tới file JSON, hoặc mảng). */
+function readMcp(inPlugin: string[], rel: (p: string) => Uint8Array, manifest: Record<string, unknown>, allowLocalHttp: boolean): InspectedMcp[] {
+  const maps: Record<string, unknown>[] = []
+  const fromFile = (path: string): void => {
+    const p = posix.normalize(path.replace(/^\.\//, ''))
+    if (p.startsWith('..') || !inPlugin.includes(p)) return
+    try {
+      const j = JSON.parse(asText(rel(p)) ?? '') as Record<string, unknown>
+      maps.push((j.mcpServers && typeof j.mcpServers === 'object' ? j.mcpServers : j) as Record<string, unknown>)
+    } catch {
+      /* file hỏng → bỏ */
+    }
+  }
+  if (inPlugin.includes('.mcp.json')) fromFile('.mcp.json')
+  const field = manifest.mcpServers
+  for (const item of Array.isArray(field) ? field : [field]) {
+    if (typeof item === 'string') fromFile(item)
+    else if (item && typeof item === 'object') maps.push(item as Record<string, unknown>)
+  }
+  const out: InspectedMcp[] = []
+  for (const m of maps)
+    for (const [name, v] of Object.entries(m)) {
+      if (out.length >= MAX_MCP || out.some((x) => x.name === name)) continue
+      const parsed = parseMcpEntry(name, v, allowLocalHttp)
+      if (parsed) out.push(parsed)
+    }
+  return out
 }

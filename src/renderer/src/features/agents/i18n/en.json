@@ -74,7 +74,11 @@
     "hint": "\"Always allow\" applies to this exact tool only and can be revoked on the Agent connections page.",
     "once": "Allow once",
     "always": "Always allow this tool",
-    "deny": "Deny"
+    "deny": "Deny",
+    "storeTitle": "The assistant wants to use a tool on an Internet server",
+    "storeBody": "Call \"{{tool}}\" (plugin {{plugin}}) — sent to:",
+    "storeParams": "All parameters that will be sent:",
+    "storeHint": "Server installed from the plugin store: every call needs approval, there is no \"always allow\"."
   },
   "notice": {
     "rateLimited": "Agent \"{{name}}\" hit the limit at {{time}} — blocked for about {{minutes}} minutes.",
@@ -105,10 +109,26 @@
     "errors": {
       "reserved_name": "This name is reserved by the app — pick another.",
       "duplicate_name": "A server with this name already exists.",
-      "secure_storage_unavailable": "Secure storage is unavailable — secret values cannot be saved."
+      "secure_storage_unavailable": "Secure storage is unavailable — secret values cannot be saved.",
+      "store_server": "Plugin store server: the address is fixed by the plugin, only the token can be entered.",
+      "needs_review": "Review the tool list before turning it on."
     },
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "prefillHint": "Adding manually from a plugin — check the command carefully. The server is saved turned OFF.",
+    "store": {
+      "badge": "From store · {{plugin}}",
+      "approved": "{{count}} tools approved",
+      "review": {
+        "first": "Tool list not reviewed yet",
+        "url": "Address changed — review again",
+        "tools": "Tools changed — turned off, review again"
+      },
+      "setToken": "Enter token",
+      "tokenHelp": "Sent only to {{host}} (added by the app, the assistant never sees it). Stored encrypted on this computer; leave empty to keep the current value.",
+      "template": "Template in the plugin: {{template}}",
+      "githubHint": "Tip: create a READ-ONLY fine-grained token at github.com/settings/personal-access-tokens/new (pick the repos, Read-only permissions), then enter it as \"Bearer <token>\"."
+    }
   },
   "errors": {
     "hotkey_unavailable": "Could not register the emergency stop hotkey Ctrl+Alt+Q (another app may be using it). This can only be enabled when the stop hotkey works.",

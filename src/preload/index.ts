@@ -91,7 +91,7 @@ const api: TeamWorkingApi = {
     catalog: (force) => ipcRenderer.invoke(IPC.pluginStoreCatalog, force),
     preview: (key) => ipcRenderer.invoke(IPC.pluginStorePreview, key),
     cancelPreview: (token) => ipcRenderer.invoke(IPC.pluginStoreCancelPreview, token),
-    install: (token) => ipcRenderer.invoke(IPC.pluginStoreInstall, token),
+    install: (token, mcp) => ipcRenderer.invoke(IPC.pluginStoreInstall, { token, mcp: mcp ?? [] }),
     uninstall: (key) => ipcRenderer.invoke(IPC.pluginStoreUninstall, key),
     installed: () => ipcRenderer.invoke(IPC.pluginStoreInstalled),
     checkUpdates: () => ipcRenderer.invoke(IPC.pluginStoreCheckUpdates)
@@ -251,7 +251,10 @@ const api: TeamWorkingApi = {
     setEnabled: (id, enabled) => ipcRenderer.invoke(IPC.mcpSetEnabled, { id, enabled }),
     revokeAlways: (id, tool) => ipcRenderer.invoke(IPC.mcpRevokeAlways, { id, tool }),
     onApproval: (listener) => subscribe<McpApprovalRequest>(IPC.mcpApprovalEvent, listener),
-    respond: (id, decision) => ipcRenderer.invoke(IPC.mcpRespond, { id, decision })
+    respond: (id, decision) => ipcRenderer.invoke(IPC.mcpRespond, { id, decision }),
+    review: (id) => ipcRenderer.invoke(IPC.mcpReview, id),
+    approveReview: (token) => ipcRenderer.invoke(IPC.mcpApproveReview, token),
+    setStoreHeaders: (id, headers) => ipcRenderer.invoke(IPC.mcpSetStoreHeaders, { id, headers })
   },
   sidecar: {
     state: () => ipcRenderer.invoke(IPC.sidecarState),

@@ -74,7 +74,11 @@
     "hint": "\"Luôn cho phép\" chỉ áp dụng cho đúng công cụ này, thu hồi được trong trang Kết nối agent.",
     "once": "Cho phép lần này",
     "always": "Luôn cho phép công cụ này",
-    "deny": "Từ chối"
+    "deny": "Từ chối",
+    "storeTitle": "Trợ lý muốn dùng công cụ của một server trên Internet",
+    "storeBody": "Gọi \"{{tool}}\" (plugin {{plugin}}) — gửi tới:",
+    "storeParams": "Toàn bộ tham số sẽ gửi đi:",
+    "storeHint": "Server cài từ kho plugin: mỗi lần gọi đều phải duyệt, không có \"luôn cho phép\"."
   },
   "notice": {
     "rateLimited": "Agent \"{{name}}\" chạm giới hạn lúc {{time}} — bị chặn khoảng {{minutes}} phút.",
@@ -105,10 +109,26 @@
     "errors": {
       "reserved_name": "Tên này app dùng riêng — chọn tên khác.",
       "duplicate_name": "Đã có server trùng tên.",
-      "secure_storage_unavailable": "Máy không hỗ trợ mã hoá an toàn — không lưu được giá trị bí mật."
+      "secure_storage_unavailable": "Máy không hỗ trợ mã hoá an toàn — không lưu được giá trị bí mật.",
+      "store_server": "Server từ kho plugin: địa chỉ cố định theo plugin, chỉ nhập được token.",
+      "needs_review": "Phải xem danh sách công cụ trước khi bật."
     },
     "on": "Đang bật",
-    "off": "Đang tắt"
+    "off": "Đang tắt",
+    "prefillHint": "Thêm thủ công từ plugin — kiểm tra kỹ lệnh. Server được lưu ở trạng thái TẮT.",
+    "store": {
+      "badge": "Từ kho · {{plugin}}",
+      "approved": "{{count}} công cụ đã duyệt",
+      "review": {
+        "first": "Chưa duyệt danh sách công cụ",
+        "url": "Địa chỉ đã đổi — cần xem lại",
+        "tools": "Công cụ đã đổi — đã tự tắt, cần xem lại"
+      },
+      "setToken": "Nhập token",
+      "tokenHelp": "Chỉ gửi tới {{host}} (app tự gắn, trợ lý không thấy). Lưu mã hoá trên máy; để trống = giữ giá trị cũ.",
+      "template": "Mẫu trong plugin: {{template}}",
+      "githubHint": "Gợi ý: tạo token fine-grained CHỈ ĐỌC tại github.com/settings/personal-access-tokens/new (chọn đúng repo, quyền Read-only), rồi điền dạng \"Bearer <token>\"."
+    }
   },
   "errors": {
     "hotkey_unavailable": "Không đăng ký được phím dừng khẩn cấp Ctrl+Alt+Q (có thể app khác đang dùng). Chỉ bật được khi phím dừng hoạt động.",

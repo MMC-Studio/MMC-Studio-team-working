@@ -124,7 +124,6 @@
     "checkUpdates": "Check for updates",
     "modifiedBadge": "Changed outside the app",
     "updateAvailable": "Update available ({{sha}})",
-    "installedMeta": "Skills: {{skills}} · {{repo}}@{{sha}}",
     "reinstall": "Reinstall",
     "update": "Update",
     "uninstall": "Uninstall",
@@ -186,7 +185,6 @@
       "hooks": "Hooks (run commands automatically) — never run",
       "commands": "{{count}} commands (/command) — not supported yet",
       "agents": "{{count}} agents — not supported yet",
-      "mcp": "MCP servers — coming in a later version (8b), each server approved separately",
       "other": "{{count}} other files outside the skill folders"
     },
     "sourcesTitle": "Plugin store sources",
@@ -211,6 +209,57 @@
       "too_many_bytes": "The plugin exceeds the read limit ({{limit}} bytes). Largest file:",
       "archive_too_big": "The archive from GitHub is over 40 MB:"
     },
-    "failFile": "File:"
+    "failFile": "File:",
+    "installedSkills": "Skills: {{skills}}",
+    "installedMcp": "MCP: {{names}}",
+    "mcp": {
+      "title": "MCP servers ({{count}})",
+      "hint": "Servers on the Internet the assistant uses as tools. Tick each server whose domain you trust — unticked servers are not installed. Installed servers stay OFF; turning one on shows its tool list first, and every call asks you.",
+      "tickHint": "Tick if you trust {{host}}.",
+      "stdio": "runs a command on this computer — not installed automatically",
+      "manual": "Add manually…",
+      "notPinned": "The command is not pinned to a version (each run may be different code), so it cannot be added from here.",
+      "needsHeaders": "Needs: {{keys}} (entered when turning on).",
+      "oauth": "Requires OAuth sign-in for this address (the server answered 401 with sign-in details) — not supported yet.",
+      "removed": "Remove MCP",
+      "reason": {
+        "not_https": "Only https:// addresses are supported.",
+        "sse": "SSE servers are not supported yet.",
+        "variables": "The address uses environment variables — not supported yet.",
+        "bad_url": "Invalid address."
+      },
+      "change": {
+        "added": "New",
+        "url_changed": "Address changed — tick again",
+        "headers_changed": "Headers changed"
+      },
+      "maybeAuth": "The server answered \"not signed in\" when probed — it may need sign-in. You can still install it; turning it on checks again."
+    },
+    "installMcp": "Install {{count}} MCP server(s)",
+    "installBoth": "Install {{skills}} skill(s) + {{mcp}} MCP server(s)",
+    "installNothing": "Install"
+  },
+  "mcpReview": {
+    "title": "Turn on {{name}}",
+    "loading": "Connecting to {{host}} for its tool list…",
+    "intro": "These are the tools {{host}} offers the assistant. Read the descriptions before turning it on — they are instructions the assistant will read.",
+    "first": "First time turning on.",
+    "url": "The server address changed with the plugin update — review before turning on.",
+    "tools": "The tool list / descriptions changed since you approved them — the server was turned off.",
+    "changed": "Changed since last time",
+    "noDescription": "(no description)",
+    "params": "Parameters",
+    "confirm": "Turn on server",
+    "expired": "This review expired — close and open it again.",
+    "setToken": "Enter token",
+    "errors": {
+      "oauth_required": "The server requires OAuth sign-in — not supported yet.",
+      "needs_secret": "{{detail}} not entered yet — click \"Enter token\".",
+      "unauthorized": "The server refused (code {{detail}}) — check the token.",
+      "redirect_blocked": "The server redirected to another domain ({{detail}}) — blocked.",
+      "network": "Could not connect: {{detail}}",
+      "not_found": "Server not found.",
+      "no_tools": "The server has no tools."
+    }
   }
 }

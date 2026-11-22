@@ -37,6 +37,8 @@ export type PluginItem = {
   removable: boolean
   /** Bật cần qua hộp cảnh báo (giống chữ cảnh báo cạnh công tắc cũ). */
   confirmEnable: boolean
+  /** MCP server từ kho: bật = kết nối, xem danh sách công cụ rồi mới bật (thay cho hộp cảnh báo). */
+  reviewEnable?: boolean
 }
 
 export type PluginSources = {
@@ -104,6 +106,7 @@ export function buildPlugins(src: PluginSources): PluginGroups {
     ;(a.enabled || a.clients.length > 0 ? yours : suggestions).push(item)
   }
   for (const s of src.mcp ?? []) {
+    const store = s.origin
     yours.push({
       key: `mcp:${s.id}`,
       type: 'mcp',
@@ -111,12 +114,15 @@ export function buildPlugins(src: PluginSources): PluginGroups {
       name: s.name,
       description: '',
       enabled: s.enabled,
-      attention: false,
-      meta: { source: s.type === 'stdio' ? [s.command, ...s.args].filter(Boolean).join(' ') : (s.url ?? '') },
+      // Server từ kho tự tắt vì địa chỉ / danh sách công cụ đổi → cần người dùng xem lại.
+      attention: !!store && (store.review === 'url' || store.review === 'tools'),
+      meta: { source: store ? `${store.host} · ${store.pluginName}` : s.type === 'stdio' ? [s.command, ...s.args].filter(Boolean).join(' ') : (s.url ?? '') },
       href: `${PLUGINS_ROUTE}/mcp?id=${s.id}`,
       toggleable: true,
-      removable: true,
-      confirmEnable: false
+      // Server từ kho: gỡ = gỡ cả plugin (tab Khám phá), như skill từ kho.
+      removable: !store,
+      confirmEnable: false,
+      reviewEnable: !!store
     })
   }
   for (const s of src.skills ?? []) {

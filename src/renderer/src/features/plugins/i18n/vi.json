@@ -124,7 +124,6 @@
     "checkUpdates": "Kiểm tra cập nhật",
     "modifiedBadge": "Đã bị sửa ngoài app",
     "updateAvailable": "Có bản mới ({{sha}})",
-    "installedMeta": "Skill: {{skills}} · {{repo}}@{{sha}}",
     "reinstall": "Cài lại",
     "update": "Cập nhật",
     "uninstall": "Gỡ",
@@ -186,7 +185,6 @@
       "hooks": "Hook (tự chạy lệnh) — không bao giờ chạy",
       "commands": "{{count}} lệnh (/command) — app chưa hỗ trợ",
       "agents": "{{count}} agent — app chưa hỗ trợ",
-      "mcp": "MCP server — sẽ có ở bản sau (8b), mỗi server phải duyệt riêng",
       "other": "{{count}} file khác ngoài thư mục skill"
     },
     "sourcesTitle": "Nguồn kho plugin",
@@ -211,6 +209,57 @@
       "too_many_bytes": "Plugin lớn hơn giới hạn đọc ({{limit}} byte). File lớn nhất:",
       "archive_too_big": "Gói tải về từ GitHub lớn hơn 40 MB:"
     },
-    "failFile": "File:"
+    "failFile": "File:",
+    "installedSkills": "Skill: {{skills}}",
+    "installedMcp": "MCP: {{names}}",
+    "mcp": {
+      "title": "MCP server ({{count}})",
+      "hint": "Server chạy trên Internet, trợ lý dùng như công cụ. Tick từng server bạn tin tên miền — không tick thì không cài. Cài xong server vẫn TẮT; bật phải xem danh sách công cụ, và mỗi lần trợ lý gọi đều hỏi bạn.",
+      "tickHint": "Tick nếu bạn tin {{host}}.",
+      "stdio": "chạy lệnh trên máy — app không tự cài",
+      "manual": "Thêm thủ công…",
+      "notPinned": "Lệnh không khoá phiên bản (mỗi lần chạy có thể là code khác) nên app không cho thêm từ đây.",
+      "needsHeaders": "Cần nhập: {{keys}} (nhập khi bật).",
+      "oauth": "Cần đăng nhập OAuth với địa chỉ này (server trả 401 kèm thông tin đăng nhập) — app chưa hỗ trợ.",
+      "removed": "Gỡ MCP",
+      "reason": {
+        "not_https": "Chỉ hỗ trợ địa chỉ https://.",
+        "sse": "Kiểu SSE chưa hỗ trợ.",
+        "variables": "Địa chỉ có biến môi trường — chưa hỗ trợ.",
+        "bad_url": "Địa chỉ không hợp lệ."
+      },
+      "change": {
+        "added": "Mới",
+        "url_changed": "Đổi địa chỉ — phải tick lại",
+        "headers_changed": "Đổi header"
+      },
+      "maybeAuth": "Server trả lời \"chưa đăng nhập\" khi thử — có thể cần đăng nhập. Vẫn cài được; khi bật, app kết nối lại và báo rõ."
+    },
+    "installMcp": "Cài {{count}} MCP server",
+    "installBoth": "Cài {{skills}} skill + {{mcp}} MCP server",
+    "installNothing": "Cài"
+  },
+  "mcpReview": {
+    "title": "Bật {{name}}",
+    "loading": "Đang kết nối {{host}} để lấy danh sách công cụ…",
+    "intro": "Đây là các công cụ {{host}} cho trợ lý dùng. Đọc kỹ mô tả rồi mới bật — mô tả chính là chỉ dẫn trợ lý sẽ đọc.",
+    "first": "Lần bật đầu tiên.",
+    "url": "Địa chỉ server đã đổi khi cập nhật plugin — xem lại trước khi bật.",
+    "tools": "Danh sách công cụ / mô tả đã đổi so với lần bạn duyệt — server đã tự tắt.",
+    "changed": "Đổi so với lần trước",
+    "noDescription": "(không có mô tả)",
+    "params": "Tham số",
+    "confirm": "Bật server",
+    "expired": "Lần xem đã hết hạn — đóng rồi mở lại.",
+    "setToken": "Nhập token",
+    "errors": {
+      "oauth_required": "Server cần đăng nhập OAuth — app chưa hỗ trợ.",
+      "needs_secret": "Chưa nhập {{detail}} — bấm \"Nhập token\".",
+      "unauthorized": "Server từ chối (mã {{detail}}) — kiểm tra lại token.",
+      "redirect_blocked": "Server chuyển hướng sang tên miền khác ({{detail}}) — app đã chặn.",
+      "network": "Không kết nối được: {{detail}}",
+      "not_found": "Không tìm thấy server.",
+      "no_tools": "Server không có công cụ nào."
+    }
   }
 }

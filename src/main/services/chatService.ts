@@ -499,6 +499,11 @@ export class ChatService {
     this.active.get(requestId)?.controller.abort()
   }
 
+  /** Dừng lượt đang chạy của một cuộc (vd gỡ plugin có MCP server lượt đó đang dùng). */
+  abortConversation(conversationId: string): void {
+    for (const r of this.active.values()) if (r.conversationId === conversationId) r.controller.abort()
+  }
+
   abortAll(): void {
     for (const r of this.active.values()) r.controller.abort()
   }

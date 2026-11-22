@@ -23,10 +23,12 @@ import {
   type PluginStoreError,
   type ErrorDetail,
   type InstallResult,
-  type PreviewResult
+  type PreviewMcpServer,
+  type PreviewResult,
+  mcpInstallable
 } from '@shared/pluginStore'
 import { GitHubError, type GitHubClient } from './github'
-import { InspectError, inspectArchive, sha256, type InspectedPlugin } from './inspect'
+import { InspectError, inspectArchive, sha256, type InspectedMcp, type InspectedPlugin } from './inspect'
 import { MARKETPLACE_PATH, parseMarketplace, type MarketplaceEntry } from './marketplace'
 
 const PENDING_TTL_MS = 30 * 60 * 1000
@@ -48,6 +50,8 @@ const installedRecord = z.object({
   skills: z.array(z.string()),
   /** `<skill>/<đường dẫn>` → sha256. */
   files: z.record(z.string(), z.string()),
+  /** MCP server (tên trong gói) người dùng đã tick lúc cài — 8b. */
+  mcp: z.array(z.string()).default([]),
   installedAt: z.number(),
   updatedAt: z.number(),
   updateAvailable: z.string().nullable().default(null)
@@ -81,13 +85,34 @@ export type PluginStoreDeps = {
   takenSkillNames(): Promise<{ builtin: Set<string>; user: Set<string> }>
   /** Gỡ cài đặt bật / tắt của các skill (gỡ plugin). */
   forgetSkills(names: string[]): void
+  /** MCP server HTTP của plugin (8b) — McpServerStore + huỷ thẻ duyệt / dừng lượt khi gỡ. */
+  mcp?: StoreMcpPort
+  /** Thử kết nối không kèm thông tin gì (xem server có đòi OAuth không). */
+  probe?(url: string): Promise<'none' | 'oauth' | 'maybe' | 'unknown'>
+  /** Chỉ e2e bản chưa đóng gói: chấp nhận MCP `http://127.0.0.1` (máy chủ giả). */
+  allowLocalHttp?: boolean
   changed(): void
   now(): number
   log: { info(msg: string): void; warn(msg: string): void }
 }
 
+export type StoreMcpDecl = { server: string; url: string; host: string; headers: { key: string; template: string }[] }
+export type StoreMcpPort = {
+  forPlugin(pluginKey: string): (StoreMcpDecl & { name: string })[]
+  syncPlugin(plugin: { key: string; name: string; sha: string }, decls: StoreMcpDecl[]): string[]
+  removePlugin(pluginKey: string): void
+}
+
 type CachedSource = { sha: string; fetchedAt: number; entries: MarketplaceEntry[] }
-type Pending = { at: number; key: string; preview: PluginPreview; inspected: InspectedPlugin; record: Omit<InstalledRecord, 'installedAt' | 'updatedAt' | 'dir' | 'updateAvailable'> }
+type Pending = {
+  at: number
+  key: string
+  preview: PluginPreview
+  inspected: InspectedPlugin
+  record: Omit<InstalledRecord, 'installedAt' | 'updatedAt' | 'dir' | 'updateAvailable' | 'mcp'>
+  /** MCP server cài được (https, không đòi OAuth), theo tên trong gói. */
+  mcp: Map<string, StoreMcpDecl>
+}
 
 const keyOf = (sourceRepo: string, name: string): string => `${sourceRepo}#${name}`
 /** Thư mục trên đĩa cho plugin: tên + 8 ký tự băm của khoá (2 nguồn cùng tên plugin không đè nhau). */
@@ -252,7 +277,7 @@ export class PluginStoreService {
     }
     let inspected: InspectedPlugin
     try {
-      inspected = inspectArchive(zip, loc.path, entry.license)
+      inspected = inspectArchive(zip, loc.path, entry.license, this.deps.allowLocalHttp ?? false)
     } catch (e) {
       this.deps.log.warn(`Kho plugin: đọc gói ${key} lỗi: ${(e as Error).message}`)
       return { status: 'error', error: e instanceof InspectError ? e.code : 'bad_archive', detail: e instanceof InspectError ? e.detail : null }
@@ -267,6 +292,13 @@ export class PluginStoreService {
     const files: Record<string, string> = {}
     for (const s of usable) for (const f of s.files) files[`${s.name}/${f.path}`] = f.sha256
 
+    const mcp = await this.previewMcp(key, current, inspected.mcp)
+    const mcpDecls = new Map<string, StoreMcpDecl>()
+    for (const m of mcp) if (mcpInstallable(m) && m.url && m.host) mcpDecls.set(m.name, { server: m.name, url: m.url, host: m.host, headers: m.headers })
+    const mcpRemoved = current
+      ? (this.deps.mcp?.forPlugin(key) ?? []).filter((x) => !mcpDecls.has(x.server)).map((x) => x.name)
+      : []
+
     const token = randomUUID()
     const preview: PluginPreview = {
       token,
@@ -279,7 +311,8 @@ export class PluginStoreService {
       skills: inspected.skills.map(({ contents: _c, ...s }) => s),
       ignored: inspected.ignored,
       warnings: dedupe(inspected.warnings),
-      update: current ? { fromSha: current.location.sha, changes: await this.changes(current, usable) } : null
+      mcp,
+      update: current ? { fromSha: current.location.sha, changes: await this.changes(current, usable), mcpRemoved } : null
     }
     this.prune()
     this.pending.set(token, {
@@ -296,9 +329,36 @@ export class PluginStoreService {
         license: inspected.license,
         skills: usable.map((s) => s.name),
         files
-      }
+      },
+      mcp: mcpDecls
     })
     return { status: 'ok', preview }
+  }
+
+  /**
+   * MCP của gói: server HTTP không khai báo header → thử kết nối (không kèm gì) xem có đòi OAuth không — đòi thì ghi rõ
+   * "cần đăng nhập OAuth — chưa hỗ trợ" ngay ở xem trước. Plugin đã cài → so với server đang cài (thêm / đổi URL / đổi header).
+   */
+  private async previewMcp(key: string, current: InstalledRecord | null, list: InspectedMcp[]): Promise<PreviewMcpServer[]> {
+    const existing = current ? (this.deps.mcp?.forPlugin(key) ?? []) : []
+    return Promise.all(
+      list.map(async (m): Promise<PreviewMcpServer> => {
+        const auth = m.kind === 'http' && m.auth === 'unknown' && m.url && this.deps.probe ? await this.deps.probe(m.url) : m.auth
+        const old = existing.find((x) => x.server === m.name)
+        const sameHeaders = (a: { key: string }[], b: { key: string }[]): boolean =>
+          a.map((h) => h.key).sort().join(',') === b.map((h) => h.key).sort().join(',')
+        const change: PreviewMcpServer['change'] = !current
+          ? null
+          : !old
+            ? 'added'
+            : old.url !== m.url || old.host !== m.host
+              ? 'url_changed'
+              : !sameHeaders(old.headers, m.headers)
+                ? 'headers_changed'
+                : 'unchanged'
+        return { ...m, auth, change }
+      })
+    )
   }
 
   /** Thay đổi so với bản đang cài: file thêm / sửa / xoá (file chữ kèm diff). */
@@ -332,12 +392,14 @@ export class PluginStoreService {
    * Cài / cập nhật đúng bản đã xem trước. Ghi thư mục tạm, kiểm lại sha256 từng file vừa ghi, rồi mới thay bản cũ
    * (giữ bản cũ tới phút chót — lỗi thì trả lại như trước).
    */
-  async install(token: string): Promise<InstallResult> {
+  async install(token: string, mcpChosen: string[] = []): Promise<InstallResult> {
     const item = this.pending.get(token)
     if (!item) return { status: 'error', error: 'preview_expired' }
     if (this.installing.has(token)) return { status: 'error', error: 'install_failed', detail: { reason: 'locked', file: null, code: 'busy' } }
     if (!this.sourceExists(item.record.sourceRepo)) return { status: 'error', error: 'source_removed' }
-    if (item.record.skills.length === 0) return { status: 'error', error: 'no_skills' }
+    // Chỉ server cài được mà người dùng đã tick xác nhận (tên lạ / server đòi OAuth / chạy lệnh → bỏ).
+    const chosen = [...new Set(mcpChosen)].filter((n) => item.mcp.has(n))
+    if (item.record.skills.length === 0 && chosen.length === 0) return { status: 'error', error: 'no_skills' }
     this.installing.add(token)
     try {
       const installed = this.deps.getInstalled()
@@ -346,7 +408,10 @@ export class PluginStoreService {
       const files = new Map<string, Uint8Array>()
       for (const sk of item.inspected.skills.filter((x) => item.record.skills.includes(x.name)))
         for (const [p, bytes] of sk.contents) files.set(`${sk.name}/${p}`, bytes)
-      const failed = await this.writePlugin(join(this.deps.dir, dir), files, item.record.files)
+      // Plugin chỉ có MCP → không có file nào để ghi (xoá thư mục skill cũ nếu bản trước có).
+      const failed = files.size
+        ? await this.writePlugin(join(this.deps.dir, dir), files, item.record.files)
+        : await rm(join(this.deps.dir, dir), { recursive: true, force: true }).then(() => null)
       if (failed) {
         this.deps.log.warn(`Kho plugin: cài ${item.key} lỗi: ${failed.reason} ${failed.file ?? ''} (${failed.code ?? '-'})`)
         // Giữ token: người dùng đóng chương trình đang giữ file rồi bấm lại được, không phải mở lại xem trước.
@@ -354,7 +419,9 @@ export class PluginStoreService {
       }
       this.pending.delete(token)
       const now = this.deps.now()
-      const record: InstalledRecord = { ...item.record, dir, installedAt: current?.installedAt ?? now, updatedAt: now, updateAvailable: null }
+      const record: InstalledRecord = { ...item.record, mcp: chosen, dir, installedAt: current?.installedAt ?? now, updatedAt: now, updateAvailable: null }
+      // MCP: server mới TẮT sẵn (bật phải xem danh sách tool); đổi URL → tắt + duyệt lại; bỏ tick / bỏ khỏi gói → gỡ.
+      this.deps.mcp?.syncPlugin({ key: item.key, name: item.record.name, sha: record.location.sha }, chosen.map((n) => item.mcp.get(n)!))
       // Skill bỏ đi trong bản mới → quên cài đặt bật / tắt của chúng.
       if (current) this.deps.forgetSkills(current.skills.filter((sk) => !record.skills.includes(sk)))
       this.deps.setInstalled([...installed.filter((p) => p.key !== item.key), record])
@@ -458,6 +525,8 @@ export class PluginStoreService {
     await rm(join(this.deps.dir, p.dir), { recursive: true, force: true })
     this.deps.setInstalled(installed.filter((x) => x.key !== key))
     this.deps.forgetSkills(p.skills)
+    // MCP của plugin: xoá server + bí mật, huỷ thẻ duyệt đang chờ, dừng lượt đang dùng (index nối).
+    this.deps.mcp?.removePlugin(key)
     this.modifiedCache = null
     this.deps.log.info(`Kho plugin: đã gỡ ${key}`)
     this.deps.changed()
@@ -525,6 +594,7 @@ export class PluginStoreService {
       location: { repo: p.location.repo, path: p.location.path, sha: p.location.sha },
       license: p.license,
       skills: p.skills,
+      mcp: (this.deps.mcp?.forPlugin(p.key) ?? []).map((x) => x.name),
       installedAt: p.installedAt,
       updatedAt: p.updatedAt,
       modified: this.isModified(p),
