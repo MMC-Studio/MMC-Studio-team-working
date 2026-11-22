@@ -1,9 +1,13 @@
 # Bài học & lỗi đã gặp — đọc trước khi thêm tính năng
 
 File này ghi lại những lỗi team đã gặp khi làm MMC studio, để người làm sau (người hay AI) không vấp lại.
-Mỗi mục: **Quy tắc** (phải làm gì) → **Vì sao** → **Mẫu có sẵn trong repo**.
 
-Thêm bài học mới: thêm một mục vào cuối phần phù hợp, ghi kèm số PR nếu có.
+---
+
+## 0. Cách thêm bài học
+
+- Mỗi mục: **Quy tắc** (phải làm gì) → **Vì sao** → **Mẫu có sẵn trong repo**.
+- Thêm một mục vào cuối phần phù hợp, ghi kèm số PR nếu có.
 
 ---
 

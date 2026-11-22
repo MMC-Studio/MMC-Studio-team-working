@@ -47,7 +47,7 @@ App desktop Windows (Electron + React + TypeScript) — trợ lý AI cho học t
 - Trợ lý **đề xuất**, người dùng **duyệt**: memory mới, task do AI tạo, thay đổi file code — luôn qua bước xác nhận.
 - UI text đi qua i18next (`vi` mặc định). Không hard-code chuỗi tiếng Việt trong component.
 - Commit theo Conventional Commits (`feat:`, `fix:`, `docs:`…). Mỗi tính năng mới kèm test.
-- Trước khi thêm tính năng, đọc `docs/LESSONS.md`. Tính năng có nhập liệu bắt buộc có bản nháp (mục 1.1). Gặp lỗi đáng nhớ thì thêm bài học vào file này.
+- Trước khi thêm tính năng, đọc `docs/LESSONS.md`. Tính năng có nhập liệu bắt buộc có bản nháp (mục 1.1). Sửa xong một lỗi đáng nhớ thì tự thêm bài học vào `docs/LESSONS.md` trong cùng PR, theo mục 0 của file đó, và báo lại trong báo cáo cuối.
 - Thêm tính năng: dùng skill `add-feature-module`. Gọi Claude: skill `claude-bridge`. Đổi schema team: skill `supabase-migration`. Phát hành: skill `release-update`.
 
 ## Quy trình làm việc (cố định — không cần nhắc lại)
