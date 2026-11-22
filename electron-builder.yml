@@ -31,7 +31,6 @@ extraResources:
     to: artifact-runtime
   - from: resources/stickers
     to: stickers
-    filter: ['desktop_server.py', 'requirements.txt']
 asarUnpack:
   - node_modules/better-sqlite3/**
 # better-sqlite3 dùng N-API kèm bản build sẵn — không cần biên dịch lại cho Electron.
