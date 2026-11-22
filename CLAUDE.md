@@ -55,6 +55,7 @@ App desktop Windows (Electron + React + TypeScript) — trợ lý AI cho học t
 - Kiểm tra lint / typecheck / test bằng **mã thoát** của lệnh, không lọc chữ trong output.
 - Chạy e2e cả ở chế độ không có Claude CLI (bỏ `~/.local/bin` khỏi PATH; dùng `MMC_FAKE_*` cho phần cần Claude / giọng nói).
 - Push xong chờ CI xanh rồi mới báo, kèm danh sách test tay (bấm gì, phải thấy gì).
+- Danh sách test tay luôn mở đầu bằng bước: **tắt hẳn MMC studio đang chạy** (cả icon dưới khay, cả bản `win-unpacked`) — app chỉ cho chạy một bản, nên `npm run dev` sẽ tự tắt và hiện lại cửa sổ cũ, người dùng test nhầm bản cũ.
 - Trả lời người dùng ngắn gọn; tiến độ và quyết định ghi trong `docs/PROGRESS.md`.
 
 ## Bảo trì cấu hình agent
