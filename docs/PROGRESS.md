@@ -43,9 +43,9 @@
 | #49 | Các mức quyền thêm **A1**: chạy lệnh git chỉ đọc qua thẻ duyệt (allowlist cả tham số, chặn cấu hình lạ của repo) + bảng nhật ký `action_log` — chờ test tay với Claude thật |
 
 ## Các mức quyền thêm — đang làm
-Thứ tự (kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm): ~~symlink (#47)~~ → ~~A1 (#49)~~ → B (tách **B1** nhật ký — đang chờ duyệt PR, **B2** quyền + thu hồi — tiếp theo) → A2 → C → D.
+Thứ tự (kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm): ~~symlink (#47)~~ → ~~A1 (#49)~~ → B (tách **B1** nhật ký — #51 chờ duyệt, **B2** quyền + thu hồi — tiếp theo) → A2 → C → D.
 
-- **B1 — `feat/action-log-view`** (PR đang mở, 2026-11-23): nhật ký thao tác đầy đủ + trang xem.
+- **B1 — `feat/action-log-view`** (#51, mở 2026-11-23): nhật ký thao tác đầy đủ + trang xem.
   - **Ghi thêm vào `action_log`** (ngoài lệnh git từ A1), mỗi kết cục một dòng, chỉ tên — không nội dung / tham số / góp ý:
     - `file_edit` (`CodeApprovals`): đường dẫn tương đối; approved / rejected / timeout / stopped; app chặn trước khi hỏi → `blocked` + mã lý do (`outside_project`, `link_outside`, `protected_path`, `write_disabled`…).
     - `mcp` (`McpApprovals`): `server/tool`; bấm "Luôn cho phép" → approved + `always_allow_set`; tool lạ → blocked; gỡ server khi đang chờ → stopped.
@@ -236,7 +236,7 @@ Tiến độ:
 ## Việc tiếp theo
 0. Đợt "giống Claude": PR 5 (#30, #32), PR 6 (#34), PR 7a (#36), PR 7b (#38), nháp theo cuộc (#39), PR 8a (#40, #42), PR 8b (#44, #45) xong. Còn treo: repo `MMC-Studio/team-skill` (chờ tạo, public, có `.claude-plugin/marketplace.json` → PR thêm vào `resources/plugin-sources.json`); OAuth cho MCP từ kho (chưa làm). "Dùng địa chỉ ẩn danh" cho MCP: KHÔNG làm (xem Quyết định đã duyệt).
 1. Test tay với Claude thật: #19 (chế độ Tự do, nhắc đường dẫn dự án Unity → thẻ xin quyền) và #20 (trả lời một câu cũ của trợ lý xem nó có hiểu đúng ngữ cảnh không).
-2. Các mức quyền thêm — kế hoạch đã duyệt 2026-11-22 (xem "Quyết định đã duyệt" → Các mức quyền thêm). symlink (#47) và A1 (#49) xong. **PR B tách hai** (duyệt 2026-11-23): **B1** nhật ký (PR đang mở) → **B2** quyền + thu hồi (xem "Các mức quyền thêm — đang làm"). Sau B: **A2** (Unity / Blender, `Unity.exe` / `blender.exe` tự chọn trong Cài đặt, báo file C# / script vừa được trợ lý sửa, output lấy phần cuối) → **C** (sửa không hỏi lại suốt phiên, 2 giờ / 50 file, vẫn hỏi file dẫn tới chạy lệnh) → **D** (thư mục phụ, tối đa 3). Ghi chú cũ: "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.
+2. Các mức quyền thêm — kế hoạch đã duyệt 2026-11-22 (xem "Quyết định đã duyệt" → Các mức quyền thêm). symlink (#47) và A1 (#49) xong. **PR B tách hai** (duyệt 2026-11-23): **B1** nhật ký (#51) → **B2** quyền + thu hồi (xem "Các mức quyền thêm — đang làm"). Sau B: **A2** (Unity / Blender, `Unity.exe` / `blender.exe` tự chọn trong Cài đặt, báo file C# / script vừa được trợ lý sửa, output lấy phần cuối) → **C** (sửa không hỏi lại suốt phiên, 2 giờ / 50 file, vẫn hỏi file dẫn tới chạy lệnh) → **D** (thư mục phụ, tối đa 3). Ghi chú cũ: "sửa không hỏi lại suốt phiên"; chạy lệnh theo danh sách cho phép (build Unity batchmode, `blender --background --python`, git status) — vẫn phải hỏi; thêm thư mục phụ; trang Cài đặt liệt kê quyền đang cấp + nhật ký thao tác; "thư mục gần đây" nếu team thấy phải cấp lại nhiều lần.
 3. Để sau: thao tác chuột/bàn phím (chỉ khi người dùng đồng ý riêng); A2A + mở kết nối ra LAN (chỉ có đề xuất trong `docs/agents.md`).
 4. Lịch hẹn: 7a (#36) + 7b (#38) xong. Còn để sau: chọn từng chat Telegram cho lịch (hiện bật / tắt cả Telegram); test tay với Claude thật phần "Hỏi" trên thẻ hoãn duyệt. Lỗi "sửa lời nhắn làm mất tick Cho soạn nháp" (test tay 7b) chưa tái hiện được — đã có test giữ quyền khi sửa, chờ người dùng cho bước tái hiện nếu gặp lại.
 
