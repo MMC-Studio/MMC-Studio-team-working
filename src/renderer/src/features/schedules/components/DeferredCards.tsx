@@ -74,6 +74,8 @@ function Shell({ card, icon, title, children }: { card: DeferredCard; icon: Reac
             ? t('deferred.expiresIn', { count: days })
             : card.status === 'expired'
               ? t('deferred.expired')
+              : card.status === 'revoked'
+                ? t('deferred.revoked')
               : card.status === 'revised'
                 ? t('deferred.revised')
                 : t('deferred.done')}

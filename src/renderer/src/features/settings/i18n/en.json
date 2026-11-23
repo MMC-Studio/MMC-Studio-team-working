@@ -253,6 +253,26 @@
         "description": "Clicking X hides the app to the tray (bottom-right of the taskbar) so schedules keep running. Only while scheduled tasks are on.",
         "keywords": "tray minimize hide close window"
       },
+      "grantFolders": {
+        "label": "Folders per conversation",
+        "description": "Conversations where the assistant can read (or read + edit) a folder. Revoke = remove the folder from that conversation, cancel every pending card and stop the command / reply running there.",
+        "keywords": "revoke folder access read edit code conversation remove"
+      },
+      "grantGit": {
+        "label": "git commands (read-only)",
+        "description": "One switch for every conversation with a folder — change it under Capabilities. Each run still needs your approval.",
+        "keywords": "git command permission status"
+      },
+      "grantSchedules": {
+        "label": "Schedule permissions",
+        "description": "Permissions fixed when each schedule was created. Revoking one saves right away, stops a run that is using it and closes pending deferred cards that rely on it.",
+        "keywords": "schedule permission revoke folder gmail telegram draft"
+      },
+      "grantConnections": {
+        "label": "Gmail, Telegram, agents, MCP",
+        "description": "Status only — turn on / off, remove and \"always allow\" are managed on the Plugins page.",
+        "keywords": "gmail telegram agent mcp connection plugin always allow status"
+      },
       "actionLog": {
         "label": "Activity log",
         "description": "Every time the assistant asks to run a command, edit a file, call an MCP tool or create a draft, it is recorded with the decision. Stored on this computer only, kept for 90 days, file / command / tool names only — never contents.",
@@ -292,6 +312,36 @@
       "stopped": "Stopped",
       "blocked": "Blocked by app",
       "auto": "Auto-approved"
+    }
+  },
+  "privacy": {
+    "grantsTitle": "Current permissions",
+    "logTitle": "Log",
+    "noFolders": "No conversation has a folder.",
+    "noSchedules": "No schedule has permissions.",
+    "readOnly": "Read-only",
+    "readWrite": "Read + edit",
+    "revoke": "Revoke",
+    "revokeFolder": "Revoke the folder of \"{{title}}\"",
+    "revokeGrant": "Revoke: {{grant}}",
+    "scheduleOff": "off",
+    "changeInCapabilities": "Change in Capabilities",
+    "openPlugins": "Open Plugins",
+    "on": "On",
+    "off": "Off",
+    "alwaysAllowed": "always allowed: {{tools}}",
+    "grantKinds": {
+      "folder": "Read folder {{value}}",
+      "folderWrite": "Propose file edits",
+      "gmail": "Read Gmail {{value}}",
+      "telegram": "Read Telegram",
+      "drafts": "Write drafts"
+    },
+    "connections": {
+      "gmail": "Gmail",
+      "telegram": "Telegram",
+      "agents": "Paired agents",
+      "mcp": "MCP servers"
     }
   }
 }

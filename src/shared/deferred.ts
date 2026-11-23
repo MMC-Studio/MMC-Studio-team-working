@@ -12,7 +12,8 @@ export const PROPOSE_MAX_FILES = 20
 export const PROPOSE_MAX_BYTES = 256 * 1024
 export const DEFERRED_QUESTIONS_MAX = 10
 
-export type DeferredStatus = 'pending' | 'done' | 'expired' | 'revised'
+/** revoked = người dùng thu hồi quyền của lịch (Cài đặt → Quyền & riêng tư) khi thẻ còn chờ — không duyệt được nữa. */
+export type DeferredStatus = 'pending' | 'done' | 'expired' | 'revised' | 'revoked'
 
 /** Một file trong "Bộ thay đổi": diff từ bản gốc (lúc đề xuất lần đầu) tới bản cuối. */
 export type DeferredFile = {

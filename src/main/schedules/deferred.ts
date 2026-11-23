@@ -299,6 +299,42 @@ export class DeferredService {
     if (changed) this.deps.changed()
   }
 
+  /**
+   * Thu hồi quyền của lịch → thẻ còn chờ dựa trên quyền đó thành "Đã thu hồi quyền" (không duyệt được). Changeset: mọi
+   * thẻ sửa file; draft: lọc theo dịch vụ / tài khoản Gmail nếu có. Trả số thẻ đã đóng.
+   */
+  revokeForSchedule(
+    scheduleId: string,
+    scope: { kind: 'changeset' } | { kind: 'draft'; service?: 'gmail' | 'telegram'; accountId?: string }
+  ): number {
+    const rows = this.deps.db
+      .select()
+      .from(deferredApprovals)
+      .where(
+        and(
+          eq(deferredApprovals.owner, this.deps.getOwner()),
+          eq(deferredApprovals.scheduleId, scheduleId),
+          eq(deferredApprovals.status, 'pending'),
+          eq(deferredApprovals.kind, scope.kind)
+        )
+      )
+      .all()
+      .filter((row) => {
+        if (scope.kind !== 'draft') return true
+        const d = (row.payload as DraftPayload).draft
+        if (scope.service && d.service !== scope.service) return false
+        return !scope.accountId || d.account?.id === scope.accountId
+      })
+    if (!rows.length) return 0
+    this.deps.db
+      .update(deferredApprovals)
+      .set({ status: 'revoked', updatedAt: this.deps.now() })
+      .where(inArray(deferredApprovals.id, rows.map((r) => r.id)))
+      .run()
+    this.deps.changed()
+    return rows.length
+  }
+
   list(conversationId: string | null): DeferredCard[] {
     this.expire()
     const rows = this.deps.db

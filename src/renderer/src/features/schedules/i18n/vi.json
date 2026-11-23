@@ -251,6 +251,7 @@
     "expiresIn_one": "Hết hạn sau {{count}} ngày",
     "expiresIn_other": "Hết hạn sau {{count}} ngày",
     "expired": "Đã hết hạn (quá 7 ngày)",
+    "revoked": "Đã thu hồi quyền của lịch — không duyệt được nữa",
     "revised": "Đã yêu cầu sửa — xem đề xuất mới bên dưới",
     "done": "Đã xử lý",
     "createdAt": "Đề xuất lúc {{when}} — chưa có gì được ghi / tạo",

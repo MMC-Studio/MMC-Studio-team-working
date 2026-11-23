@@ -251,6 +251,7 @@
     "expiresIn_one": "Expires in {{count}} day",
     "expiresIn_other": "Expires in {{count}} days",
     "expired": "Expired (over 7 days)",
+    "revoked": "Schedule permission revoked — can no longer be approved",
     "revised": "Revision requested — see the new proposal below",
     "done": "Handled",
     "createdAt": "Proposed at {{when}} — nothing has been written / created yet",

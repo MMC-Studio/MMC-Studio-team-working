@@ -144,6 +144,8 @@ import { CommandService } from './commands/service'
 import { findGit, probeGit, type GitInfo } from './commands/gitEnv'
 import { ActionLogRepository, type ActionLogEntry } from './audit/actionLog'
 import { registerActionLogIpc } from './ipc/actionLog'
+import { registerPrivacyIpc } from './ipc/privacy'
+import { cancelEverywhere, PrivacyService } from './privacy/service'
 import { commandsSettingsSchema, DEFAULT_COMMANDS_SETTINGS, type CommandsSettings } from '@shared/commands'
 import { registerPluginStoreIpc } from './ipc/pluginStore'
 import { GitHubClient } from './pluginStore/github'
@@ -1307,6 +1309,42 @@ async function bootstrap(): Promise<void> {
     status: async () => ({ settings: getCommandsSettings(), git: await gitReady }),
     setSettings: (value) => void settings.set('commands', value)
   })
+  // ---- Quyền & riêng tư (B2): quyền đang cấp + thu hồi. ----
+  /** Thu hồi mọi thứ đang chờ / đang chạy của một cuộc (dùng chung cho "Gỡ thư mục" và trang Quyền & riêng tư). */
+  const cancelConversationAccess = (conversationId: string): void =>
+    cancelEverywhere([approvals, mcpApprovals, draftApprovals, folderAccess, scheduleProposals, commandService], conversationId, (m) =>
+      log.warn(m)
+    )
+  const privacy = new PrivacyService({
+    foldersInUse: () => conversations.withFolder(),
+    getConversation: (id) => conversations.get(id),
+    clearFolder: (id) => void conversations.setCwd(id, null),
+    cancelConversation: cancelConversationAccess,
+    abortTurn: (id) => chat.abortConversation(id),
+    schedules: () => scheduleRepo.list(),
+    getSchedule: (id) => scheduleRepo.get(id),
+    setScheduleGrants: (id, grants) => void scheduleRepo.setGrants(id, grants),
+    stopSchedule: (id) => scheduler.forget(id, true),
+    revokeDeferred: (id, scope) => deferred.revokeForSchedule(id, scope),
+    gmailLabel: (id) => {
+      const a = gmail.status().accounts.find((x) => x.id === id)
+      return a ? (a.label ? `${a.label} (${a.email})` : a.email) : null
+    },
+    status: () => {
+      const g = gmail.status()
+      const tg = telegram.status()
+      const agents = agentHub.status()
+      return {
+        git: { enabled: getCommandsSettings().gitEnabled },
+        gmail: { enabled: g.enabled, accounts: g.accounts.filter((a) => a.enabled).map((a) => ({ email: a.email, label: a.label })) },
+        telegram: { enabled: tg.enabled, account: tg.connection === 'connected' && tg.account ? tg.account.name : null },
+        agents: { enabled: agents.enabled, clients: agents.clients.filter((c) => c.approved).map((c) => c.name) },
+        mcp: mcpStore.list().map((s) => ({ name: s.name, enabled: s.enabled, alwaysAllow: s.alwaysAllow }))
+      }
+    },
+    log
+  })
+  registerPrivacyIpc({ handle, service: privacy })
   const fakeFolder = app.isPackaged ? undefined : process.env.MMC_FAKE_FOLDER
   registerSchedulesIpc({
     handle,
@@ -1341,6 +1379,7 @@ async function bootstrap(): Promise<void> {
     settings,
     time: new TimeRepository(db),
     approvals,
+    revokeFolder: (id) => void privacy.revokeFolder(id),
     folderAccess,
     hub: approvalHub,
     memory,

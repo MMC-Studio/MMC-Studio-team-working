@@ -49,6 +49,8 @@ export type WorkIpcDeps = {
   settings: SettingsRepository
   time: TimeRepository
   approvals: CodeApprovals
+  /** Gỡ thư mục = thu hồi: huỷ mọi thẻ đang chờ, dừng lệnh + lượt đang chạy (chung với Quyền & riêng tư). */
+  revokeFolder(conversationId: string): void
   folderAccess: FolderAccessRequests
   hub: ApprovalHub
   memory: MemoryService
@@ -91,16 +93,16 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     if (picked.canceled || !picked.filePaths[0]) return null
     deps.approvals.cancelConversation(conversationId)
     return deps.conversations.setCwd(conversationId, picked.filePaths[0])
-  })
+  }, { changes: 'conversations' })
   // Gỡ thư mục = thu hồi mọi quyền đọc/sửa của trợ lý trong hội thoại này.
   handle(
     IPC.codeClearFolder,
     idSchema,
     (conversationId) => {
-      deps.approvals.cancelConversation(conversationId)
-      return deps.conversations.setCwd(conversationId, null)
+      deps.revokeFolder(conversationId)
+      return deps.conversations.get(conversationId)
     },
-    { changes: 'conversations' }
+    { changes: ['conversations', 'approvals'] }
   )
   handle(
     IPC.folderAccessRespond,
@@ -116,7 +118,7 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     if (!conv?.cwd) throw new Error('no_project_folder')
     if (!enabled) deps.approvals.cancelConversation(conversationId)
     return deps.conversations.setCodeWrite(conversationId, enabled)
-  })
+  }, { changes: 'conversations' })
   handle(
     IPC.codeRespond,
     z.object({ id: idSchema, allow: z.boolean(), feedback: feedbackSchema }),
