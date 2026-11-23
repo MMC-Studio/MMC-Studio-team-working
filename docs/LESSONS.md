@@ -119,6 +119,14 @@ Xem mục "Quyết định đã duyệt" trong `docs/PROGRESS.md`. Tóm tắt: t
 
 **Mẫu có sẵn.** `askAlwaysReason` trong `src/main/code/projectProfile.ts` (`askAlways` theo hồ sơ dự án + luật chung), `AutoEdits.offer` trong `src/main/code/autoEdits.ts`; test từng file trong `src/main/code/__tests__/autoEdits.test.ts`.
 
+### 2.7. App tự mô phỏng việc CLI sắp làm → phải mô phỏng ĐÚNG như CLI (xuống dòng, chuẩn hoá…)
+
+**Quy tắc.** Khi app tự áp thử thao tác của CLI (Edit để làm diff / kiểm / tính hash cho hoàn tác), làm theo đúng quy tắc của CLI, nhất là xuống dòng: Edit của Claude Code so khớp trên bản đã đổi CRLF → LF và ghi lại theo kiểu xuống dòng của file. Kiểm của app chặt hơn CLI = chặn nhầm; lỏng hơn = duyệt thứ CLI sẽ làm khác. Hash "bản đã duyệt" chấp nhận cả biến thể LF / CRLF. Test luôn có một file CRLF (máy dùng Windows). Dòng "App chặn" trong nhật ký phải hiện lý do (cột `detail`), và đường dẫn trong thư mục ghi dạng tương đối như các dòng khác của cùng file.
+
+**Vì sao.** Test tay PR C: nhật ký có "App chặn" cho `…\hoc\ngan.txt` rồi ngay sau đó sửa lại tự duyệt được. Tưởng lỗi đường dẫn (tuyệt đối / hoa thường / dấu); thật ra file CRLF, lần sửa trước chèn dòng mới (CLI ghi CRLF), lần sau `old_string` có `\n` → app so từng byte nên báo `old_string_not_found` (CLI thì khớp). DB máy dev có 8 dòng như vậy từ trước; trang nhật ký không hiện lý do nên không ai thấy.
+
+**Mẫu có sẵn.** `applyTool` / `usesCrlf` / `otherLineEnding` trong `src/main/code/change.ts`; `blockedReason` trong `ActionLogSection.tsx`; test CRLF trong `src/main/code/__tests__/change.test.ts` và `autoEdits.test.ts`.
+
 ---
 
 ## 3. Windows

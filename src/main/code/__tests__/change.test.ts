@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { describeChange, insideProject } from '../change'
+import { applyTool, describeChange, inspectChange, insideProject } from '../change'
 
 let root: string
 beforeEach(() => {
@@ -64,5 +64,24 @@ describe('describeChange', () => {
     expect(await describeChange(root, 'Write', { file_path: join(tmpdir(), 'x.txt'), content: 'x' })).toEqual({ error: 'outside_project' })
     expect(await describeChange(root, 'Bash', { file_path: 'a', command: 'rm -rf /' })).toEqual({ error: 'unsupported_tool' })
     expect(await describeChange(root, 'Write', { content: 'x' })).toEqual({ error: 'invalid_input' })
+  })
+
+  // Như Edit của Claude Code CLI: so khớp sau khi đổi CRLF → LF, ghi lại theo kiểu xuống dòng của file. Trước đây app
+  // so từng byte → Edit có xuống dòng trong old_string trên file CRLF bị chặn nhầm (old_string_not_found) dù CLI làm được.
+  it('file CRLF: old_string / new_string dùng \\n vẫn khớp; kết quả giữ CRLF', async () => {
+    writeFileSync(join(root, 'win.txt'), 'dong 1\r\nhas loaded:\r\ndong 21\r\n')
+    const r = await inspectChange(root, 'Edit', {
+      file_path: join(root, 'win.txt'),
+      old_string: 'has loaded:\ndong 21',
+      new_string: 'has loaded:\ndong 21\ndong 22'
+    })
+    expect(r).toMatchObject({ path: 'win.txt', added: 1, removed: 0 })
+    expect('after' in r && r.after).toBe('dong 1\r\nhas loaded:\r\ndong 21\r\ndong 22\r\n')
+  })
+
+  it('applyTool: file LF giữ LF (old_string có \\r\\n vẫn khớp); replace_all trên file CRLF; không có → lỗi', () => {
+    expect(applyTool('Edit', { old_string: 'a\r\nb', new_string: 'a\nx\nb' }, 'a\nb\n')).toBe('a\nx\nb\n')
+    expect(applyTool('Edit', { old_string: 'x', new_string: 'y\nz', replace_all: true }, 'x\r\nx\r\n')).toBe('y\r\nz\r\ny\r\nz\r\n')
+    expect(applyTool('Edit', { old_string: 'không có', new_string: 'x' }, 'a\r\n')).toEqual({ error: 'old_string_not_found' })
   })
 })

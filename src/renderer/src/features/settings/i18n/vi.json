@@ -350,6 +350,25 @@
       "auto": "Tự duyệt",
       "undone": "Đã hoàn tác",
       "alwaysFileEdit": "Đồng ý + tự duyệt phiên"
+    },
+    "reasons": {
+      "write_disabled": "Quyền sửa file đang tắt",
+      "outside_project": "File nằm ngoài thư mục của cuộc",
+      "outside": "File nằm ngoài thư mục của cuộc",
+      "link_outside": "Đường dẫn đi qua symlink / junction ra ngoài thư mục",
+      "protected_path": "Thư mục / file được bảo vệ",
+      "protected": "Thư mục / file được bảo vệ",
+      "unsupported_tool": "Công cụ không được phép",
+      "old_string_not_found": "Không tìm thấy đoạn cần sửa trong file (file không được đổi)",
+      "invalid_input": "Yêu cầu sửa file không hợp lệ",
+      "binary_content": "File nhị phân — sửa bằng văn bản sẽ hỏng file",
+      "unknown_server": "MCP server không có trong danh sách",
+      "no_permission": "Lịch hẹn không còn quyền",
+      "changed": "File đã đổi sau khi lịch đề xuất",
+      "exists": "File đã có sẵn",
+      "too_large": "File quá lớn",
+      "write_failed": "Không ghi được file",
+      "unknown": "Lý do: {{code}}"
     }
   },
   "privacy": {

@@ -113,6 +113,10 @@ test('file "vẫn hỏi" (package.json): thẻ hiện, KHÔNG có nút tự duy�
   await c.getByTestId('approval-reject').click()
   await replyDone('Không ghi file nào.')
   expect(existsSync(file('package.json'))).toBe(false)
+  // Ngoài thư mục: app chặn (không thẻ), kể cả khi đang tự duyệt.
+  await send('FAKE_WRITES:../ngoai.txt=x')
+  await replyDone('Không ghi file nào.')
+  await expect(codeCard()).toHaveCount(0)
 })
 
 test('Hoàn tác tất cả: file về bản gốc, file trợ lý tạo bị xoá, băng biến mất trong 1 giây, nhật ký "Đã hoàn tác"', async () => {
@@ -128,6 +132,10 @@ test('Hoàn tác tất cả: file về bản gốc, file trợ lý tạo bị xo
   await expect(undone.first()).toHaveText('Đã hoàn tác')
   await expect(page.locator('[data-testid="action-log-decision"][data-decision="always"]').first()).toHaveText('Đồng ý + tự duyệt phiên')
   await expect(page.locator('[data-testid="action-log-decision"][data-decision="auto"]')).toHaveCount(3)
+  // Dòng "App chặn" ghi rõ lý do (test tay: trước chỉ có nhãn, không biết vì sao).
+  const blocked = page.getByTestId('action-log-list').locator('li', { has: page.locator('[data-decision="blocked"]') })
+  await expect(blocked).toHaveCount(1)
+  await expect(blocked.getByTestId('action-log-reason')).toHaveText('File nằm ngoài thư mục của cuộc')
   await page.keyboard.press('Escape')
 })
 

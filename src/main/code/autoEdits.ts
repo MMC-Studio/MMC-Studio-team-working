@@ -12,7 +12,7 @@ import {
   type AutoEditUndoResult
 } from '@shared/autoEdits'
 import type { RecordAction } from '../audit/actionLog'
-import type { InspectedChange } from './change'
+import { otherLineEnding, type InspectedChange } from './change'
 import { realRelative } from './paths'
 import { askAlwaysReason } from './projectProfile'
 
@@ -30,6 +30,8 @@ type StoredFile = {
   originalHash: string | null
   /** Hash nội dung app dự tính sau lần tự duyệt cuối — khác lúc hoàn tác = file bị sửa thêm (xung đột). */
   expectedHash: string
+  /** Cùng nội dung nhưng kiểu xuống dòng kia (LF ↔ CRLF) — CLI ghi theo kiểu xuống dòng của file, có thể khác bản app tính. */
+  altHash?: string
   at: number
   edits: number
   /** Đã hoàn tác. */
@@ -237,6 +239,7 @@ export class AutoEdits {
     const key = keyOf(change.path)
     const at = this.now()
     const expectedHash = sha(Buffer.from(change.after, 'utf8'))
+    const altHash = sha(Buffer.from(otherLineEnding(change.after), 'utf8'))
     let file = s.files.find((f) => f.key === key && !f.done)
     const isFirst = !file
     const newlyCounted = !s.counted.includes(key)
@@ -252,6 +255,7 @@ export class AutoEdits {
         originalSize: change.before?.length ?? 0,
         originalHash: change.before === null ? null : sha(change.before),
         expectedHash,
+        altHash,
         at,
         edits: 1,
         done: false
@@ -259,6 +263,7 @@ export class AutoEdits {
       s.files.push(file)
     } else {
       file.expectedHash = expectedHash
+      file.altHash = altHash
       file.at = at
       file.edits++
     }
@@ -416,7 +421,7 @@ export class AutoEdits {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return 'io'
     }
     const currentHash = current ? sha(current) : null
-    const untouched = currentHash === f.expectedHash || currentHash === f.originalHash
+    const untouched = currentHash === f.expectedHash || currentHash === f.altHash || currentHash === f.originalHash
     if (!untouched && !force) return 'conflict'
     try {
       if (f.isNewFile) {

@@ -350,6 +350,25 @@
       "auto": "Auto-approved",
       "undone": "Undone",
       "alwaysFileEdit": "Approved + auto-approve session"
+    },
+    "reasons": {
+      "write_disabled": "File editing is off",
+      "outside_project": "File is outside the conversation folder",
+      "outside": "File is outside the conversation folder",
+      "link_outside": "Path goes through a symlink / junction outside the folder",
+      "protected_path": "Protected folder / file",
+      "protected": "Protected folder / file",
+      "unsupported_tool": "Tool not allowed",
+      "old_string_not_found": "Text to replace was not found in the file (file unchanged)",
+      "invalid_input": "Invalid edit request",
+      "binary_content": "Binary file — a text edit would corrupt it",
+      "unknown_server": "MCP server is not in the list",
+      "no_permission": "The schedule no longer has permission",
+      "changed": "File changed after the schedule proposed it",
+      "exists": "File already exists",
+      "too_large": "File too large",
+      "write_failed": "Could not write the file",
+      "unknown": "Reason: {{code}}"
     }
   },
   "privacy": {

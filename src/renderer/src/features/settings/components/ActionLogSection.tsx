@@ -11,6 +11,17 @@ import { cn } from '@renderer/lib/utils'
 import { openRunConversation } from '@renderer/features/schedules/open'
 import { SettingRow } from './rows'
 
+/**
+ * Vì sao app chặn (chỉ dòng `blocked`): mã lý do (file_edit, MCP, hoãn duyệt `deferred: <mã>`) → câu dễ đọc; lệnh git /
+ * Unity / Blender đã ghi sẵn câu giải thích (có dấu cách) → hiện nguyên văn.
+ */
+function blockedReason(detail: string | null, t: (key: string, opts?: Record<string, unknown>) => string): string | null {
+  if (!detail) return null
+  const code = detail.replace(/^deferred:\s*/, '')
+  if (/\s/.test(code)) return code
+  return t(`actionLog.reasons.${code}`, { defaultValue: t('actionLog.reasons.unknown', { code }) })
+}
+
 const KIND_ICON: Record<ActionLogKind, LucideIcon> = { command: SquareTerminal, file_edit: FilePen, mcp: Plug, draft: Mail, unity: Box, blender: Shapes }
 
 /** Người dùng bấm đồng ý (một lần / luôn) → xanh lá; app tự chạy không ai bấm (auto) → tím, viền nét đứt — khác hẳn. */
@@ -143,6 +154,7 @@ export function ActionLogSection() {
 function ActionLogRow({ item, at, open }: { item: ActionLogItem; at: string; open?: () => void }) {
   const { t } = useTranslation('settings')
   const Icon = KIND_ICON[item.kind]
+  const reason = item.decision === 'blocked' ? blockedReason(item.detail, t) : null
   const conversation =
     item.conversationId === null ? t('actionLog.deletedConversation') : item.conversationTitle || t('actionLog.untitled')
   const body = (
@@ -163,6 +175,11 @@ function ActionLogRow({ item, at, open }: { item: ActionLogItem; at: string; ope
               : t(`actionLog.decisions.${item.decision}`)}
           </span>
         </div>
+        {reason && (
+          <p className="mt-0.5 text-[11px] text-orange-700 dark:text-orange-300" data-testid="action-log-reason">
+            {reason}
+          </p>
+        )}
         <div className="mt-0.5 flex gap-2 text-[11px] text-muted-foreground">
           <span className="shrink-0">{at}</span>
           <span className="truncate">· {conversation}</span>

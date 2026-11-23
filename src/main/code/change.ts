@@ -68,7 +68,24 @@ function count(patch: string): { added: number; removed: number } {
   return { added, removed }
 }
 
-/** Nội dung sau khi áp Edit / Write lên `before` (như CLI làm); lỗi → mã lỗi. */
+const toLf = (s: string): string => s.replace(/\r\n/g, '\n')
+
+/** File dùng CRLF không (đếm như CLI: nhiều CRLF hơn LF đứng riêng). */
+export function usesCrlf(text: string): boolean {
+  const crlf = text.match(/\r\n/g)?.length ?? 0
+  return crlf > 0 && crlf >= (text.match(/\n/g)?.length ?? 0) - crlf
+}
+
+/** Bản đổi kiểu xuống dòng (LF ↔ CRLF) — CLI có thể ghi theo kiểu của file nên app chấp nhận cả hai khi so lúc hoàn tác. */
+export function otherLineEnding(text: string): string {
+  return usesCrlf(text) ? toLf(text) : toLf(text).replace(/\n/g, '\r\n')
+}
+
+/**
+ * Nội dung sau khi áp Edit / Write lên `before`, GIỐNG Edit của Claude Code CLI: so khớp trên bản đã đổi CRLF → LF
+ * (cả file lẫn old_string / new_string) rồi ghi lại theo kiểu xuống dòng của file. So từng byte thì Edit có xuống dòng
+ * trên file CRLF bị chặn nhầm dù CLI làm được. Lỗi → mã lỗi.
+ */
 export function applyTool(toolName: string, input: unknown, before: string): string | { error: ChangeError } {
   const data = (input ?? {}) as Record<string, unknown>
   if (toolName === 'Write') {
@@ -76,10 +93,14 @@ export function applyTool(toolName: string, input: unknown, before: string): str
     return data.content
   }
   if (toolName === 'Edit') {
-    const { old_string: oldStr, new_string: newStr, replace_all: all } = data
-    if (typeof oldStr !== 'string' || typeof newStr !== 'string') return { error: 'invalid_input' }
-    if (!before.includes(oldStr)) return { error: 'old_string_not_found' }
-    return all === true ? before.split(oldStr).join(newStr) : before.replace(oldStr, () => newStr)
+    const { old_string: rawOld, new_string: rawNew, replace_all: all } = data
+    if (typeof rawOld !== 'string' || typeof rawNew !== 'string') return { error: 'invalid_input' }
+    const text = toLf(before)
+    const oldStr = toLf(rawOld)
+    const newStr = toLf(rawNew)
+    if (!oldStr || !text.includes(oldStr)) return { error: 'old_string_not_found' }
+    const after = all === true ? text.split(oldStr).join(newStr) : text.replace(oldStr, () => newStr)
+    return usesCrlf(before) ? after.replace(/\n/g, '\r\n') : after
   }
   return { error: 'unsupported_tool' }
 }

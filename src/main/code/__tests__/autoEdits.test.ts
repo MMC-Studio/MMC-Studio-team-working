@@ -222,6 +222,31 @@ describe('Phiên tự duyệt sửa file (PR C)', () => {
     expect(records.filter((r) => r.decision === 'blocked').map((r) => r.detail)).toEqual(['binary_content', 'binary_content'])
   })
 
+  // Test tay 2026-11-23: nhật ký có "App chặn" cho C:\…\hoc\ngan.txt rồi sửa lại được ngay — file CRLF, lần sửa trước
+  // chèn dòng mới (CLI ghi CRLF), lần sau old_string có "\n" → app so từng byte nên chặn nhầm (CLI thì khớp).
+  it('file CRLF: Edit có xuống dòng (như CLI) không bị chặn nhầm, vẫn tự duyệt', async () => {
+    put('ngan.txt', 'dong 1\r\nTypical SPAs … has loaded:\r\n')
+    await startSession()
+    const first = await attempt('Edit', { file_path: join(root, 'ngan.txt'), old_string: 'has loaded:', new_string: 'has loaded:\ndong 21' })
+    expect(isAuto(first)).toBe(true)
+    put('ngan.txt', 'dong 1\r\nTypical SPAs … has loaded:\r\ndong 21\r\n')
+    const second = await attempt('Edit', { file_path: join(root, 'ngan.txt'), old_string: 'has loaded:\ndong 21', new_string: 'has loaded:\ndong 21\ndong 22' })
+    expect(isAuto(second)).toBe(true)
+    expect(records.filter((r) => r.decision === 'blocked')).toEqual([])
+  })
+
+  it('bị chặn thật (old_string không có) → nhật ký ghi đường dẫn tương đối + lý do', async () => {
+    put('ngan.txt', 'abc\n')
+    expect(await attempt('Edit', { file_path: join(root, 'ngan.txt'), old_string: 'không có', new_string: 'x' })).toMatchObject({
+      decision: { allow: false, message: 'Không tìm thấy đoạn cần sửa trong file.' }
+    })
+    expect(records.at(-1)).toMatchObject({ target: 'ngan.txt', decision: 'blocked', detail: 'old_string_not_found' })
+    // Ngoài thư mục: giữ nguyên đường dẫn trợ lý đưa.
+    const outside = join(tmpdir(), 'ngoai.txt')
+    await attempt('Write', { file_path: outside, content: 'x' })
+    expect(records.at(-1)).toMatchObject({ target: outside, decision: 'blocked', detail: 'outside_project' })
+  })
+
   it(`tối đa ${AUTO_EDIT_MAX_FILES} file / phiên: file thứ 51 → thẻ; sửa lại file đã tính vẫn tự duyệt`, async () => {
     await startSession('f0.txt')
     for (let i = 1; i < AUTO_EDIT_MAX_FILES; i++) expect(isAuto(await write(`f${i}.txt`, `${i}\n`))).toBe(true)
@@ -293,6 +318,19 @@ describe('Phiên tự duyệt sửa file (PR C)', () => {
       expect(auto.list()).toEqual([])
       expect(readdirSync(dataDir)).toEqual([])
       expect(auto.isActive('c1')).toBe(false)
+    })
+
+    it.each([
+      ['CLI ghi giữ CRLF', (s: string) => s],
+      ['CLI ghi LF', (s: string) => s.replace(/\r\n/g, '\n')]
+    ])('file CRLF (%s) → không báo xung đột nhầm', async (_name, written) => {
+      put('win.txt', 'gốc\r\nhas loaded:\r\n')
+      await startSession()
+      expect(isAuto(await attempt('Edit', { file_path: 'win.txt', old_string: 'has loaded:\n', new_string: 'has loaded:\ndong 21\n' }))).toBe(true)
+      put('win.txt', written('gốc\r\nhas loaded:\r\ndong 21\r\n'))
+      const [s] = auto.list('c1')
+      expect(await auto.undo(s.id)).toMatchObject({ conflicts: [], failed: [] })
+      expect(read('win.txt')).toBe('gốc\r\nhas loaded:\r\n')
     })
 
     it('file bị sửa thêm sau lần tự duyệt cuối → xung đột, không ghi đè; chọn ghi đè → khôi phục', async () => {

@@ -7,7 +7,7 @@ import type { ActionLogDecision } from '@shared/actionLog'
 import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
 import type { RecordAction } from '../audit/actionLog'
 import type { AutoEdits } from './autoEdits'
-import { inspectChange } from './change'
+import { inspectChange, insideProject } from './change'
 
 export type ApprovalDeps = {
   /** Thư mục dự án của hội thoại nếu chế độ Code đang BẬT quyền sửa; null = không được phép. */
@@ -122,7 +122,9 @@ export class CodeApprovals {
     const change = await inspectChange(root, toolName, input)
     if ('error' in change) {
       this.deps.log.warn(`Từ chối tự động ${toolName}: ${change.error}`)
-      this.write(conversationId, inputPath(input), 'blocked', change.error)
+      // Trong thư mục → đường dẫn tương đối như các dòng khác của cùng file (không thì nhật ký trông như file ở chỗ khác).
+      const raw = inputPath(input)
+      this.write(conversationId, insideProject(root, raw) ?? raw, 'blocked', change.error)
       if (change.error === 'protected_path') return { allow: false, message: `Không được sửa file này. ${change.reason}` }
       const reasons = {
         outside_project: 'Chỉ được sửa file trong thư mục dự án đã chọn.',
