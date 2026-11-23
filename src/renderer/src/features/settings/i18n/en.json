@@ -286,11 +286,12 @@
     },
     "decisions": {
       "approved": "Approved",
+      "always": "Always allow",
       "rejected": "Rejected",
       "timeout": "Expired",
       "stopped": "Stopped",
       "blocked": "Blocked by app",
-      "auto": "Always allowed"
+      "auto": "Auto-approved"
     }
   }
 }

@@ -115,7 +115,7 @@ test('trang đang mở tự cập nhật: từ chối thẻ đang chờ → dòn
   await expect(sendButton()).toBeVisible({ timeout: 20_000 })
 })
 
-test('MCP: Cho phép một lần ghi "Đồng ý"; "Luôn cho phép" rồi gọi lại → chạy không qua thẻ, ghi "Luôn cho phép"', async () => {
+test('MCP: "Cho phép một lần" → "Đồng ý"; bấm "Luôn cho phép" → "Luôn cho phép"; lần sau tự chạy không thẻ → "Tự duyệt", khác màu', async () => {
   await page.evaluate((url) => window.api.mcp.save({ name: 'echo', type: 'http', url, headers: {}, enabled: true }), mcpUrl)
   await send('FAKE_MCP:echo echo {"text":"bí mật 1"}')
   await page.getByTestId('mcp-approval-once').click({ timeout: 20_000 })
@@ -130,7 +130,13 @@ test('MCP: Cho phép một lần ghi "Đồng ý"; "Luôn cho phép" rồi gọi
   await openLog()
   await page.getByTestId('action-log-kind').selectOption('mcp')
   await expect(rows()).toHaveCount(3, { timeout: 1_000 })
-  await expect(rows().getByTestId('action-log-decision')).toHaveText(['Luôn cho phép', 'Đồng ý', 'Đồng ý'])
+  const badges = rows().getByTestId('action-log-decision')
+  await expect(badges).toHaveText(['Tự duyệt', 'Luôn cho phép', 'Đồng ý'])
+  expect(await badges.evaluateAll((els) => els.map((e) => e.getAttribute('data-decision')))).toEqual(['auto', 'always', 'approved'])
+  // "Tự duyệt" (không ai bấm) khác màu nhãn người dùng bấm.
+  const color = (i: number): Promise<string> => badges.nth(i).evaluate((e) => getComputedStyle(e).color)
+  expect(await color(0)).not.toBe(await color(1))
+  expect(await color(0)).not.toBe(await color(2))
   await expect(rows().getByTestId('action-log-target')).toHaveText(['echo/echo', 'echo/echo', 'echo/echo'])
   // Không chép tham số.
   await expect(page.getByTestId('action-log-list')).not.toContainText('bí mật')
@@ -155,6 +161,26 @@ test('lọc: theo chữ (không dấu) và theo cuộc; bấm dòng → mở đ�
   await rows().first().getByRole('button').click()
   await expect(page.getByTestId('settings-dialog')).toHaveCount(0, { timeout: 1_000 })
   await expect(page.getByTestId('code-bar')).toContainText('DuAnLog', { timeout: 1_000 })
+})
+
+test('cuộc đã xoá: dòng còn, ghi "Cuộc đã xoá", không bấm được, không có con trỏ bàn tay', async () => {
+  await openLog()
+  const cursor = (el: ReturnType<Page['locator']>): Promise<string> => el.evaluate((e) => getComputedStyle(e).cursor)
+  // Trước khi xoá: dòng mở được có con trỏ bàn tay.
+  expect(await cursor(rows().first().getByRole('button'))).toBe('pointer')
+  await page.evaluate(async () => {
+    for (const c of await window.api.conversations.list()) await window.api.conversations.remove(c.id)
+  })
+  await expect(rows().getByRole('button')).toHaveCount(0, { timeout: 1_000 })
+  await expect(rows()).toHaveCount(5)
+  await expect(rows().first()).toContainText('Cuộc đã xoá')
+  const fixed = rows().first().getByTestId('action-log-static')
+  expect(await cursor(fixed)).toBe('default')
+  // Rê chuột không đổi nền.
+  const bg = await fixed.evaluate((e) => getComputedStyle(e).backgroundColor)
+  await fixed.hover()
+  expect(await fixed.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(bg)
+  await screenshot('action-log-deleted')
 })
 
 /** Ảnh cửa sổ Cài đặt ở giao diện sáng + tối (đổi lớp `dark` như cài đặt giao diện làm). */

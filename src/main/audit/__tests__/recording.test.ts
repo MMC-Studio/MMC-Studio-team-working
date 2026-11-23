@@ -134,12 +134,27 @@ describe('McpApprovals → nhật ký MCP', () => {
     await run(() => approvals.cancelConversation('c1'))
     expect(entries.map((e) => [e.kind, e.target, e.decision, e.detail ?? null])).toEqual([
       ['mcp', 'notion/search', 'approved', null],
-      ['mcp', 'notion/search', 'approved', 'always_allow_set'],
+      // Người dùng bấm "Luôn cho phép" → kết cục riêng `always`, không lẫn với "Đồng ý" một lần.
+      ['mcp', 'notion/search', 'always', null],
       ['mcp', 'notion/search', 'rejected', null],
       ['mcp', 'notion/search', 'timeout', null],
       ['mcp', 'notion/search', 'stopped', null]
     ])
     expect(JSON.stringify(entries)).not.toContain('GDD')
+  })
+
+  it('server từ kho: bấm "Luôn cho phép" (không được hỗ trợ) → chỉ là đồng ý một lần, ghi approved', async () => {
+    const fromStore = new McpApprovals({
+      store: { isUserServer: () => true, allowAlways: () => {}, originOf: () => ({ plugin: 'p', source: 's', sha: 'x' }) as never },
+      emit: (r) => void emitted.push(r),
+      log,
+      record: (e) => entries.push(e)
+    })
+    const p = fromStore.request('c1', 'mcp__kho__q', {})
+    await vi.waitFor(() => expect(emitted).toHaveLength(1))
+    fromStore.respond(emitted[0].id, 'always')
+    await p
+    expect(entries.map((e) => e.decision)).toEqual(['approved'])
   })
 
   it('tool lạ → blocked; CLI tự chạy tool "luôn cho phép" → auto; tool của app (mcp__mmc__) không ghi', async () => {

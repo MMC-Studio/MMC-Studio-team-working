@@ -286,11 +286,12 @@
     },
     "decisions": {
       "approved": "Đồng ý",
+      "always": "Luôn cho phép",
       "rejected": "Từ chối",
       "timeout": "Hết hạn",
       "stopped": "Đã dừng",
       "blocked": "App chặn",
-      "auto": "Luôn cho phép"
+      "auto": "Tự duyệt"
     }
   }
 }

@@ -71,7 +71,7 @@ export class McpApprovals {
     this.deps.log.info(`MCP: ${decision} ${p.server}/${p.tool}`)
     return decision === 'deny'
       ? this.settle(id, { allow: false, message: 'Người dùng đã từ chối lần gọi tool này.' }, 'rejected')
-      : this.settle(id, { allow: true }, 'approved', always ? 'always_allow_set' : undefined)
+      : this.settle(id, { allow: true }, always ? 'always' : 'approved')
   }
 
   cancelConversation(conversationId: string): void {

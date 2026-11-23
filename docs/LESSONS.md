@@ -89,6 +89,14 @@ Xem mục "Quyết định đã duyệt" trong `docs/PROGRESS.md`. Tóm tắt: t
 
 **Mẫu có sẵn.** `src/main/commands/gitEnv.ts` (`safetyArgs`, `driverOverrides`, `findGit`), `gitPolicy.ts` (allowlist tham số), test đối chứng trong `src/main/commands/__tests__/service.test.ts`.
 
+### 2.5. Nhật ký / trạng thái quyền: tách rõ "người dùng bấm" với "app tự làm"
+
+**Quy tắc.** Mỗi hành động khác nhau của người dùng (Đồng ý một lần, **Luôn cho phép**, Từ chối…) và mỗi việc app tự làm không ai bấm (tự duyệt, chặn, hết hạn) phải là **một giá trị riêng** trong trường kết cục — không gộp vào "đồng ý" rồi giấu khác biệt trong cột phụ (`detail`). Nhãn hiển thị của việc app tự làm phải khác cả chữ lẫn màu với nhãn người dùng bấm. Test kiểm **chữ nhãn + giá trị** của từng trường hợp, không chỉ đếm số dòng.
+
+**Vì sao.** Nhật ký #51 lần đầu ghi bấm "Luôn cho phép" thành "Đồng ý" (khác biệt nằm trong `detail`), còn lần trợ lý tự chạy không thẻ lại hiện "Luôn cho phép" — người đọc nhật ký hiểu ngược ai đã quyết định. Test chỉ đếm 3 dòng MCP nên không bắt được; phát hiện khi test tay.
+
+**Mẫu có sẵn.** `ACTION_LOG_DECISIONS` trong `src/shared/actionLog.ts` (`always` ≠ `approved`, `auto` = "Tự duyệt", màu tím viền đứt), e2e `tests/e2e/action-log.spec.ts` (kiểm chữ + `data-decision` + màu khác nhau).
+
 ---
 
 ## 3. Windows

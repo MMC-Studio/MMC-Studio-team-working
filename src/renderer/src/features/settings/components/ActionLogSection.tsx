@@ -13,9 +13,11 @@ import { SettingRow } from './rows'
 
 const KIND_ICON: Record<ActionLogKind, LucideIcon> = { command: SquareTerminal, file_edit: FilePen, mcp: Plug, draft: Mail }
 
+/** Người dùng bấm đồng ý (một lần / luôn) → xanh lá; app tự chạy không ai bấm (auto) → tím, viền nét đứt — khác hẳn. */
 const DECISION_TONE: Record<ActionLogDecision, string> = {
   approved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  auto: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  always: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  auto: 'border border-dashed border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
   rejected: 'bg-muted text-muted-foreground',
   timeout: 'bg-muted text-muted-foreground',
   stopped: 'bg-muted text-muted-foreground',
@@ -170,14 +172,17 @@ function ActionLogRow({ item, at, open }: { item: ActionLogItem; at: string; ope
       {open ? (
         <button
           type="button"
-          className="flex w-full items-start gap-3 px-3 py-2 text-left hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+          className="flex w-full cursor-pointer items-start gap-3 px-3 py-2 text-left hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
           onClick={open}
           title={t('actionLog.open')}
         >
           {body}
         </button>
       ) : (
-        <div className="flex items-start gap-3 px-3 py-2">{body}</div>
+        // Cuộc đã xoá: không mở được → không có con trỏ bàn tay, không đổi nền khi rê chuột.
+        <div className="flex cursor-default items-start gap-3 px-3 py-2" data-testid="action-log-static">
+          {body}
+        </div>
       )}
     </li>
   )
