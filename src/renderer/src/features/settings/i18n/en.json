@@ -268,6 +268,11 @@
         "description": "Conversations where the assistant can read (or read + edit) a folder. Revoke = remove the folder from that conversation, cancel every pending card and stop the command / reply running there.",
         "keywords": "revoke folder access read edit code conversation remove"
       },
+      "grantAutoEdits": {
+        "label": "Auto-approved file edits",
+        "description": "Active auto-approve sessions (up to 2 hours) and ended sessions you can still undo (7 days). Turn off = the assistant must ask for every edit again; Undo all = put the files back as they were before the session.",
+        "keywords": "auto approve edit file undo session revoke"
+      },
       "grantGit": {
         "label": "git commands (read-only)",
         "description": "One switch for every conversation with a folder — change it under Capabilities. Each run still needs your approval.",
@@ -342,13 +347,35 @@
       "timeout": "Expired",
       "stopped": "Stopped",
       "blocked": "Blocked by app",
-      "auto": "Auto-approved"
+      "auto": "Auto-approved",
+      "undone": "Undone",
+      "alwaysFileEdit": "Approved + auto-approve session"
+    },
+    "reasons": {
+      "write_disabled": "File editing is off",
+      "outside_project": "File is outside the conversation folder",
+      "outside": "File is outside the conversation folder",
+      "link_outside": "Path goes through a symlink / junction outside the folder",
+      "protected_path": "Protected folder / file",
+      "protected": "Protected folder / file",
+      "unsupported_tool": "Tool not allowed",
+      "old_string_not_found": "Text to replace was not found in the file (file unchanged)",
+      "invalid_input": "Invalid edit request",
+      "binary_content": "Binary file — a text edit would corrupt it",
+      "unknown_server": "MCP server is not in the list",
+      "no_permission": "The schedule no longer has permission",
+      "changed": "File changed after the schedule proposed it",
+      "exists": "File already exists",
+      "too_large": "File too large",
+      "write_failed": "Could not write the file",
+      "unknown": "Reason: {{code}}"
     }
   },
   "privacy": {
     "grantsTitle": "Current permissions",
     "logTitle": "Log",
     "noFolders": "No conversation has a folder.",
+    "noAutoEdits": "No auto-approve sessions.",
     "noSchedules": "No schedule has permissions.",
     "readOnly": "Read-only",
     "readWrite": "Read + edit",

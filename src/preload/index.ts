@@ -335,7 +335,14 @@ const api: TeamWorkingApi = {
     respond: (id, allow, feedback) => ipcRenderer.invoke(IPC.codeRespond, { id, allow, feedback }),
     clearFolder: (conversationId) => ipcRenderer.invoke(IPC.codeClearFolder, conversationId),
     respondFolderAccess: (id, grant, write, feedback) =>
-      ipcRenderer.invoke(IPC.folderAccessRespond, { id, grant, write, feedback })
+      ipcRenderer.invoke(IPC.folderAccessRespond, { id, grant, write, feedback }),
+    respondAuto: (id) => ipcRenderer.invoke(IPC.codeRespondAuto, { id })
+  },
+  autoEdits: {
+    list: (conversationId) => ipcRenderer.invoke(IPC.autoEditsList, { conversationId: conversationId ?? null }),
+    stop: (sessionId) => ipcRenderer.invoke(IPC.autoEditsStop, { sessionId }),
+    undo: (input) => ipcRenderer.invoke(IPC.autoEditsUndo, input),
+    dismiss: (sessionId) => ipcRenderer.invoke(IPC.autoEditsDismiss, { sessionId })
   },
   time: {
     current: () => ipcRenderer.invoke(IPC.timeCurrent),

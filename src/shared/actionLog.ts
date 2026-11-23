@@ -7,9 +7,10 @@ export type ActionLogKind = (typeof ACTION_LOG_KINDS)[number]
  * Người dùng bấm: approved / rejected / always (bấm "Luôn cho phép" trên thẻ — lần này chạy + các lần sau tự chạy).
  * timeout = hết hạn chờ; stopped = dừng lượt / Ctrl+Alt+Q / tắt tính năng; blocked = app tự chặn (tham số / đường dẫn
  * không hợp lệ) trước khi hỏi. auto = chạy KHÔNG qua thẻ, không ai bấm gì (MCP đã "luôn cho phép"; PR C: tự duyệt
- * sửa file) — hiện "Tự duyệt", màu khác các nhãn người dùng bấm.
+ * sửa file) — hiện "Tự duyệt", màu khác các nhãn người dùng bấm. Sửa file: always = bấm "Đồng ý, và không hỏi lại"
+ * (mở phiên tự duyệt); undone = người dùng bấm Hoàn tác tất cả, file về bản gốc.
  */
-export const ACTION_LOG_DECISIONS = ['approved', 'always', 'rejected', 'timeout', 'stopped', 'blocked', 'auto'] as const
+export const ACTION_LOG_DECISIONS = ['approved', 'always', 'rejected', 'timeout', 'stopped', 'blocked', 'auto', 'undone'] as const
 export type ActionLogDecision = (typeof ACTION_LOG_DECISIONS)[number]
 /** Giữ nhật ký bao lâu. */
 export const ACTION_LOG_RETENTION_MS = 90 * 24 * 60 * 60 * 1000

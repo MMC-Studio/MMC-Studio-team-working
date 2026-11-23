@@ -126,24 +126,31 @@ export class ActionLogRepository {
   /**
    * File trợ lý đã sửa (được đồng ý / tự duyệt) trong một cuộc, lọc theo đuôi — kèm lần sửa gần nhất để biết file bị
    * sửa THÊM sau khi thẻ chạy Unity / Blender đã hiện (A2). Đường dẫn tương đối như trong nhật ký, sắp theo tên.
+   * `auto` = có ít nhất một lần được TỰ DUYỆT (PR C, không ai xem diff) — thẻ chạy đánh dấu riêng. Hoàn tác cũng là
+   * một lần đổi file (tính vào lần sửa gần nhất).
    */
-  editedFiles(conversationId: string, exts: string[]): { path: string; at: number }[] {
+  editedFiles(conversationId: string, exts: string[]): { path: string; at: number; auto: boolean }[] {
     const wanted = exts.map((e) => e.toLowerCase())
     const rows = this.db
-      .select({ path: actionLog.target, at: sql<number>`max(${actionLog.at})` })
+      .select({
+        path: actionLog.target,
+        at: sql<number>`max(${actionLog.at})`,
+        auto: sql<number>`max(case when ${actionLog.decision} = 'auto' then 1 else 0 end)`
+      })
       .from(actionLog)
       .where(
         and(
           eq(actionLog.owner, this.getOwner()),
           eq(actionLog.conversationId, conversationId),
           eq(actionLog.kind, 'file_edit'),
-          inArray(actionLog.decision, ['approved', 'auto'])
+          inArray(actionLog.decision, ['approved', 'always', 'auto', 'undone'])
         )
       )
       .groupBy(actionLog.target)
       .all()
     return rows
       .filter((r) => wanted.some((e) => r.path.toLowerCase().endsWith(e)))
+      .map((r) => ({ path: r.path, at: r.at, auto: !!r.auto }))
       .sort((a, b) => a.path.localeCompare(b.path))
   }
 }

@@ -40,10 +40,31 @@ describe('ActionLogRepository.editedFiles (A2: file vừa sửa trong cuộc)', 
     owner = 'u1'
 
     expect(log.editedFiles(a, ['.cs'])).toEqual([
-      { path: 'Assets/Editor/Build.cs', at: last },
-      { path: 'Assets/Scripts/Player.CS', at: 1_020 }
+      { path: 'Assets/Editor/Build.cs', at: last, auto: false },
+      { path: 'Assets/Scripts/Player.CS', at: 1_020, auto: true }
     ])
     expect(log.editedFiles(a, ['.py']).map((f) => f.path)).toEqual(['tools/export.py'])
     expect(log.editedFiles(b, ['.cs']).map((f) => f.path)).toEqual(['Assets/Other.cs'])
+  })
+
+  it('PR C: tự duyệt đánh dấu auto (dù sau đó có lần đồng ý thường); hoàn tác / mở phiên (always) tính là lần đổi file', () => {
+    const convs = new ConversationRepository(handle.db, () => owner)
+    const a = convs.create('free').id
+    const log = new ActionLogRepository(handle.db, () => owner, () => clock)
+    const edit = (target: string, decision: 'approved' | 'always' | 'auto' | 'undone'): number => {
+      clock += 10
+      log.add({ conversationId: a, kind: 'file_edit', target, decision })
+      return clock
+    }
+    edit('A.cs', 'auto')
+    edit('A.cs', 'approved')
+    const startAt = edit('B.cs', 'always')
+    edit('C.cs', 'auto')
+    const undoneAt = edit('C.cs', 'undone')
+    expect(log.editedFiles(a, ['.cs'])).toEqual([
+      { path: 'A.cs', at: 1_020, auto: true },
+      { path: 'B.cs', at: startAt, auto: false },
+      { path: 'C.cs', at: undoneAt, auto: true }
+    ])
   })
 })

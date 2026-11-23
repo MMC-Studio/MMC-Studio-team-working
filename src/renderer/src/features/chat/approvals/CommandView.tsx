@@ -68,6 +68,15 @@ export function CommandView({ request, current }: { request: CommandApprovalRequ
                     <code className="min-w-0 truncate" title={f}>
                       {f}
                     </code>
+                    {request.app?.autoEdited?.includes(f) && (
+                      <span
+                        className="shrink-0 rounded border border-dashed border-violet-500/50 bg-violet-500/10 px-1 text-[10px] font-medium text-violet-700 dark:text-violet-300"
+                        title={t('command.autoEditedHint')}
+                        data-testid={tid('command-auto-edited')}
+                      >
+                        {t('command.autoEdited')}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

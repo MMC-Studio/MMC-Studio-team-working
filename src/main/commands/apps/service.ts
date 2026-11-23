@@ -28,7 +28,7 @@ const KEEP_FINISHED = 20
 const EDITED_EXT: Record<AppProgram, string[]> = { unity: ['.cs'], blender: ['.py'] }
 const NAME: Record<AppProgram, string> = { unity: 'Unity', blender: 'Blender' }
 
-export type EditedFile = { path: string; at: number }
+export type EditedFile = { path: string; at: number; auto?: boolean }
 
 export type AppRunServiceDeps = {
   settings(): AppsSettings
@@ -202,7 +202,7 @@ export class AppRunService {
       cwd: use.folder,
       timeoutMs,
       reason: args.reason,
-      app: { editedFiles: edited.map((f) => f.path), version: checked.version, logPath }
+      app: { editedFiles: edited.map((f) => f.path), autoEdited: edited.filter((f) => f.auto).map((f) => f.path), version: checked.version, logPath }
     })
     if (!verdict.approve) {
       this.deps.log({ conversationId, kind: 'unity', target: display, decision: verdict.decision })
@@ -246,7 +246,7 @@ export class AppRunService {
       cwd: use.folder,
       timeoutMs,
       reason: args.reason,
-      app: { editedFiles: edited.map((f) => f.path), script: { path: plan.script.rel, content: plan.script.content }, logPath }
+      app: { editedFiles: edited.map((f) => f.path), autoEdited: edited.filter((f) => f.auto).map((f) => f.path), script: { path: plan.script.rel, content: plan.script.content }, logPath }
     })
     if (!verdict.approve) {
       this.deps.log({ conversationId, kind: 'blender', target: plan.display, decision: verdict.decision })

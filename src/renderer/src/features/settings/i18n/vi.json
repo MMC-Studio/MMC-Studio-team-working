@@ -268,6 +268,11 @@
         "description": "Cuộc nào đang cho trợ lý đọc (hoặc đọc + sửa) thư mục. Thu hồi = gỡ thư mục khỏi cuộc, huỷ mọi thẻ đang chờ và dừng lệnh / lượt trả lời đang chạy của cuộc đó.",
         "keywords": "thu hoi quyen thu muc doc sua code cuoc tro chuyen go thu muc"
       },
+      "grantAutoEdits": {
+        "label": "Tự duyệt sửa file",
+        "description": "Phiên đang tự duyệt (tối đa 2 giờ) và phiên đã kết thúc còn hoàn tác được (7 ngày). Tắt = trợ lý phải hỏi lại từng lần sửa; Hoàn tác tất cả = đưa các file về bản trước phiên.",
+        "keywords": "tu duyet sua file hoan tac khong hoi lai phien thu hoi"
+      },
       "grantGit": {
         "label": "Lệnh git (chỉ đọc)",
         "description": "Công tắc chung cho mọi cuộc có thư mục — đổi ở Khả năng. Mỗi lần chạy vẫn phải bấm duyệt.",
@@ -342,13 +347,35 @@
       "timeout": "Hết hạn",
       "stopped": "Đã dừng",
       "blocked": "App chặn",
-      "auto": "Tự duyệt"
+      "auto": "Tự duyệt",
+      "undone": "Đã hoàn tác",
+      "alwaysFileEdit": "Đồng ý + tự duyệt phiên"
+    },
+    "reasons": {
+      "write_disabled": "Quyền sửa file đang tắt",
+      "outside_project": "File nằm ngoài thư mục của cuộc",
+      "outside": "File nằm ngoài thư mục của cuộc",
+      "link_outside": "Đường dẫn đi qua symlink / junction ra ngoài thư mục",
+      "protected_path": "Thư mục / file được bảo vệ",
+      "protected": "Thư mục / file được bảo vệ",
+      "unsupported_tool": "Công cụ không được phép",
+      "old_string_not_found": "Không tìm thấy đoạn cần sửa trong file (file không được đổi)",
+      "invalid_input": "Yêu cầu sửa file không hợp lệ",
+      "binary_content": "File nhị phân — sửa bằng văn bản sẽ hỏng file",
+      "unknown_server": "MCP server không có trong danh sách",
+      "no_permission": "Lịch hẹn không còn quyền",
+      "changed": "File đã đổi sau khi lịch đề xuất",
+      "exists": "File đã có sẵn",
+      "too_large": "File quá lớn",
+      "write_failed": "Không ghi được file",
+      "unknown": "Lý do: {{code}}"
     }
   },
   "privacy": {
     "grantsTitle": "Quyền đang cấp",
     "logTitle": "Nhật ký",
     "noFolders": "Không cuộc nào đang có thư mục.",
+    "noAutoEdits": "Không có phiên tự duyệt nào.",
     "noSchedules": "Không lịch hẹn nào có quyền.",
     "readOnly": "Chỉ đọc",
     "readWrite": "Đọc + sửa",

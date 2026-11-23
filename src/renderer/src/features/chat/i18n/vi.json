@@ -485,6 +485,8 @@
       "unity": "Trợ lý chưa sửa file C# nào trong cuộc này.",
       "blender": "Trợ lý chưa sửa file Python nào trong cuộc này."
     },
+    "autoEdited": "tự duyệt",
+    "autoEditedHint": "File này được sửa trong phiên tự duyệt — chưa ai xem diff. Xem kỹ trước khi cho chạy.",
     "recheck": "Ngay trước khi chạy, app kiểm lại: nếu file C# / Python bị sửa thêm sau khi thẻ này hiện thì không chạy.",
     "script": "Toàn bộ script {{path}}",
     "scriptImports": "Script này có thể import các file .py khác trong thư mục dự án — những file đó cũng chạy nhưng không hiện ở đây.",
@@ -499,5 +501,57 @@
     "stopped": "Đã dừng",
     "openLog": "Mở log",
     "dismiss": "Ẩn"
+  },
+  "autoEdit": {
+    "acceptAuto": "Đồng ý, và không hỏi lại trong phiên này",
+    "startTitle": "Tự duyệt sửa file trong phiên này?",
+    "startBody": "Đồng ý thay đổi này, và trong 2 giờ tới trợ lý sửa file trong {{folder}} mà không hỏi lại.",
+    "rule1": "Tối đa {{max}} file; quá số đó, hoặc hết 2 giờ, app lại hỏi từng lần.",
+    "rule2": "Vẫn hỏi: file có thể dẫn tới chạy lệnh (script, package.json, .env, cấu hình build / CI / hook, mọi file C# của Unity…), ghi làm file còn chưa tới một nửa, file > 2 MB, file có nhiều hard link.",
+    "rule3": "Vẫn từ chối: file ngoài thư mục, nhị phân, thư mục bảo vệ. Lệnh và MCP vẫn hỏi như cũ.",
+    "rule4": "App giữ bản gốc: \"Hoàn tác tất cả\" dùng được cả sau khi tắt phiên / tắt app, trong 7 ngày.",
+    "startConfirm": "Đồng ý và bật tự duyệt",
+    "notEligible": "Không bật được tự duyệt: file hoặc quyền vừa thay đổi. Bấm Đồng ý hoặc Từ chối như thường.",
+    "active": "Đang tự duyệt sửa file",
+    "ended": {
+      "stopped": "Đã tắt tự duyệt",
+      "expired": "Phiên tự duyệt đã hết 2 giờ",
+      "write_off": "Tự duyệt đã tắt (bỏ quyền sửa)",
+      "folder": "Tự duyệt đã tắt (đổi / gỡ thư mục)",
+      "kill_switch": "Tự duyệt đã tắt (Ctrl+Alt+Q)",
+      "app_closed": "Tự duyệt đã tắt (app đã đóng)",
+      "undo": "Đã tắt tự duyệt để hoàn tác"
+    },
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} file",
+    "remaining": "còn {{h}}:{{m}}",
+    "undoUntil": "Hoàn tác được tới {{date}}",
+    "undoAll": "Hoàn tác tất cả",
+    "stop": "Tắt",
+    "dismiss": "Xong",
+    "dismissHint": "Giữ các thay đổi, bỏ bản gốc (không hoàn tác được nữa)",
+    "newFile": "(file mới)",
+    "deletedConversation": "Cuộc đã xoá",
+    "undoTitle": "Hoàn tác tất cả?",
+    "undoBody": "Đưa {{count}} file về bản trước phiên; file trợ lý tạo mới sẽ bị xoá. File bị sửa thêm sau đó sẽ được hỏi riêng, không ghi đè.",
+    "undoStopsTurn": "Phiên đang chạy: app tắt tự duyệt và dừng lượt trả lời của trợ lý trước khi hoàn tác.",
+    "resultTitle": "Chưa hoàn tác hết",
+    "resultBody": "Đã khôi phục {{count}} file.",
+    "conflicts": "Các file này đã bị sửa thêm sau lần tự duyệt cuối — ghi đè sẽ mất phần sửa đó:",
+    "failed": "Không khôi phục được:",
+    "failReason": {
+      "link_outside": "đường dẫn giờ đi ra ngoài thư mục",
+      "hard_link": "file có nhiều hard link",
+      "io": "lỗi đọc / ghi file"
+    },
+    "keep": "Giữ nguyên",
+    "overwrite": "Ghi đè các file này",
+    "askReason": {
+      "risky": "Vẫn hỏi dù đang tự duyệt — {{detail}}",
+      "shrink": "Vẫn hỏi dù đang tự duyệt — file sẽ còn chưa tới một nửa so với bản trước phiên.",
+      "too_large": "Vẫn hỏi dù đang tự duyệt — file lớn hơn 2 MB.",
+      "hard_link": "Vẫn hỏi dù đang tự duyệt — file có nhiều hard link (sửa nó là sửa cả chỗ khác).",
+      "limit": "Vẫn hỏi dù đang tự duyệt — phiên đã đủ số file tối đa."
+    }
   }
 }

@@ -86,6 +86,8 @@ export type CommandApprovalRequest = {
 export type AppRunInfo = {
   /** File C# (Unity) / Python (Blender) trợ lý đã sửa (được duyệt) trong cuộc này, đường dẫn tương đối. */
   editedFiles: string[]
+  /** Trong số đó, file được TỰ DUYỆT (PR C — không ai xem diff); thẻ đánh dấu riêng. */
+  autoEdited?: string[]
   /** Blender: TRỌN nội dung script sẽ chạy (≤ BLENDER_SCRIPT_MAX). */
   script?: { path: string; content: string }
   /** Unity: phiên bản dự án (= phiên bản Unity.exe đã chọn — đã kiểm khớp trước khi hỏi). */

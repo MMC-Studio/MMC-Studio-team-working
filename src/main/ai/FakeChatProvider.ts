@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import type { ChatEvent } from '@shared/ai'
 import type { AIProvider, ChatRequest } from './AIProvider'
 import type { ToolResult } from '../tools/registry'
@@ -175,6 +175,27 @@ export class FakeChatProvider implements AIProvider {
         content = `phiên bản ${attempt + 1}: ${feedback}\n`
       }
       yield { type: 'text', delta: `Không sửa ${edit[1]}.` }
+      yield { type: 'done' }
+      return
+    }
+    // FAKE_WRITES:<file>=<nội dung>|<file>=<nội dung>… (dấu _ = cách): ghi lần lượt từng file qua bước duyệt như CLI
+    // (Write) — phiên tự duyệt (PR C) cho qua không thẻ; bị từ chối thì bỏ qua file đó, ghi tiếp file sau.
+    const writes = /FAKE_WRITES:(\S+)/.exec(latest)
+    if (writes && this.decideEdit && req.approval) {
+      const done: string[] = []
+      for (const item of writes[1].split('|')) {
+        const [name, raw = ''] = item.split('=')
+        const file = join(req.cwd, name)
+        const input = { file_path: file, content: `${raw.replace(/_/g, ' ')}\n` }
+        yield { type: 'tool', name: 'Write', input }
+        const decision = await this.decideEdit(req.approval.conversationId, 'Write', input)
+        if (signal.aborted) return
+        if (!decision.allow) continue
+        await mkdir(dirname(file), { recursive: true })
+        await writeFile(file, input.content, 'utf8')
+        done.push(name)
+      }
+      yield { type: 'text', delta: done.length ? `Đã ghi: ${done.join(', ')}.` : 'Không ghi file nào.' }
       yield { type: 'done' }
       return
     }
