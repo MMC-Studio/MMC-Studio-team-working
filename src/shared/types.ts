@@ -1,6 +1,7 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
 import type { CommandDecision, CommandsSettings, CommandsStatus } from './commands'
+import type { ActionLogPage, ActionLogQuery } from './actionLog'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
 import type {
   Schedule,
@@ -308,6 +309,10 @@ export interface TeamWorkingApi {
   }
   /** Lịch hẹn. Lỗi biết trước trả `{ status: 'error', error }` (mã lỗi → i18n). */
   /** Chạy lệnh theo danh sách cho phép (git chỉ đọc) — mỗi lần đều qua thẻ duyệt. */
+  /** Nhật ký thao tác cần quyền (chỉ trên máy, 90 ngày, không nội dung). */
+  actionLog: {
+    list(query: ActionLogQuery): Promise<ActionLogPage>
+  }
   commands: {
     status(): Promise<CommandsStatus>
     setSettings(settings: CommandsSettings): Promise<CommandsStatus>

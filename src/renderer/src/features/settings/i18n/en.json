@@ -138,6 +138,7 @@
       "ai": "Chat & AI",
       "capabilities": "Capabilities",
       "connections": "Connections",
+      "privacy": "Permissions & privacy",
       "updates": "Updates",
       "support": "Support"
     },
@@ -251,6 +252,11 @@
         "label": "Hide to the tray when closing",
         "description": "Clicking X hides the app to the tray (bottom-right of the taskbar) so schedules keep running. Only while scheduled tasks are on.",
         "keywords": "tray minimize hide close window"
+      },
+      "actionLog": {
+        "label": "Activity log",
+        "description": "Every time the assistant asks to run a command, edit a file, call an MCP tool or create a draft, it is recorded with the decision. Stored on this computer only, kept for 90 days, file / command / tool names only — never contents.",
+        "keywords": "log history activity audit permission privacy file edit command git mcp draft gmail telegram approve reject"
       }
     }
   },
@@ -258,5 +264,34 @@
     "gitAt": "git: {{path}} ({{version}})",
     "gitNotFound": "git was not found on this computer (install Git for Windows).",
     "gitTooOld": "git {{version}} is too old — please update Git (needs the --attr-source option)."
+  },
+  "actionLog": {
+    "filterKind": "Filter by type",
+    "filterConversation": "Filter by conversation",
+    "allKinds": "All types",
+    "allConversations": "All conversations",
+    "search": "Search file, command, tool…",
+    "empty": "No activity yet. Each time the assistant asks to edit a file, run a command, call an MCP tool or create a draft, it shows up here.",
+    "noMatch": "No activity matches these filters.",
+    "more": "Show more ({{count}})",
+    "untitled": "Untitled conversation",
+    "deletedConversation": "Deleted conversation",
+    "open": "Open conversation",
+    "exitCode": "exit code {{code}}",
+    "kinds": {
+      "command": "Command",
+      "file_edit": "File edit",
+      "mcp": "MCP tool",
+      "draft": "Draft"
+    },
+    "decisions": {
+      "approved": "Approved",
+      "always": "Always allow",
+      "rejected": "Rejected",
+      "timeout": "Expired",
+      "stopped": "Stopped",
+      "blocked": "Blocked by app",
+      "auto": "Auto-approved"
+    }
   }
 }

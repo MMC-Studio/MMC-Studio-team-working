@@ -8,7 +8,7 @@ Mục tiêu: mọi trang cập nhật giao diện ngay, không phải bật/tắ
 - `StateSync.changed(topic…)`: gom mọi lần báo trong cùng một lượt → phát MỘT sự kiện `sync:changed` (danh sách mục, `SyncTopic` trong `src/shared/sync.ts`).
 - IPC đổi trạng thái khai báo `{ changes: '<mục>' }` ở tham số cuối của `handle(...)` → `createHandle` tự báo sau khi xong, **kể cả khi lỗi** (ném hoặc trả `{ error }`).
 - Ghi `settings` tự báo theo khoá (`SETTINGS_TOPICS`) — việc nền ghi settings (vd mức biểu cảm tự động, Gmail phát hiện token hết hạn) không cần nhớ gọi riêng.
-- Việc nền không qua settings gọi trực tiếp: lịch sử trao đổi agent (`AgentExchangeRepository.onChange`), artifact mới / phiên bản mới (`ArtifactService.onChange`).
+- Việc nền không qua settings gọi trực tiếp: lịch sử trao đổi agent (`AgentExchangeRepository.onChange`), artifact mới / phiên bản mới (`ArtifactService.onChange`), nhật ký thao tác (`ActionLogRepository.onChange` → mục `actionLog`, mỗi lần ghi / dọn).
 - Sự kiện có kèm dữ liệu (`gmail:statusEvent`, `computer:statusEvent`, `update:state`…) vẫn giữ — dùng cho tiến trình liên tục (tải bản cập nhật, cài gói giọng nói).
 
 **Renderer** (`src/renderer/src/lib/sync.ts`)

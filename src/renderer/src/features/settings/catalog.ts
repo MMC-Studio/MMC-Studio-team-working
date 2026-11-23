@@ -9,7 +9,7 @@ import { matchesAllWords } from '@shared/text'
  */
 export const SETTINGS_TAB_GROUPS = [
   ['appearance', 'assistant'],
-  ['ai', 'capabilities', 'connections'],
+  ['ai', 'capabilities', 'connections', 'privacy'],
   ['updates', 'support']
 ] as const
 export type SettingsTab = (typeof SETTINGS_TAB_GROUPS)[number][number]
@@ -41,6 +41,7 @@ export const SETTING_ITEMS: SettingItem[] = [
   { id: 'schedules', tab: 'capabilities' },
   { id: 'scheduleTray', tab: 'capabilities' },
   { id: 'plugins', tab: 'connections' },
+  { id: 'actionLog', tab: 'privacy' },
   { id: 'version', tab: 'updates' },
   { id: 'autoCheck', tab: 'updates' },
   { id: 'channel', tab: 'updates' },

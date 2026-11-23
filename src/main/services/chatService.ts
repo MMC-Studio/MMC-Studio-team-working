@@ -45,6 +45,8 @@ export type ChatServiceDeps = {
   onRunEnd?(conversationId: string): void
   /** Tin đầu của cuộc chưa có tiêu đề: đặt tiêu đề tạm + gợi ý nhóm (ConversationOrganizer). */
   onFirstMessage?(conversationId: string, text: string): void
+  /** CLI vừa tự chạy một tool không qua bước duyệt của app (MCP "luôn cho phép") → ghi nhật ký thao tác. */
+  onAutoTool?(conversationId: string, toolName: string): void
   /** Tool của app được bật cho lượt này (vd xem màn hình) + hướng dẫn chèn vào system prompt. */
   appToolsFor?(conversationId: string): { names: string[]; context: string } | null
   /** Chat biểu cảm (emoji / reaction / GIF / sticker). Không có → chỉ bỏ thẻ khỏi câu trả lời. */
@@ -664,6 +666,7 @@ export class ChatService {
             break
           case 'tool':
             toolEvents.push({ name: event.name, input: event.input })
+            if (event.auto) deps.onAutoTool?.(conversationId, event.name)
             break
           case 'done':
             usage = event.usage ?? null

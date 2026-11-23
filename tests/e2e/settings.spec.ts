@@ -51,7 +51,8 @@ test('nút Cài đặt mở cửa sổ nổi đè lên trang đang xem; tab mặ
   expect(await hash()).toMatch(/^#\/memory\?settings=appearance$/)
   await expect(dialog()).toHaveAttribute('data-tab', 'appearance')
   await expect(page.getByTestId('settings-tab-appearance')).toHaveAttribute('aria-current', 'page')
-  await expect(dialog().locator('[data-testid^="settings-tab-"]')).toHaveCount(7)
+  // 8 tab (Quyền & riêng tư thêm ở B1).
+  await expect(dialog().locator('[data-testid^="settings-tab-"]')).toHaveCount(8)
   await expect(page.getByTestId('nav-settings')).toHaveAttribute('aria-pressed', 'true')
   // Trang nền vẫn là Trí nhớ.
   await expect(page.getByRole('heading', { name: /nhớ gì về tôi/, includeHidden: true })).toBeAttached()
