@@ -220,7 +220,12 @@ describe('PrivacyService', () => {
       replyToId: null,
       chatId: '1'
     })
+    // Bộ đếm "chờ duyệt" (lịch, thanh bên, thông báo) chỉ tính thẻ còn mở.
+    expect(deferred.pendingCount()).toBe(2)
+    expect(deferred.pendingForRun('r1')).toBe(2)
     service.revokeScheduleGrant(scheduleId, 'folder')
+    expect(deferred.pendingCount()).toBe(1)
+    expect(deferred.pendingForRun('r1')).toBe(1)
     expect(scheduleRepo.get(scheduleId)?.grants).toMatchObject({ folder: null, folderWrite: false, drafts: true })
     expect(stopped).toEqual([scheduleId])
     const cards = deferred.list(conv)

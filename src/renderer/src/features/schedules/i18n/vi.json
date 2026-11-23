@@ -270,7 +270,8 @@
       "applied": "đã ghi",
       "rejected": "đã từ chối",
       "conflict": "không ghi",
-      "error": "không ghi"
+      "error": "không ghi",
+      "closed": "không ghi"
     },
     "fileError": {
       "changed": "File đã thay đổi sau khi đề xuất — không ghi để khỏi đè thay đổi của bạn. Nhờ trợ lý làm lại (Yêu cầu sửa).",

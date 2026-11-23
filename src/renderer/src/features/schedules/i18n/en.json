@@ -270,7 +270,8 @@
       "applied": "written",
       "rejected": "rejected",
       "conflict": "not written",
-      "error": "not written"
+      "error": "not written",
+      "closed": "not written"
     },
     "fileError": {
       "changed": "The file changed after it was proposed — not written so your changes are not overwritten. Ask the assistant to redo it (Request changes).",
