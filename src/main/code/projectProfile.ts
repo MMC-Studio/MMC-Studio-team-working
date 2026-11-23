@@ -14,6 +14,11 @@ export type ProjectProfile = {
   detect(root: string, entries: string[]): boolean
   /** Đường dẫn tương đối (dấu /) bị cấm sửa → lý do; null = được sửa. */
   protect(rel: string): string | null
+  /**
+   * File được sửa nhưng KHÔNG BAO GIỜ tự duyệt (PR C) vì sửa nó có thể dẫn tới chạy code không qua thẻ → lý do;
+   * null = tự duyệt được. Luôn hiện thẻ, kể cả khi đang có phiên tự duyệt.
+   */
+  askAlways?(rel: string): string | null
   /** Lưu ý ngắn cho trợ lý. */
   notes: string
 }
@@ -52,6 +57,16 @@ export const PROFILES: ProjectProfile[] = [
       if (under(rel, ['Library', 'Temp', 'Logs', 'obj', 'Build', 'Builds', 'UserSettings']))
         return 'Thư mục do Unity tự sinh — sửa tay sẽ bị ghi đè hoặc làm hỏng project.'
       if (lower(rel).endsWith('.meta')) return 'File .meta giữ GUID; sửa sai là mất tham chiếu prefab/scene.'
+      return null
+    },
+    // Unity Editor đang mở tự biên dịch mọi .cs và chạy [InitializeOnLoad] / [InitializeOnLoadMethod] — cả script
+    // ngoài thư mục Editor/ (bọc trong #if UNITY_EDITOR) → không tách được, mọi .cs đều phải hỏi.
+    askAlways: (rel) => {
+      const name = lower(rel)
+      if (name.endsWith('.cs')) return 'Unity tự biên dịch và có thể chạy script C# ngay khi Editor đang mở.'
+      if (name.endsWith('.asmdef') || name.endsWith('.asmref')) return 'Định nghĩa assembly — đổi cách Unity biên dịch code.'
+      if (name.endsWith('.rsp')) return 'Tham số trình biên dịch C# (có thể nạp analyzer / DLL).'
+      if (name === 'packages/manifest.json') return 'Danh sách package — Unity tự tải và chạy code của package mới.'
       return null
     },
     notes:
@@ -105,6 +120,47 @@ export function protectedReason(info: ProjectInfo, rel: string): string | null {
   if (binary) return binary
   for (const p of info.profiles) {
     const reason = p.protect(rel)
+    if (reason) return `${p.label}: ${reason}`
+  }
+  return null
+}
+
+const fileName = (rel: string): string => lower(rel.split('/').pop() ?? '')
+const inDir = (rel: string, dir: string): boolean => lower(rel).split('/').slice(0, -1).includes(dir)
+
+/**
+ * Mọi dự án: file có thể dẫn tới chạy lệnh (script, cấu hình build / CI / hook / công cụ) → không tự duyệt (PR C).
+ * So theo tên file / thư mục ở MỌI cấp (package.json trong thư mục con vẫn chạy được `npm run`).
+ */
+function commonAskReason(rel: string): string | null {
+  const name = fileName(rel)
+  if (lower(rel).startsWith('.github/workflows/')) return 'Workflow GitHub Actions — chạy lệnh trên máy CI.'
+  if (inDir(rel, '.claude') || name === '.mcp.json') return 'Cấu hình Claude Code (hook, MCP) — có thể chạy lệnh ở lượt sau.'
+  if (inDir(rel, '.vscode')) return 'Cấu hình VS Code (task, launch) — có thể chạy lệnh.'
+  if (inDir(rel, '.husky')) return 'Git hook — chạy lệnh khi commit / push.'
+  if (name === 'package.json') return 'package.json có script chạy bằng npm.'
+  if (name === '.npmrc') return 'Cấu hình npm — đổi nơi tải / script chạy khi cài.'
+  if (name.startsWith('.env')) return 'File biến môi trường — đổi cách chương trình chạy, thường có khoá bí mật.'
+  if (/\.(bat|cmd|ps1|psm1|sh)$/.test(name)) return 'Script chạy lệnh.'
+  if (/\.(csproj|sln)$/.test(name) || name.startsWith('directory.build.'))
+    return 'File dự án .NET / MSBuild — có thể chạy lệnh khi build.'
+  // Dự án Unity nằm trong thư mục con của thư mục đã chọn (hồ sơ chỉ nhận diện ở gốc) — vẫn chặn theo dấu hiệu Unity.
+  if (name.endsWith('.asmdef') || name.endsWith('.asmref')) return 'Unity: định nghĩa assembly — đổi cách Unity biên dịch code.'
+  if (name.endsWith('.cs') && (inDir(rel, 'assets') || inDir(rel, 'packages')))
+    return 'Unity: Editor đang mở tự biên dịch và có thể chạy script C#.'
+  if (name === 'manifest.json' && inDir(rel, 'packages')) return 'Unity: danh sách package — Unity tự tải và chạy code của package mới.'
+  return null
+}
+
+/**
+ * Lý do vẫn phải hỏi (không tự duyệt) với đường dẫn tương đối `rel`; null = tự duyệt được. Gọi với cả đường dẫn chữ và
+ * đường dẫn thật (junction) — một trong hai khớp là phải hỏi.
+ */
+export function askAlwaysReason(info: ProjectInfo, rel: string): string | null {
+  const common = commonAskReason(rel)
+  if (common) return common
+  for (const p of info.profiles) {
+    const reason = p.askAlways?.(rel)
     if (reason) return `${p.label}: ${reason}`
   }
   return null

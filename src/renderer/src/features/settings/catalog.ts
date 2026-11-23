@@ -44,6 +44,7 @@ export const SETTING_ITEMS: SettingItem[] = [
   { id: 'scheduleTray', tab: 'capabilities' },
   { id: 'plugins', tab: 'connections' },
   { id: 'grantFolders', tab: 'privacy' },
+  { id: 'grantAutoEdits', tab: 'privacy' },
   { id: 'grantGit', tab: 'privacy' },
   { id: 'grantUnity', tab: 'privacy' },
   { id: 'grantBlender', tab: 'privacy' },

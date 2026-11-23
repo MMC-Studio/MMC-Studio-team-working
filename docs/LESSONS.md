@@ -69,6 +69,12 @@ File này **tự lớn lên theo thời gian**. Người hoặc AI sửa lỗi x
 
 **Mẫu có sẵn.** `FileRow` trong `src/renderer/src/features/schedules/components/DeferredCards.tsx` (`shown = !open && pending ? 'closed' : status`); e2e "thu hồi quyền của lịch" trong `tests/e2e/schedules-deferred.spec.ts`.
 
+### 1.4. Hai component anh em cùng `key` → React vẽ lặp, bố cục vỡ theo kiểu khó đoán
+
+**Quy tắc.** Dùng `key={id}` để "đổi cuộc là dựng lại" thì thêm tiền tố riêng cho từng component (`` key={`auto-edits-${id}`} ``) khi chúng là con trực tiếp của **cùng một phần tử cha** — key chỉ cần khác nhau giữa anh em. Gặp lỗi "bị che / không bấm được" trên trang chat: đo kích thước khung cuộn trước khi sửa CSS.
+
+**Vì sao.** PR C thêm băng tự duyệt cạnh `ChatHeader` với cùng `key={activeId}` → `ChatHeader` bị vẽ lặp hàng chục lần, khung tin nhắn còn cao 0 px; e2e báo "thanh thư mục chặn nút bấm" — trông như lỗi chồng lớp, nguyên nhân thật là trùng key (cảnh báo của React không hiện trong e2e).
+
 ---
 
 ## 2. Quyền & an toàn
@@ -104,6 +110,14 @@ Xem mục "Quyết định đã duyệt" trong `docs/PROGRESS.md`. Tóm tắt: t
 **Vì sao.** Nhật ký #51 lần đầu ghi bấm "Luôn cho phép" thành "Đồng ý" (khác biệt nằm trong `detail`), còn lần trợ lý tự chạy không thẻ lại hiện "Luôn cho phép" — người đọc nhật ký hiểu ngược ai đã quyết định. Test chỉ đếm 3 dòng MCP nên không bắt được; phát hiện khi test tay.
 
 **Mẫu có sẵn.** `ACTION_LOG_DECISIONS` trong `src/shared/actionLog.ts` (`always` ≠ `approved`, `auto` = "Tự duyệt", màu tím viền đứt), e2e `tests/e2e/action-log.spec.ts` (kiểm chữ + `data-decision` + màu khác nhau).
+
+### 2.6. Bỏ bước hỏi (tự duyệt): liệt kê mọi đường "file → chạy code" và mọi cách một file "là" file khác
+
+**Quy tắc.** Trước khi cho một thao tác đi qua không thẻ, hỏi: (1) phần mềm nào trên máy sẽ **tự đọc và chạy** file này (Editor tự biên dịch, hook, task, cấu hình build / CI / gói)? — những file đó luôn phải hỏi, xét theo cả đường dẫn chữ lẫn đường dẫn thật, và theo dấu hiệu ở MỌI cấp thư mục (dự án nằm trong thư mục con); (2) file có đang là **chỗ khác** không — realpath giải symlink / junction nhưng **không** giải hard link (`nlink > 1` → phải hỏi); (3) luật so sánh ("ngắn đi quá ½") so với bản **đầu phiên**, không phải lần sửa trước — không thì cắt dần từng chút là lọt. Không tách được nhóm an toàn khỏi nhóm nguy hiểm → coi cả nhóm là nguy hiểm.
+
+**Vì sao.** Kế hoạch C ban đầu chỉ chặn script / `package.json` / `.env`; người dùng góp ý khi duyệt: Unity Editor đang mở tự biên dịch mọi `.cs` và chạy `[InitializeOnLoad]` (cả script ngoài `Editor/` bọc `#if UNITY_EDITOR`) → tự duyệt `.cs` = chạy code không qua thẻ; hard link qua mặt bước kiểm realpath; "ngắn hơn ½" so với lần trước thì cắt nhiều lần là xoá được cả file (PR C).
+
+**Mẫu có sẵn.** `askAlwaysReason` trong `src/main/code/projectProfile.ts` (`askAlways` theo hồ sơ dự án + luật chung), `AutoEdits.offer` trong `src/main/code/autoEdits.ts`; test từng file trong `src/main/code/__tests__/autoEdits.test.ts`.
 
 ---
 

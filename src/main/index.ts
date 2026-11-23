@@ -61,6 +61,7 @@ import {
   SuggestionRepository
 } from './db/repositories'
 import { CodeApprovals } from './code/approvals'
+import { AutoEdits } from './code/autoEdits'
 import { ConversationOrganizer } from './chat/organizer'
 import { completeText } from './ai/AIProvider'
 import { agentHttpServer } from './agents/httpServer'
@@ -372,6 +373,18 @@ async function bootstrap(): Promise<void> {
     if (mainWindow && !mainWindow.isFocused()) mainWindow.flashFrame(true)
   }
 
+  // Tự duyệt sửa file trong một phiên (PR C): bản gốc giữ trên đĩa để Hoàn tác, kể cả sau khi tắt app / crash (7 ngày).
+  const autoEdits = new AutoEdits({
+    dir: join(userData, 'auto-edits'),
+    getOwner,
+    title: (id) => conversations.get(id)?.title ?? null,
+    changed: () => sync.changed('autoEdits'),
+    record: recordAction,
+    log
+  })
+  await autoEdits.load()
+  app.on('before-quit', () => void autoEdits.endAll('app_closed'))
+
   // Chế độ Code: mỗi lần Claude muốn sửa file, app hiện diff để người dùng duyệt.
   const approvals = new CodeApprovals({
     writableRoot: (id) => {
@@ -386,7 +399,8 @@ async function bootstrap(): Promise<void> {
     mcpApproval: (conversationId, toolName, input) =>
       mcpApprovals.request(conversationId, toolName, input),
     log,
-    record: recordAction
+    record: recordAction,
+    autoEdits
   })
   await approvals.start()
   app.on('before-quit', () => approvals.stop())
@@ -415,6 +429,7 @@ async function bootstrap(): Promise<void> {
     },
     grant: (id, path, write) => {
       approvals.cancelConversation(id)
+      void autoEdits.end(id, 'folder')
       const conv = conversations.setCwd(id, path)
       return conv && write ? conversations.setCodeWrite(id, true) : conv
     },
@@ -936,6 +951,7 @@ async function bootstrap(): Promise<void> {
   })
   appRuns.registerTools(tools)
   killSwitch.onStop(() => appRuns.stopAll())
+  killSwitch.onStop(() => void autoEdits.endAll('kill_switch'))
   app.on('before-quit', () => appRuns.stopAll())
   const legacyTitles = organizer.fixLegacyTitles()
   if (legacyTitles) log.info(`Sửa ${legacyTitles} tiêu đề chat dạng lệnh tạo artifact`)
@@ -1406,7 +1422,10 @@ async function bootstrap(): Promise<void> {
   const privacy = new PrivacyService({
     foldersInUse: () => conversations.withFolder(),
     getConversation: (id) => conversations.get(id),
-    clearFolder: (id) => void conversations.setCwd(id, null),
+    clearFolder: (id) => {
+      void autoEdits.end(id, 'folder')
+      conversations.setCwd(id, null)
+    },
     cancelConversation: cancelConversationAccess,
     abortTurn: (id) => chat.abortConversation(id),
     schedules: () => scheduleRepo.list(),
@@ -1474,6 +1493,8 @@ async function bootstrap(): Promise<void> {
       appRuns.cancelConversation(id)
     },
     folderAccess,
+    autoEdits,
+    abortTurn: (id) => chat.abortConversation(id),
     hub: approvalHub,
     memory,
     getProvider,

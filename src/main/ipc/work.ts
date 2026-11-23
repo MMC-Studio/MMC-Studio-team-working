@@ -22,6 +22,7 @@ import {
 } from '@shared/schemas'
 import { toCsv } from '@shared/timesheet'
 import { approvalAskSchema, feedbackSchema } from '@shared/approvals'
+import { autoEditSessionIdSchema, autoEditUndoSchema } from '@shared/autoEdits'
 import { completeText, type AIProvider } from '../ai/AIProvider'
 import type { ApprovalHub } from '../approvals/hub'
 import {
@@ -36,6 +37,7 @@ import {
   parseQuiz
 } from '../assistant/study'
 import type { CodeApprovals } from '../code/approvals'
+import type { AutoEdits } from '../code/autoEdits'
 import type { FolderAccessRequests } from '../code/folderAccess'
 import type { ConversationRepository, SettingsRepository } from '../db/repositories'
 import type { TimeRepository } from '../db/timeRepository'
@@ -54,6 +56,10 @@ export type WorkIpcDeps = {
   /** Bỏ quyền sửa: dừng việc cần quyền sửa (Unity / Blender đang chờ duyệt / đang chạy). */
   writeRevoked?(conversationId: string): void
   folderAccess: FolderAccessRequests
+  /** Phiên tự duyệt sửa file (PR C). */
+  autoEdits: AutoEdits
+  /** Dừng lượt trợ lý đang chạy của cuộc (Hoàn tác tất cả khi phiên đang chạy — trợ lý không ghi tiếp được). */
+  abortTurn(conversationId: string): void
   hub: ApprovalHub
   memory: MemoryService
   getProvider(): AIProvider
@@ -94,8 +100,9 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     const picked = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
     if (picked.canceled || !picked.filePaths[0]) return null
     deps.approvals.cancelConversation(conversationId)
+    await deps.autoEdits.end(conversationId, 'folder')
     return deps.conversations.setCwd(conversationId, picked.filePaths[0])
-  }, { changes: 'conversations' })
+  }, { changes: ['conversations', 'autoEdits'] })
   // Gỡ thư mục = thu hồi mọi quyền đọc/sửa của trợ lý trong hội thoại này.
   handle(
     IPC.codeClearFolder,
@@ -104,7 +111,7 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
       deps.revokeFolder(conversationId)
       return deps.conversations.get(conversationId)
     },
-    { changes: ['conversations', 'approvals'] }
+    { changes: ['conversations', 'approvals', 'autoEdits'] }
   )
   handle(
     IPC.folderAccessRespond,
@@ -115,15 +122,16 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     },
     { changes: ['conversations', 'approvals'] }
   )
-  handle(IPC.codeSetWrite, z.object({ conversationId: idSchema, enabled: z.boolean() }), ({ conversationId, enabled }) => {
+  handle(IPC.codeSetWrite, z.object({ conversationId: idSchema, enabled: z.boolean() }), async ({ conversationId, enabled }) => {
     const conv = deps.conversations.get(conversationId)
     if (!conv?.cwd) throw new Error('no_project_folder')
     if (!enabled) {
       deps.approvals.cancelConversation(conversationId)
       deps.writeRevoked?.(conversationId)
+      await deps.autoEdits.end(conversationId, 'write_off')
     }
     return deps.conversations.setCodeWrite(conversationId, enabled)
-  }, { changes: 'conversations' })
+  }, { changes: ['conversations', 'autoEdits'] })
   handle(
     IPC.codeRespond,
     z.object({ id: idSchema, allow: z.boolean(), feedback: feedbackSchema }),
@@ -134,6 +142,32 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     },
     { changes: 'approvals' }
   )
+
+  // "Đồng ý, và không hỏi lại trong phiên này" (PR C).
+  handle(IPC.codeRespondAuto, z.object({ id: idSchema }), ({ id }) => deps.approvals.respondAuto(id), {
+    changes: ['approvals', 'autoEdits']
+  })
+
+  // ---- Phiên tự duyệt sửa file (PR C) ----
+  handle(IPC.autoEditsList, z.object({ conversationId: idSchema.nullable() }), ({ conversationId }) =>
+    deps.autoEdits.list(conversationId ?? undefined)
+  )
+  handle(IPC.autoEditsStop, autoEditSessionIdSchema, ({ sessionId }) => deps.autoEdits.stop(sessionId), { changes: 'autoEdits' })
+  handle(
+    IPC.autoEditsUndo,
+    autoEditUndoSchema,
+    async ({ sessionId, overwrite }) => {
+      // Phiên đang chạy: dừng lượt + huỷ thẻ trước — không thì trợ lý ghi tiếp ngay sau khi khôi phục.
+      const conversationId = deps.autoEdits.sessionConversation(sessionId)
+      if (conversationId && deps.autoEdits.isActive(conversationId)) {
+        deps.abortTurn(conversationId)
+        deps.approvals.cancelConversation(conversationId)
+      }
+      return deps.autoEdits.undo(sessionId, overwrite)
+    },
+    { changes: ['autoEdits', 'approvals'] }
+  )
+  handle(IPC.autoEditsDismiss, autoEditSessionIdSchema, ({ sessionId }) => deps.autoEdits.dismiss(sessionId), { changes: 'autoEdits' })
 
   // ---- Thẻ chờ duyệt trong khung chat + "Hỏi lại" ----
   handle(IPC.approvalsList, none, () => deps.hub.list())

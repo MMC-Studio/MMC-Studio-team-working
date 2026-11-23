@@ -15,7 +15,8 @@ import {
   Play,
   Send,
   SquareTerminal,
-  X
+  X,
+  Zap
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -42,6 +43,7 @@ import { Markdown } from '../components/Markdown'
 import { useChat } from '../store'
 import { useApprovals } from './store'
 import { CommandView } from './CommandView'
+import { AutoEditStartDialog } from './AutoEdits'
 
 type T = (key: string, opts?: Record<string, unknown>) => string
 
@@ -177,6 +179,15 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
   // quyền sửa còn mở cả chạy Unity / Blender). Thẻ nháp: nội dung người dùng sửa.
   const [write, setWrite] = useState(false)
   const [body, setBody] = useState(card.kind === 'draft' ? card.request.body : '')
+  // Tự duyệt sửa file (PR C): nút chỉ có khi main nói lần sửa này đủ điều kiện (file không thuộc nhóm "vẫn hỏi").
+  const autoEdit = card.kind === 'code' ? card.request.autoEdit : undefined
+  const [autoDialog, setAutoDialog] = useState(false)
+  const cwd = useChat((s) => s.conversations.find((c) => c.id === card.conversationId)?.cwd ?? '')
+  const acceptAuto = async (): Promise<void> => {
+    setAutoDialog(false)
+    // Không còn đủ điều kiện lúc bấm (file vừa đổi…) → thẻ quay lại, người dùng chọn Đồng ý thường / Từ chối.
+    if (!(await decide(card.id, () => api.code.respondAuto(card.id)))) setHint(t('autoEdit.notEligible'))
+  }
   const answering = card.qa.some((q) => q.status === 'answering')
   const limitReached = questionCount(card) >= APPROVAL_MAX_QUESTIONS
   const text = input.trim()
@@ -285,7 +296,15 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
       ) : card.kind === 'command' ? (
         <CommandView request={card.request} current />
       ) : (
-        <RequestView kind="code" request={card.request} />
+        <>
+          <RequestView kind="code" request={card.request} />
+          {autoEdit && !autoEdit.offer && autoEdit.sessionActive && (
+            <p className="text-xs text-violet-700 dark:text-violet-300" data-testid="auto-edit-ask-reason" data-reason={autoEdit.reason}>
+              {t(`autoEdit.askReason.${autoEdit.reason}`, { detail: autoEdit.detail ?? '' })}
+            </p>
+          )}
+          {hint && <p className="text-xs text-orange-700 dark:text-orange-300">{hint}</p>}
+        </>
       )}
 
       {/* Như một khung chat nhỏ: hỏi đáp (cuộn riêng khi dài) → ô nhập luôn nằm dưới câu trả lời mới nhất. */}
@@ -354,6 +373,12 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           <X />
           {rejectLabel}
         </Button>
+        {autoEdit?.offer && (
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => setAutoDialog(true)} data-testid="approval-accept-auto">
+            <Zap />
+            {t('autoEdit.acceptAuto')}
+          </Button>
+        )}
         <Button
           size="sm"
           disabled={busy || (card.kind === 'draft' && !body.trim())}
@@ -372,6 +397,9 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
           {accentLabel}
         </Button>
       </div>
+      {autoEdit?.offer && (
+        <AutoEditStartDialog open={autoDialog} onOpenChange={setAutoDialog} folder={cwd} onConfirm={() => void acceptAuto()} />
+      )}
     </div>
   )
 }

@@ -485,6 +485,8 @@
       "unity": "The assistant has not edited any C# file in this conversation.",
       "blender": "The assistant has not edited any Python file in this conversation."
     },
+    "autoEdited": "auto-approved",
+    "autoEditedHint": "This file was edited during an auto-approve session — nobody reviewed the diff. Check it before running.",
     "recheck": "Right before running, the app checks again: if a C# / Python file was edited after this card appeared, it will not run.",
     "script": "Full script {{path}}",
     "scriptImports": "This script can import other .py files in the project folder — those run too but are not shown here.",
@@ -499,5 +501,57 @@
     "stopped": "Stopped",
     "openLog": "Open log",
     "dismiss": "Hide"
+  },
+  "autoEdit": {
+    "acceptAuto": "Approve, and don't ask again this session",
+    "startTitle": "Auto-approve file edits this session?",
+    "startBody": "Approve this change, and for the next 2 hours the assistant edits files in {{folder}} without asking again.",
+    "rule1": "Up to {{max}} files; after that, or after 2 hours, the app asks for each edit again.",
+    "rule2": "Still asks for: files that can lead to running commands (scripts, package.json, .env, build / CI / hook config, every Unity C# file…), writes that leave a file less than half its size, files over 2 MB, files with several hard links.",
+    "rule3": "Still refuses: files outside the folder, binary files, protected folders. Commands and MCP still ask as before.",
+    "rule4": "The app keeps the originals: \"Undo all\" works even after the session or the app is closed, for 7 days.",
+    "startConfirm": "Approve and auto-approve",
+    "notEligible": "Could not start auto-approve: the file or permission just changed. Approve or reject as usual.",
+    "active": "Auto-approving file edits",
+    "ended": {
+      "stopped": "Auto-approve turned off",
+      "expired": "Auto-approve session ended (2 hours)",
+      "write_off": "Auto-approve off (edit permission removed)",
+      "folder": "Auto-approve off (folder changed / removed)",
+      "kill_switch": "Auto-approve off (Ctrl+Alt+Q)",
+      "app_closed": "Auto-approve off (app was closed)",
+      "undo": "Auto-approve off to undo"
+    },
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "remaining": "{{h}}:{{m}} left",
+    "undoUntil": "Can undo until {{date}}",
+    "undoAll": "Undo all",
+    "stop": "Turn off",
+    "dismiss": "Done",
+    "dismissHint": "Keep the changes and drop the originals (no more undo)",
+    "newFile": "(new file)",
+    "deletedConversation": "Deleted conversation",
+    "undoTitle": "Undo all?",
+    "undoBody": "Put {{count}} files back as they were before the session; files the assistant created will be deleted. Files edited again afterwards are listed separately, not overwritten.",
+    "undoStopsTurn": "The session is active: the app turns auto-approve off and stops the assistant reply before undoing.",
+    "resultTitle": "Not everything was undone",
+    "resultBody": "Restored {{count}} files.",
+    "conflicts": "These files were edited again after the last auto-approved edit — overwriting loses those edits:",
+    "failed": "Could not restore:",
+    "failReason": {
+      "link_outside": "the path now leads outside the folder",
+      "hard_link": "the file has several hard links",
+      "io": "file read / write error"
+    },
+    "keep": "Keep as is",
+    "overwrite": "Overwrite these files",
+    "askReason": {
+      "risky": "Asking even though auto-approve is on — {{detail}}",
+      "shrink": "Asking even though auto-approve is on — the file would be less than half its size before the session.",
+      "too_large": "Asking even though auto-approve is on — the file is over 2 MB.",
+      "hard_link": "Asking even though auto-approve is on — the file has several hard links (editing it edits other places too).",
+      "limit": "Asking even though auto-approve is on — the session reached the file limit."
+    }
   }
 }

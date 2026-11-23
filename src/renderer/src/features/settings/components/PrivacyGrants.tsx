@@ -7,6 +7,7 @@ import { api } from '@renderer/lib/api'
 import { optimistic, useSyncedState } from '@renderer/lib/sync'
 import { cn } from '@renderer/lib/utils'
 import { useSettingsDialog } from '../dialog'
+import { AutoEditSessionList } from '@renderer/features/chat/approvals/AutoEdits'
 import { SettingRow } from './rows'
 
 /**
@@ -48,6 +49,7 @@ export function PrivacyGrants() {
   return (
     <>
       <FoldersRow data={data} revoke={revokeFolder} />
+      <AutoEditsRow />
       <GitRow enabled={data.git.enabled} />
       <GitRow id="grantUnity" focus="commandsUnity" testId="grant-unity" enabled={data.apps.unity.enabled} />
       <GitRow id="grantBlender" focus="commandsBlender" testId="grant-blender" enabled={data.apps.blender.enabled} />
@@ -98,6 +100,22 @@ function FoldersRow({ data, revoke }: { data: PrivacyStatus; revoke(id: string):
           ))}
         </ul>
       )}
+    </SettingRow>
+  )
+}
+
+/** Phiên tự duyệt sửa file (PR C) — tự hỏi lại theo mục sync `autoEdits`; Tắt / Hoàn tác / Xong như trên băng khung chat. */
+function AutoEditsRow() {
+  const { t } = useTranslation('settings')
+  return (
+    <SettingRow id="grantAutoEdits">
+      <AutoEditSessionList
+        empty={
+          <p className="text-xs text-muted-foreground" data-testid="grant-auto-edits-empty">
+            {t('privacy.noAutoEdits')}
+          </p>
+        }
+      />
     </SettingRow>
   )
 }

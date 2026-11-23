@@ -21,7 +21,9 @@ const DECISION_TONE: Record<ActionLogDecision, string> = {
   rejected: 'bg-muted text-muted-foreground',
   timeout: 'bg-muted text-muted-foreground',
   stopped: 'bg-muted text-muted-foreground',
-  blocked: 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
+  blocked: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
+  // Người dùng bấm Hoàn tác (PR C) — xanh dương, khác Đồng ý / Tự duyệt.
+  undone: 'bg-sky-500/10 text-sky-700 dark:text-sky-300'
 }
 
 /**
@@ -156,7 +158,9 @@ function ActionLogRow({ item, at, open }: { item: ActionLogItem; at: string; ope
             data-testid="action-log-decision"
             data-decision={item.decision}
           >
-            {t(`actionLog.decisions.${item.decision}`)}
+            {item.kind === 'file_edit' && item.decision === 'always'
+              ? t('actionLog.decisions.alwaysFileEdit')
+              : t(`actionLog.decisions.${item.decision}`)}
           </span>
         </div>
         <div className="mt-0.5 flex gap-2 text-[11px] text-muted-foreground">

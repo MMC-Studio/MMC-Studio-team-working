@@ -30,7 +30,8 @@ export const SYNC_TOPICS = [
   'pluginStore',
   'commands',
   'actionLog',
-  'commandRuns'
+  'commandRuns',
+  'autoEdits'
 ] as const
 
 export type SyncTopic = (typeof SYNC_TOPICS)[number]

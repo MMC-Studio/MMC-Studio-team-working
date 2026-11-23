@@ -20,6 +20,7 @@ import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
 import { AppRuns } from '../approvals/AppRuns'
+import { AutoEditSessions } from '../approvals/AutoEdits'
 import { ApprovalCards } from '../approvals/ApprovalCards'
 import { DeferredCards } from '@renderer/features/schedules/components/DeferredCards'
 import { cardsFor, useApprovals } from '../approvals/store'
@@ -130,6 +131,8 @@ export function ChatPage() {
           busy={isStreaming}
         />
         <PinnedBar messages={messages} />
+        {/* Phiên tự duyệt sửa file (PR C): đang chạy / còn hoàn tác được — key: đổi cuộc là dựng lại (khác key của ChatHeader cùng cha). */}
+        {activeId && <AutoEditSessions key={`auto-edits-${activeId}`} conversationId={activeId} className="mx-auto w-full max-w-3xl px-6 pt-2" />}
         <div className="thin-scroll flex-1 overflow-y-auto">
           <div className="@container/msgs mx-auto max-w-3xl space-y-6 px-6 py-6">
             {messages.length === 0 ? (

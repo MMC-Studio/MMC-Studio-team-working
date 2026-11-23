@@ -3,6 +3,7 @@ import type { SyncTopic } from './sync'
 import type { AppChooseResult, AppProgram, CommandDecision, CommandRun, CommandsSettings, CommandsStatus } from './commands'
 import type { ActionLogPage, ActionLogQuery } from './actionLog'
 import type { PrivacyStatus, ScheduleGrantKey } from './privacy'
+import type { AutoEditOffer, AutoEditSession, AutoEditUndoInput, AutoEditUndoResult } from './autoEdits'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
 import type {
   Schedule,
@@ -259,6 +260,8 @@ export type CodeApprovalRequest = {
   conversationId: string
   toolName: string
   change: { path: string; isNewFile: boolean; patch: string; added: number; removed: number }
+  /** Có nút "Đồng ý, và không hỏi lại trong phiên này" không; không → vì sao (PR C). */
+  autoEdit?: AutoEditOffer
 }
 
 /** Sự kiện main → renderer khi danh sách đề xuất memory thay đổi. */
@@ -678,6 +681,16 @@ export interface TeamWorkingApi {
     clearFolder(conversationId: string): Promise<Conversation | null>
     /** Trả lời thẻ trợ lý xin quyền thư mục (grant = mở hộp chọn thư mục). */
     respondFolderAccess(id: string, grant: boolean, write: boolean, feedback?: string): Promise<FolderAccessResult>
+    /** "Đồng ý, và không hỏi lại trong phiên này" (PR C). Không đủ điều kiện nữa → lỗi, thẻ vẫn chờ. */
+    respondAuto(id: string): Promise<{ ok: true } | { ok: false; error: 'not_found' | 'not_eligible' | 'changed' }>
+  }
+  /** Phiên tự duyệt sửa file (PR C): băng trong khung chat + Cài đặt → Quyền & riêng tư. */
+  autoEdits: {
+    /** Không truyền cuộc = mọi phiên của tài khoản (đang chạy + còn hoàn tác được). */
+    list(conversationId?: string): Promise<AutoEditSession[]>
+    stop(sessionId: string): Promise<boolean>
+    undo(input: AutoEditUndoInput): Promise<AutoEditUndoResult | null>
+    dismiss(sessionId: string): Promise<boolean>
   }
   time: {
     current(): Promise<TimeEntry | null>
