@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /** Nhật ký thao tác (bảng `action_log`, chỉ trên máy). */
-export const ACTION_LOG_KINDS = ['command', 'file_edit', 'mcp', 'draft'] as const
+export const ACTION_LOG_KINDS = ['command', 'file_edit', 'mcp', 'draft', 'unity', 'blender'] as const
 export type ActionLogKind = (typeof ACTION_LOG_KINDS)[number]
 /**
  * Người dùng bấm: approved / rejected / always (bấm "Luôn cho phép" trên thẻ — lần này chạy + các lần sau tự chạy).

@@ -80,6 +80,24 @@ function describeRequest(kind: ApprovalCard['kind'], request: ApprovalRequest, m
     }
     case 'command': {
       const r = request as CommandApprovalRequest
+      if (r.program !== 'git') {
+        const unity = r.program === 'unity'
+        return [
+          unity
+            ? 'Loại: CHẠY UNITY batchmode — Unity biên dịch và chạy MỌI script C# của dự án (kể cả package), rồi gọi hàm được chọn. Đây là chạy code tuỳ ý: app KHÔNG giới hạn được việc code đó làm (đọc / ghi / xoá file, mạng…)'
+            : 'Loại: CHẠY BLENDER --background với script Python. Đây là chạy code tuỳ ý: script (và các file .py nó import) làm được mọi thứ, app KHÔNG giới hạn được',
+          `Lệnh: ${r.display}`,
+          `Thư mục: ${r.cwd}`,
+          `Hạn: ${Math.round(r.timeoutMs / 60_000)} phút`,
+          `Lý do: ${r.reason}`,
+          r.app?.version ? `Phiên bản Unity (dự án = chương trình): ${r.app.version}` : '',
+          `File ${unity ? 'C#' : 'Python'} trợ lý đã sửa trong cuộc này: ${r.app?.editedFiles.length ? r.app.editedFiles.join(', ') : '(không có)'}`,
+          r.app?.script ? `Script ${r.app.script.path}:\n${clip(r.app.script.content, maxPatch)}` : '',
+          `Lệnh thật app chạy: ${[r.executable, ...r.argv].join(' ')}`
+        ]
+          .filter(Boolean)
+          .join('\n')
+      }
       return [
         'Loại: CHẠY LỆNH git chỉ đọc trên máy người dùng (app tự chạy, không qua shell; không sửa file, không commit)',
         `Lệnh: ${r.display}`,

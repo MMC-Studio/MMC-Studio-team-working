@@ -51,6 +51,8 @@ export type WorkIpcDeps = {
   approvals: CodeApprovals
   /** Gỡ thư mục = thu hồi: huỷ mọi thẻ đang chờ, dừng lệnh + lượt đang chạy (chung với Quyền & riêng tư). */
   revokeFolder(conversationId: string): void
+  /** Bỏ quyền sửa: dừng việc cần quyền sửa (Unity / Blender đang chờ duyệt / đang chạy). */
+  writeRevoked?(conversationId: string): void
   folderAccess: FolderAccessRequests
   hub: ApprovalHub
   memory: MemoryService
@@ -116,7 +118,10 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
   handle(IPC.codeSetWrite, z.object({ conversationId: idSchema, enabled: z.boolean() }), ({ conversationId, enabled }) => {
     const conv = deps.conversations.get(conversationId)
     if (!conv?.cwd) throw new Error('no_project_folder')
-    if (!enabled) deps.approvals.cancelConversation(conversationId)
+    if (!enabled) {
+      deps.approvals.cancelConversation(conversationId)
+      deps.writeRevoked?.(conversationId)
+    }
     return deps.conversations.setCodeWrite(conversationId, enabled)
   }, { changes: 'conversations' })
   handle(

@@ -33,6 +33,8 @@ export type PrivacyStatus = {
   schedules: PrivacyScheduleGrant[]
   /** Công tắc chung "Chạy lệnh git (chỉ đọc)" — chỉ hiện trạng thái, đổi ở Khả năng. */
   git: { enabled: boolean }
+  /** Chạy Unity / Blender (A2) — công tắc chung, chỉ hiện trạng thái, đổi ở Khả năng. */
+  apps: { unity: { enabled: boolean }; blender: { enabled: boolean } }
   /** Gmail / Telegram / agent / MCP: chỉ hiện trạng thái, quản lý ở trang Plugin. */
   gmail: { enabled: boolean; accounts: { email: string; label: string }[] }
   telegram: { enabled: boolean; account: string | null }

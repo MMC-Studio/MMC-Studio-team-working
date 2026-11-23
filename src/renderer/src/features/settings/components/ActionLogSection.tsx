@@ -1,4 +1,4 @@
-import { FilePen, Mail, Plug, SquareTerminal, type LucideIcon } from 'lucide-react'
+import { Box, FilePen, Mail, Plug, Shapes, SquareTerminal, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -11,7 +11,7 @@ import { cn } from '@renderer/lib/utils'
 import { openRunConversation } from '@renderer/features/schedules/open'
 import { SettingRow } from './rows'
 
-const KIND_ICON: Record<ActionLogKind, LucideIcon> = { command: SquareTerminal, file_edit: FilePen, mcp: Plug, draft: Mail }
+const KIND_ICON: Record<ActionLogKind, LucideIcon> = { command: SquareTerminal, file_edit: FilePen, mcp: Plug, draft: Mail, unity: Box, blender: Shapes }
 
 /** Người dùng bấm đồng ý (một lần / luôn) → xanh lá; app tự chạy không ai bấm (auto) → tím, viền nét đứt — khác hẳn. */
 const DECISION_TONE: Record<ActionLogDecision, string> = {

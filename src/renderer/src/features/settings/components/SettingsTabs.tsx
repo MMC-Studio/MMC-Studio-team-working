@@ -23,7 +23,7 @@ import type { SettingsTab } from '../catalog'
 import { AiConnectionRows, AutoSuggestRow, OrganizeRows } from './AiSection'
 import { SettingRow, SettingsSection } from './rows'
 import { StyleNotes } from './StyleNotes'
-import { CommandsRow } from './CommandsRow'
+import { AppRunRow, CommandsRow } from './CommandsRow'
 import { ActionLogSection } from './ActionLogSection'
 import { PrivacyGrants } from './PrivacyGrants'
 import { UpdateRows } from './UpdateSection'
@@ -264,6 +264,8 @@ function CapabilitiesTab() {
       </SettingRow>
       <SettingRow id="computer" control={<OpenLink to="/computer" testId="open-computer" />} />
       <CommandsRow />
+      <AppRunRow program="unity" />
+      <AppRunRow program="blender" />
       <SettingRow
         id="schedules"
         control={

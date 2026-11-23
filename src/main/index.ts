@@ -1,5 +1,6 @@
+import { spawn as spawnProcess, type SpawnOptions } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import {
   app,
   BrowserWindow,
@@ -141,12 +142,25 @@ import { DEFAULT_SCHEDULES_SETTINGS, schedulesSettingsSchema, type SchedulesSett
 import { registerSchedulesIpc } from './ipc/schedules'
 import { registerCommandsIpc } from './ipc/commands'
 import { CommandService } from './commands/service'
+import { AppRunService } from './commands/apps/service'
+import { pruneLogs } from './commands/apps/runner'
+import { ExeVersions } from './commands/apps/version'
 import { findGit, probeGit, type GitInfo } from './commands/gitEnv'
 import { ActionLogRepository, type ActionLogEntry } from './audit/actionLog'
 import { registerActionLogIpc } from './ipc/actionLog'
 import { registerPrivacyIpc } from './ipc/privacy'
 import { cancelEverywhere, PrivacyService } from './privacy/service'
-import { commandsSettingsSchema, DEFAULT_COMMANDS_SETTINGS, type CommandsSettings } from '@shared/commands'
+import {
+  appsSettingsSchema,
+  commandsSettingsSchema,
+  DEFAULT_APPS_SETTINGS,
+  DEFAULT_COMMANDS_SETTINGS,
+  APP_EXE_NAMES,
+  type AppProgram,
+  type AppStatus,
+  type AppsSettings,
+  type CommandsSettings
+} from '@shared/commands'
 import { registerPluginStoreIpc } from './ipc/pluginStore'
 import { GitHubClient } from './pluginStore/github'
 import { installedSchema, loadDefaultSources, PluginStoreService, userSourcesSchema } from './pluginStore/service'
@@ -892,6 +906,37 @@ async function bootstrap(): Promise<void> {
   commandService.registerTools(tools)
   killSwitch.onStop(() => commandService.stopAll())
   app.on('before-quit', () => commandService.stopAll('App đang đóng.'))
+  // ---- A2: chạy Unity / Blender (chương trình người dùng tự chọn), mặc định tắt, chỉ khi cuộc có quyền SỬA thư mục. ----
+  const getAppsSettings = (): AppsSettings => settings.get('commandApps', appsSettingsSchema, DEFAULT_APPS_SETTINGS)
+  const appRunLogsDir = join(userData, 'logs', 'runs')
+  void pruneLogs(appRunLogsDir)
+    .then((n) => n && log.info(`Log chạy Unity / Blender: dọn ${n} file quá 90 ngày`))
+    .catch((err: unknown) => log.warn(`Dọn log chạy Unity / Blender lỗi: ${String(err)}`))
+  const exeVersions = new ExeVersions()
+  // Tiến trình giả chỉ cho e2e ở bản chưa đóng gói (không có Unity / Blender trên máy CI) — không bao giờ có trong bản phát hành.
+  const fakeAppRunner = app.isPackaged ? undefined : process.env.MMC_FAKE_APP_RUNNER
+  const appRuns = new AppRunService({
+    settings: getAppsSettings,
+    folderOf: (conversationId) => conversations.get(conversationId)?.cwd ?? null,
+    canWrite: (conversationId) => !!conversations.get(conversationId)?.codeWrite,
+    editedFiles: (conversationId, exts) => actionLog.editedFiles(conversationId, exts),
+    versions: exeVersions,
+    logsDir: appRunLogsDir,
+    request: (req) => commandService.request(req),
+    log: recordAction,
+    runsChanged: () => sync.changed('commandRuns'),
+    killSwitch,
+    logger: log,
+    ...(fakeAppRunner
+      ? {
+          spawn: (exe: string, argv: string[], options: SpawnOptions) =>
+            spawnProcess(process.execPath, [fakeAppRunner, exe, ...argv], { ...options, env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } })
+        }
+      : {})
+  })
+  appRuns.registerTools(tools)
+  killSwitch.onStop(() => appRuns.stopAll())
+  app.on('before-quit', () => appRuns.stopAll())
   const legacyTitles = organizer.fixLegacyTitles()
   if (legacyTitles) log.info(`Sửa ${legacyTitles} tiêu đề chat dạng lệnh tạo artifact`)
   const chat = new ChatService({
@@ -919,6 +964,7 @@ async function bootstrap(): Promise<void> {
       folderAccess.cancelConversation(conversationId)
       scheduleProposals.cancelConversation(conversationId)
       commandService.cancelConversation(conversationId)
+      appRuns.cancelConversation(conversationId)
       approvalHub.endRun(conversationId)
     },
     appToolsFor: (conversationId) =>
@@ -928,7 +974,8 @@ async function bootstrap(): Promise<void> {
         gmail.toolsFor(),
         telegram.toolsFor(),
         scheduleProposals.toolsFor(),
-        commandService.toolsFor(conversationId)
+        commandService.toolsFor(conversationId),
+        appRuns.toolsFor(conversationId)
       ]),
     expressive,
     voicePrompt: async (tease) => {
@@ -1306,13 +1353,54 @@ async function bootstrap(): Promise<void> {
   registerCommandsIpc({
     handle,
     service: commandService,
-    status: async () => ({ settings: getCommandsSettings(), git: await gitReady }),
-    setSettings: (value) => void settings.set('commands', value)
+    appRuns,
+    status: async () => {
+      const apps = getAppsSettings()
+      const appStatus = async (program: AppProgram): Promise<AppStatus> => {
+        const s = apps[program]
+        if (!s.path) return { ...s, version: null, missing: false }
+        const missing = !existsSync(s.path)
+        const version = missing ? null : program === 'unity' ? await exeVersions.unity(s.path) : await exeVersions.blender(s.path)
+        return { ...s, version, missing }
+      }
+      return {
+        settings: getCommandsSettings(),
+        git: await gitReady,
+        apps: { unity: await appStatus('unity'), blender: await appStatus('blender') }
+      }
+    },
+    setSettings: (value) => void settings.set('commands', value),
+    setAppEnabled: (program, enabled) => {
+      const apps = getAppsSettings()
+      // Chưa chọn chương trình thì không bật được.
+      settings.set('commandApps', { ...apps, [program]: { ...apps[program], enabled: enabled && !!apps[program].path } })
+    },
+    chooseApp: async (program) => {
+      const expected = APP_EXE_NAMES[program]
+      // Hộp chọn file giả chỉ cho e2e ở bản chưa đóng gói — không bao giờ có trong bản phát hành.
+      const fake = app.isPackaged ? undefined : process.env[program === 'unity' ? 'MMC_FAKE_UNITY_EXE' : 'MMC_FAKE_BLENDER_EXE']
+      let path: string | null
+      if (fake !== undefined) path = fake || null
+      else {
+        const options: Electron.OpenDialogOptions = { properties: ['openFile'], filters: [{ name: expected, extensions: ['exe'] }] }
+        const picked = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options)
+        path = picked.canceled ? null : (picked.filePaths[0] ?? null)
+      }
+      if (!path) return { canceled: true }
+      if (basename(path).toLowerCase() !== expected.toLowerCase()) return { error: 'wrong_name', expected }
+      const apps = getAppsSettings()
+      settings.set('commandApps', { ...apps, [program]: { enabled: apps[program].enabled, path } })
+      return { path }
+    },
+    openLog: async (path) => {
+      const err = await shell.openPath(path)
+      if (err) log.warn(`Mở log lỗi: ${err}`)
+    }
   })
   // ---- Quyền & riêng tư (B2): quyền đang cấp + thu hồi. ----
   /** Thu hồi mọi thứ đang chờ / đang chạy của một cuộc (dùng chung cho "Gỡ thư mục" và trang Quyền & riêng tư). */
   const cancelConversationAccess = (conversationId: string): void =>
-    cancelEverywhere([approvals, mcpApprovals, draftApprovals, folderAccess, scheduleProposals, commandService], conversationId, (m) =>
+    cancelEverywhere([approvals, mcpApprovals, draftApprovals, folderAccess, scheduleProposals, commandService, appRuns], conversationId, (m) =>
       log.warn(m)
     )
   const privacy = new PrivacyService({
@@ -1336,6 +1424,7 @@ async function bootstrap(): Promise<void> {
       const agents = agentHub.status()
       return {
         git: { enabled: getCommandsSettings().gitEnabled },
+        apps: { unity: { enabled: getAppsSettings().unity.enabled }, blender: { enabled: getAppsSettings().blender.enabled } },
         gmail: { enabled: g.enabled, accounts: g.accounts.filter((a) => a.enabled).map((a) => ({ email: a.email, label: a.label })) },
         telegram: { enabled: tg.enabled, account: tg.connection === 'connected' && tg.account ? tg.account.name : null },
         agents: { enabled: agents.enabled, clients: agents.clients.filter((c) => c.approved).map((c) => c.name) },
@@ -1380,6 +1469,10 @@ async function bootstrap(): Promise<void> {
     time: new TimeRepository(db),
     approvals,
     revokeFolder: (id) => void privacy.revokeFolder(id),
+    writeRevoked: (id) => {
+      for (const p of ['unity', 'blender'] as const) commandService.cancelProgram(p, 'Người dùng đã bỏ quyền sửa thư mục.', id)
+      appRuns.cancelConversation(id)
+    },
     folderAccess,
     hub: approvalHub,
     memory,

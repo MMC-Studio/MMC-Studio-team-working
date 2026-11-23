@@ -63,7 +63,13 @@ const api: TeamWorkingApi = {
   commands: {
     status: () => ipcRenderer.invoke(IPC.commandsStatus),
     setSettings: (settings) => ipcRenderer.invoke(IPC.commandsSetSettings, settings),
-    respond: (decision) => ipcRenderer.invoke(IPC.commandsRespond, decision)
+    respond: (decision) => ipcRenderer.invoke(IPC.commandsRespond, decision),
+    setApp: (program, enabled) => ipcRenderer.invoke(IPC.commandsSetApp, { program, enabled }),
+    chooseApp: (program) => ipcRenderer.invoke(IPC.commandsChooseApp, { program }),
+    runs: (conversationId) => ipcRenderer.invoke(IPC.commandsRuns, { conversationId }),
+    stopRun: (id) => ipcRenderer.invoke(IPC.commandsStopRun, { id }),
+    dismissRun: (id) => ipcRenderer.invoke(IPC.commandsDismissRun, { id }),
+    openRunLog: (id) => ipcRenderer.invoke(IPC.commandsOpenRunLog, { id })
   },
   schedules: {
     list: () => ipcRenderer.invoke(IPC.schedulesList),

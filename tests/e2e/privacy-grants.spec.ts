@@ -67,7 +67,9 @@ test('chưa cấp gì: thư mục / lịch trống; git, Gmail, Telegram, agent,
 
 test('cấp thư mục đọc + sửa → hiện trong tab; thu hồi khi đang có thẻ chờ → dòng mất, thẻ bị huỷ, thanh thư mục mất', async () => {
   await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Sửa file', write: true })}`)
-  await card('folder').getByTestId('folder-access-choose').click({ timeout: 20_000 })
+  // Ô "Cho phép sửa file" không tick sẵn (kể cả khi trợ lý xin quyền sửa) — người dùng tự tick.
+  await card('folder').getByTestId('folder-access-write').check({ timeout: 20_000 })
+  await card('folder').getByTestId('folder-access-choose').click()
   await expect(page.getByTestId('message-user').last()).toContainText('đã cấp quyền thư mục', { timeout: 20_000 })
   await expect(sendButton()).toBeVisible({ timeout: 20_000 })
 
@@ -99,7 +101,9 @@ test('cấp thư mục đọc + sửa → hiện trong tab; thu hồi khi đang 
 
 test('"Gỡ thư mục" trên thanh thư mục cũng huỷ thẻ đang chờ (cùng một cách thu hồi)', async () => {
   await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Sửa lại', write: true })}`)
-  await card('folder').getByTestId('folder-access-choose').click({ timeout: 20_000 })
+  // Ô "Cho phép sửa file" không tick sẵn (kể cả khi trợ lý xin quyền sửa) — người dùng tự tick.
+  await card('folder').getByTestId('folder-access-write').check({ timeout: 20_000 })
+  await card('folder').getByTestId('folder-access-choose').click()
   await expect(page.getByTestId('message-user').last()).toContainText('đã cấp quyền thư mục', { timeout: 20_000 })
   await send('FAKE_EDIT:y.txt')
   await expect(card('code')).toBeVisible({ timeout: 20_000 })

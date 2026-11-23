@@ -218,6 +218,16 @@
         "description": "The assistant may ask to run git status / diff / log / show / branch in the folder you chose. Every run shows the exact command for you to Run or Deny. Off by default.",
         "keywords": "command git status diff log show branch run terminal"
       },
+      "commandsUnity": {
+        "label": "Run Unity (batchmode)",
+        "description": "The assistant may ask to run one Editor method of a Unity project (build, import, tests…) with the Unity.exe you choose. This runs arbitrary code — every run needs your approval. Only in conversations with EDIT access to the folder. Off by default.",
+        "keywords": "unity batchmode executemethod build run code c# editor"
+      },
+      "commandsBlender": {
+        "label": "Run Blender (background)",
+        "description": "The assistant may ask to run a Python script with the blender.exe you choose, without the UI. This runs arbitrary code — every run shows the full script for your approval. Only in conversations with EDIT access to the folder. Off by default.",
+        "keywords": "blender python script background run code 3d"
+      },
       "plugins": {
         "label": "Plugins",
         "description": "Skills, Gmail, Telegram, MCP servers and agent connections — install, turn on / off and configure on the Plugins page.",
@@ -263,6 +273,16 @@
         "description": "One switch for every conversation with a folder — change it under Capabilities. Each run still needs your approval.",
         "keywords": "git command permission status"
       },
+      "grantUnity": {
+        "label": "Run Unity",
+        "description": "One switch for every conversation with edit access to a folder — change it under Capabilities. Each run still needs your approval.",
+        "keywords": "unity permission status run code"
+      },
+      "grantBlender": {
+        "label": "Run Blender",
+        "description": "One switch for every conversation with edit access to a folder — change it under Capabilities. Each run still needs your approval.",
+        "keywords": "blender permission status run code python"
+      },
       "grantSchedules": {
         "label": "Schedule permissions",
         "description": "Permissions fixed when each schedule was created. Revoking one saves right away, stops a run that is using it and closes pending deferred cards that rely on it.",
@@ -283,7 +303,16 @@
   "commands": {
     "gitAt": "git: {{path}} ({{version}})",
     "gitNotFound": "git was not found on this computer (install Git for Windows).",
-    "gitTooOld": "git {{version}} is too old — please update Git (needs the --attr-source option)."
+    "gitTooOld": "git {{version}} is too old — please update Git (needs the --attr-source option).",
+    "appNotChosen": "{{exe}} not chosen yet — use the button next to this to pick it, then turn it on.",
+    "appMissing": "The chosen file is gone: {{path}}. Choose it again.",
+    "appAt": "{{path}} (version {{version}})",
+    "appAtNoVersion": "{{path}}",
+    "unityNoVersion": "{{path}} — could not read its version, so every run will be blocked (it must match the project version). Choose the Unity.exe inside the Unity Hub install folder.",
+    "chooseExe": "Choose {{exe}}…",
+    "changeExe": "Change…",
+    "wrongName": "Please choose the {{expected}} file.",
+    "experimental": "Experimental"
   },
   "actionLog": {
     "filterKind": "Filter by type",
@@ -302,7 +331,9 @@
       "command": "Command",
       "file_edit": "File edit",
       "mcp": "MCP tool",
-      "draft": "Draft"
+      "draft": "Draft",
+      "unity": "Unity",
+      "blender": "Blender"
     },
     "decisions": {
       "approved": "Approved",

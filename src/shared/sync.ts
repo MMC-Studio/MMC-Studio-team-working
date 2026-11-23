@@ -29,7 +29,8 @@ export const SYNC_TOPICS = [
   'deferred',
   'pluginStore',
   'commands',
-  'actionLog'
+  'actionLog',
+  'commandRuns'
 ] as const
 
 export type SyncTopic = (typeof SYNC_TOPICS)[number]
@@ -56,5 +57,6 @@ export const SETTINGS_TOPICS: Record<string, SyncTopic> = {
   chatOrganize: 'conversations',
   expressiveRecent: 'expressiveRecent',
   schedules: 'schedules',
-  commands: 'commands'
+  commands: 'commands',
+  commandApps: 'commands'
 }

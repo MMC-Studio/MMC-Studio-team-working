@@ -1,6 +1,6 @@
 import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals'
 import type { SyncTopic } from './sync'
-import type { CommandDecision, CommandsSettings, CommandsStatus } from './commands'
+import type { AppChooseResult, AppProgram, CommandDecision, CommandRun, CommandsSettings, CommandsStatus } from './commands'
 import type { ActionLogPage, ActionLogQuery } from './actionLog'
 import type { PrivacyStatus, ScheduleGrantKey } from './privacy'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
@@ -325,6 +325,13 @@ export interface TeamWorkingApi {
     status(): Promise<CommandsStatus>
     setSettings(settings: CommandsSettings): Promise<CommandsStatus>
     respond(decision: CommandDecision): Promise<boolean>
+    setApp(program: AppProgram, enabled: boolean): Promise<CommandsStatus>
+    chooseApp(program: AppProgram): Promise<AppChooseResult>
+    /** Lần chạy Unity / Blender của một cuộc (đang chạy + đã xong gần đây), mới nhất trước. */
+    runs(conversationId: string): Promise<CommandRun[]>
+    stopRun(id: string): Promise<boolean>
+    dismissRun(id: string): Promise<boolean>
+    openRunLog(id: string): Promise<boolean>
   }
   schedules: {
     list(): Promise<Schedule[]>

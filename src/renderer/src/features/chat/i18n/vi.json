@@ -342,6 +342,7 @@
     "suggested": "Trợ lý gợi ý:",
     "write": "Cho phép sửa file",
     "writeHint": "Mỗi lần sửa vẫn hiện diff để bạn Đồng ý / Từ chối. File nhị phân (.blend, .drp…) và thư mục tự sinh (Library/, .meta…) luôn bị chặn.",
+    "writeRuns": "Quyền sửa cũng cho phép trợ lý xin chạy {{apps}}.",
     "choose": "Chọn thư mục…",
     "deny": "Không cho phép",
     "pickAgain": "Bạn chưa chọn thư mục — bấm \"Chọn thư mục…\" lại, hoặc Không cho phép.",
@@ -463,6 +464,40 @@
     "timeout": "tối đa {{s}} giây",
     "readOnly": "Lệnh git chỉ đọc: không sửa file, không commit, không gửi gì lên mạng. App tự chạy lệnh (không qua cửa sổ lệnh) và ghi vào nhật ký.",
     "fullCommand": "Lệnh thật app sẽ chạy",
-    "fullHint": "Gồm đường dẫn git và các cờ an toàn app tự thêm để cấu hình lạ trong repo (filter, diff driver, fsmonitor…) không chạy được chương trình nào."
+    "fullHint": "Gồm đường dẫn git và các cờ an toàn app tự thêm để cấu hình lạ trong repo (filter, diff driver, fsmonitor…) không chạy được chương trình nào.",
+    "fullHintApp": "Đường dẫn chương trình bạn đã chọn trong Cài đặt + toàn bộ tham số. App tự dựng lệnh, trợ lý không thêm được cờ nào khác.",
+    "titleApp": {
+      "unity": "Chạy Unity",
+      "blender": "Chạy Blender"
+    },
+    "dangerTitle": "Chạy code tuỳ ý — app không giới hạn được",
+    "danger": {
+      "unity": "Unity sẽ biên dịch và chạy MỌI script C# trong dự án (kể cả package), rồi gọi hàm này. Code đó làm được mọi thứ như một chương trình bình thường: đọc / ghi / xoá file, dùng mạng… Chỉ bấm Chạy nếu bạn tin code trong dự án.",
+      "blender": "Script Python chạy với toàn quyền của bạn trên máy: đọc / ghi / xoá file, dùng mạng… Chỉ bấm Chạy nếu bạn đã đọc script bên dưới."
+    },
+    "timeoutMin": "tối đa {{m}} phút",
+    "version": "Unity {{version}} — khớp phiên bản của dự án",
+    "edited": {
+      "unity": "File C# trợ lý vừa sửa trong cuộc này",
+      "blender": "File Python trợ lý vừa sửa trong cuộc này"
+    },
+    "editedNone": {
+      "unity": "Trợ lý chưa sửa file C# nào trong cuộc này.",
+      "blender": "Trợ lý chưa sửa file Python nào trong cuộc này."
+    },
+    "recheck": "Ngay trước khi chạy, app kiểm lại: nếu file C# / Python bị sửa thêm sau khi thẻ này hiện thì không chạy.",
+    "script": "Toàn bộ script {{path}}",
+    "scriptImports": "Script này có thể import các file .py khác trong thư mục dự án — những file đó cũng chạy nhưng không hiện ở đây.",
+    "logAt": "Log đầy đủ ghi vào"
+  },
+  "runs": {
+    "running": "Đang chạy",
+    "stop": "Dừng",
+    "done": "Xong",
+    "failed": "Lỗi (mã thoát {{code}})",
+    "timeout": "Hết hạn — đã dừng",
+    "stopped": "Đã dừng",
+    "openLog": "Mở log",
+    "dismiss": "Ẩn"
   }
 }
