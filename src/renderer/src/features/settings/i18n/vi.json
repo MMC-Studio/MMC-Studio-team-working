@@ -218,6 +218,16 @@
         "description": "Trợ lý được xin chạy git status / diff / log / show / branch trong thư mục bạn đã chọn. Mỗi lần đều hiện nguyên lệnh để bạn bấm Chạy hoặc Từ chối. Mặc định tắt.",
         "keywords": "lenh git status diff log show branch chay terminal command"
       },
+      "commandsUnity": {
+        "label": "Chạy Unity (batchmode)",
+        "description": "Trợ lý được xin chạy một hàm Editor của dự án Unity (build, import, test…) bằng Unity.exe bạn tự chọn. Đây là chạy code tuỳ ý — mỗi lần đều phải bấm duyệt. Chỉ có ở cuộc có quyền SỬA thư mục. Mặc định tắt.",
+        "keywords": "unity batchmode executemethod build chay code c# editor"
+      },
+      "commandsBlender": {
+        "label": "Chạy Blender (background)",
+        "description": "Trợ lý được xin chạy một script Python bằng blender.exe bạn tự chọn, không mở giao diện. Đây là chạy code tuỳ ý — mỗi lần đều hiện trọn script để bạn duyệt. Chỉ có ở cuộc có quyền SỬA thư mục. Mặc định tắt.",
+        "keywords": "blender python script background chay code 3d"
+      },
       "plugins": {
         "label": "Plugin",
         "description": "Skill, Gmail, Telegram, MCP server và kết nối agent — cài, bật / tắt và cấu hình ở trang Plugin.",
@@ -263,6 +273,16 @@
         "description": "Công tắc chung cho mọi cuộc có thư mục — đổi ở Khả năng. Mỗi lần chạy vẫn phải bấm duyệt.",
         "keywords": "lenh git quyen trang thai"
       },
+      "grantUnity": {
+        "label": "Chạy Unity",
+        "description": "Công tắc chung cho mọi cuộc có quyền sửa thư mục — đổi ở Khả năng. Mỗi lần chạy vẫn phải bấm duyệt.",
+        "keywords": "unity quyen trang thai chay code"
+      },
+      "grantBlender": {
+        "label": "Chạy Blender",
+        "description": "Công tắc chung cho mọi cuộc có quyền sửa thư mục — đổi ở Khả năng. Mỗi lần chạy vẫn phải bấm duyệt.",
+        "keywords": "blender quyen trang thai chay code python"
+      },
       "grantSchedules": {
         "label": "Quyền của lịch hẹn",
         "description": "Quyền chốt lúc tạo từng lịch. Thu hồi một quyền = lưu ngay, dừng lần chạy đang dùng nó và đóng thẻ hoãn duyệt còn chờ dựa trên quyền đó.",
@@ -283,7 +303,15 @@
   "commands": {
     "gitAt": "git: {{path}} ({{version}})",
     "gitNotFound": "Không tìm thấy git trên máy (cần cài Git for Windows).",
-    "gitTooOld": "git {{version}} quá cũ — cần cập nhật Git (bản có tuỳ chọn --attr-source)."
+    "gitTooOld": "git {{version}} quá cũ — cần cập nhật Git (bản có tuỳ chọn --attr-source).",
+    "appNotChosen": "Chưa chọn {{exe}} — bấm nút bên cạnh để chọn, rồi mới bật được.",
+    "appMissing": "Không còn thấy file đã chọn: {{path}}. Chọn lại.",
+    "appAt": "{{path}} (phiên bản {{version}})",
+    "appAtNoVersion": "{{path}}",
+    "unityNoVersion": "{{path}} — không đọc được phiên bản nên app sẽ chặn mọi lần chạy (cần so với phiên bản dự án). Chọn Unity.exe trong thư mục cài của Unity Hub.",
+    "chooseExe": "Chọn {{exe}}…",
+    "changeExe": "Đổi…",
+    "wrongName": "Cần chọn đúng file {{expected}}."
   },
   "actionLog": {
     "filterKind": "Lọc theo loại",
@@ -302,7 +330,9 @@
       "command": "Lệnh",
       "file_edit": "Sửa file",
       "mcp": "Tool MCP",
-      "draft": "Nháp"
+      "draft": "Nháp",
+      "unity": "Unity",
+      "blender": "Blender"
     },
     "decisions": {
       "approved": "Đồng ý",

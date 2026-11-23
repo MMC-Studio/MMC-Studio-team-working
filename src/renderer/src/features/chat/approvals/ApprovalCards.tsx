@@ -568,6 +568,9 @@ function cardHeader(card: ApprovalCard, t: T, tc: T, ts: T): { icon: ReactNode; 
     case 'schedule':
       return { icon: <Clock className="size-4" />, title: ts('proposal.title') }
     case 'command':
-      return { icon: <SquareTerminal className="size-4" />, title: t('command.title') }
+      return {
+        icon: <SquareTerminal className="size-4" />,
+        title: card.request.program === 'git' ? t('command.title') : t(`command.titleApp.${card.request.program}`)
+      }
   }
 }

@@ -463,6 +463,40 @@
     "timeout": "up to {{s}} s",
     "readOnly": "Read-only git command: no file changes, no commits, nothing sent over the network. The app runs it directly (no shell) and logs it.",
     "fullCommand": "Exact command the app will run",
-    "fullHint": "Includes the git path and safety flags the app adds so unusual repo config (filters, diff drivers, fsmonitor…) cannot run any program."
+    "fullHint": "Includes the git path and safety flags the app adds so unusual repo config (filters, diff drivers, fsmonitor…) cannot run any program.",
+    "fullHintApp": "The program path you chose in Settings + every argument. The app builds the command; the assistant cannot add any other flag.",
+    "titleApp": {
+      "unity": "Run Unity",
+      "blender": "Run Blender"
+    },
+    "dangerTitle": "Runs arbitrary code — the app cannot limit it",
+    "danger": {
+      "unity": "Unity will compile and run EVERY C# script in the project (packages included), then call this method. That code can do anything a normal program can: read / write / delete files, use the network… Only click Run if you trust the code in this project.",
+      "blender": "The Python script runs with your full permissions: read / write / delete files, use the network… Only click Run if you have read the script below."
+    },
+    "timeoutMin": "up to {{m}} min",
+    "version": "Unity {{version}} — matches the project version",
+    "edited": {
+      "unity": "C# files the assistant edited in this conversation",
+      "blender": "Python files the assistant edited in this conversation"
+    },
+    "editedNone": {
+      "unity": "The assistant has not edited any C# file in this conversation.",
+      "blender": "The assistant has not edited any Python file in this conversation."
+    },
+    "recheck": "Right before running, the app checks again: if a C# / Python file was edited after this card appeared, it will not run.",
+    "script": "Full script {{path}}",
+    "scriptImports": "This script can import other .py files in the project folder — those run too but are not shown here.",
+    "logAt": "Full log is written to"
+  },
+  "runs": {
+    "running": "Running",
+    "stop": "Stop",
+    "done": "Done",
+    "failed": "Failed (exit code {{code}})",
+    "timeout": "Timed out — stopped",
+    "stopped": "Stopped",
+    "openLog": "Open log",
+    "dismiss": "Hide"
   }
 }

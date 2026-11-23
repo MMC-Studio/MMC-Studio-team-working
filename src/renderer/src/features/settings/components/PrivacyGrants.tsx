@@ -49,6 +49,8 @@ export function PrivacyGrants() {
     <>
       <FoldersRow data={data} revoke={revokeFolder} />
       <GitRow enabled={data.git.enabled} />
+      <GitRow id="grantUnity" focus="commandsUnity" testId="grant-unity" enabled={data.apps.unity.enabled} />
+      <GitRow id="grantBlender" focus="commandsBlender" testId="grant-blender" enabled={data.apps.blender.enabled} />
       <SchedulesRow data={data} revoke={revokeGrant} />
       <ConnectionsRow data={data} />
     </>
@@ -100,17 +102,27 @@ function FoldersRow({ data, revoke }: { data: PrivacyStatus; revoke(id: string):
   )
 }
 
-/** Công tắc git là CHUNG cho mọi cuộc → chỉ hiện trạng thái, đổi ở Khả năng. */
-function GitRow({ enabled }: { enabled: boolean }) {
+/** Công tắc git / Unity / Blender là CHUNG cho mọi cuộc → chỉ hiện trạng thái, đổi ở Khả năng. */
+function GitRow({
+  enabled,
+  id = 'grantGit',
+  focus = 'commands',
+  testId = 'grant-git'
+}: {
+  enabled: boolean
+  id?: string
+  focus?: string
+  testId?: string
+}) {
   const { t } = useTranslation('settings')
   const dialog = useSettingsDialog()
   return (
     <SettingRow
-      id="grantGit"
+      id={id}
       control={
         <>
-          <StatusText on={enabled} testId="grant-git-status" />
-          <Button variant="outline" size="sm" onClick={() => dialog.focusOn('commands')} data-testid="grant-git-open">
+          <StatusText on={enabled} testId={`${testId}-status`} />
+          <Button variant="outline" size="sm" onClick={() => dialog.focusOn(focus)} data-testid={`${testId}-open`}>
             {t('privacy.changeInCapabilities')}
           </Button>
         </>

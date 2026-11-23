@@ -27,7 +27,7 @@ export const RUN_COMMAND_TOOL = 'run_command'
 /** Người giữ phím dừng khẩn cấp lúc có lệnh đang chạy. */
 export const KILL_SWITCH_HOLDER = 'commands'
 
-type Verdict = { approve: true } | { approve: false; reason: string; decision: ActionLogDecision }
+export type Verdict = { approve: true } | { approve: false; reason: string; decision: ActionLogDecision }
 type Pending = CommandApprovalRequest & { resolve(v: Verdict): void; timer: ApprovalTimer }
 type Running = { conversationId: string; child: ChildProcess; stop(reason: 'stopped'): void }
 
@@ -301,6 +301,13 @@ export class CommandService {
   stopAll(reason = 'Đã dừng khẩn cấp.'): void {
     for (const id of [...this.pending.keys()]) this.settle(id, { approve: false, reason, decision: 'stopped' })
     for (const r of this.running.values()) r.stop('stopped')
+  }
+
+  /** Tắt / đổi một phần mềm (hoặc bỏ quyền sửa của một cuộc) → từ chối các thẻ đang chờ của riêng nó. */
+  cancelProgram(program: CommandApprovalRequest['program'], reason: string, conversationId?: string): void {
+    for (const [id, p] of [...this.pending])
+      if (p.program === program && (!conversationId || p.conversationId === conversationId))
+        this.settle(id, { approve: false, reason, decision: 'stopped' })
   }
 
   get runningCount(): number {

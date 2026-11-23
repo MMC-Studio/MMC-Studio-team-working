@@ -21,6 +21,7 @@ const migrations = join(__dirname, '..', '..', 'db', 'migrations')
 const log = { info: vi.fn(), warn: vi.fn() }
 const STATUS = {
   git: { enabled: false },
+  apps: { unity: { enabled: false }, blender: { enabled: false } },
   gmail: { enabled: false, accounts: [] },
   telegram: { enabled: false, account: null },
   agents: { enabled: false, clients: [] },

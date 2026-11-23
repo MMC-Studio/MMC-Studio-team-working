@@ -119,6 +119,14 @@ Xem mục "Quyết định đã duyệt" trong `docs/PROGRESS.md`. Tóm tắt: t
 
 Dùng `cmd /c rmdir <junction>`. **Không** dùng `Remove-Item -Recurse` lên junction — có thể xoá lan sang thư mục đích.
 
+### 3.3. Dừng chương trình ngoài: dừng CẢ CÂY, và test bằng tiến trình con không dính vào cha
+
+**Quy tắc.** Dừng một chương trình ngoài (Unity, Blender…) khi hết hạn / bấm Dừng / Ctrl+Alt+Q phải dừng cả cây tiến trình (`taskkill /PID <pid> /T /F`), không chỉ `child.kill()`. Test việc này bằng tiến trình giả viết bằng node thì tiến trình con giả phải chạy `detached: true` — và chạy **kiểm thử ngược** (tạm bỏ `/T`, test phải đỏ) trước khi tin test.
+
+**Vì sao.** Unity sinh tiến trình con (biên dịch shader, licensing…); `child.kill()` trên Windows chỉ giết tiến trình cha. Lần đầu test A2 vẫn xanh dù bỏ `/T`: node (libuv) cho mọi tiến trình con vào một job object tự huỷ khi node chết, nên con của tiến trình giả chết theo cha — điều không xảy ra với Unity thật. Thêm `detached` (con nằm ngoài job object) thì kiểm thử ngược mới đỏ đúng.
+
+**Mẫu có sẵn.** `killTree` trong `src/main/commands/apps/runner.ts`; tiến trình giả `tests/e2e/fixtures/fake-app.cjs` (`sleepForever`); test "dừng CẢ CÂY" trong `src/main/commands/apps/__tests__/apps.test.ts`.
+
 ---
 
 ## 4. Test tay

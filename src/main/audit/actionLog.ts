@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, isNotNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, lt, sql, type SQL } from 'drizzle-orm'
 import {
   ACTION_LOG_RETENTION_MS,
   actionLogQuerySchema,
@@ -121,5 +121,29 @@ export class ActionLogRepository {
     const n = this.db.delete(actionLog).where(lt(actionLog.at, this.now() - ACTION_LOG_RETENTION_MS)).run().changes
     if (n) this.onChange()
     return n
+  }
+
+  /**
+   * File trợ lý đã sửa (được đồng ý / tự duyệt) trong một cuộc, lọc theo đuôi — kèm lần sửa gần nhất để biết file bị
+   * sửa THÊM sau khi thẻ chạy Unity / Blender đã hiện (A2). Đường dẫn tương đối như trong nhật ký, sắp theo tên.
+   */
+  editedFiles(conversationId: string, exts: string[]): { path: string; at: number }[] {
+    const wanted = exts.map((e) => e.toLowerCase())
+    const rows = this.db
+      .select({ path: actionLog.target, at: sql<number>`max(${actionLog.at})` })
+      .from(actionLog)
+      .where(
+        and(
+          eq(actionLog.owner, this.getOwner()),
+          eq(actionLog.conversationId, conversationId),
+          eq(actionLog.kind, 'file_edit'),
+          inArray(actionLog.decision, ['approved', 'auto'])
+        )
+      )
+      .groupBy(actionLog.target)
+      .all()
+    return rows
+      .filter((r) => wanted.some((e) => r.path.toLowerCase().endsWith(e)))
+      .sort((a, b) => a.path.localeCompare(b.path))
   }
 }

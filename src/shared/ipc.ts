@@ -34,6 +34,12 @@ export const IPC = {
   commandsStatus: 'commands:status',
   commandsSetSettings: 'commands:setSettings',
   commandsRespond: 'commands:respond',
+  commandsSetApp: 'commands:setApp',
+  commandsChooseApp: 'commands:chooseApp',
+  commandsRuns: 'commands:runs',
+  commandsStopRun: 'commands:stopRun',
+  commandsDismissRun: 'commands:dismissRun',
+  commandsOpenRunLog: 'commands:openRunLog',
   /** Nhật ký thao tác (Cài đặt → Quyền & riêng tư). */
   actionLogList: 'actionLog:list',
   /** Quyền đang cấp + thu hồi (Cài đặt → Quyền & riêng tư). */

@@ -19,6 +19,7 @@ import { ChatLayout } from '../layout/ChatLayout'
 import { GroupSuggestion } from './GroupSuggestion'
 import { MessageItem } from './MessageItem'
 import { PinnedBar, ReplyPreview } from './MessageActions'
+import { AppRuns } from '../approvals/AppRuns'
 import { ApprovalCards } from '../approvals/ApprovalCards'
 import { DeferredCards } from '@renderer/features/schedules/components/DeferredCards'
 import { cardsFor, useApprovals } from '../approvals/store'
@@ -141,6 +142,8 @@ export function ChatPage() {
               messages.map((m) => <MessageItem key={m.id} message={m} />)
             )}
             <ApprovalCards cards={cards} />
+            {/* Unity / Blender đang chạy / vừa xong (A2) — key: đổi cuộc là dựng lại. */}
+            {activeId && <AppRuns key={activeId} conversationId={activeId} />}
             {/* Đề xuất hoãn duyệt của lần chạy theo lịch (sửa file / nháp) — key: đổi cuộc là dựng lại. */}
             {activeId && <DeferredCards key={activeId} conversationId={activeId} />}
             <div ref={bottomRef} />
