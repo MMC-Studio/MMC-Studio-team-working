@@ -94,6 +94,9 @@ test('thẻ thư mục: hỏi trên thẻ, rồi cấp quyền sửa', async () 
   await expect(folder.getByTestId('approval-answer').first()).toContainText('Giải thích (giả lập) #1')
   await expect(folder.getByTestId('approval-answer').first()).toContainText('đọc + sửa')
 
+  // Trợ lý xin quyền sửa nhưng ô không tick sẵn — người dùng tự tick.
+  await expect(folder.getByTestId('folder-access-write')).not.toBeChecked()
+  await folder.getByTestId('folder-access-write').check()
   await folder.getByTestId('folder-access-choose').click()
   await expect(folder).toHaveCount(0, { timeout: 1_000 })
   await expect(page.getByTestId('code-bar')).toContainText('DuAn', { timeout: 1_000 })

@@ -342,6 +342,7 @@
     "suggested": "Trợ lý gợi ý:",
     "write": "Cho phép sửa file",
     "writeHint": "Mỗi lần sửa vẫn hiện diff để bạn Đồng ý / Từ chối. File nhị phân (.blend, .drp…) và thư mục tự sinh (Library/, .meta…) luôn bị chặn.",
+    "writeRuns": "Quyền sửa cũng cho phép trợ lý xin chạy {{apps}}.",
     "choose": "Chọn thư mục…",
     "deny": "Không cho phép",
     "pickAgain": "Bạn chưa chọn thư mục — bấm \"Chọn thư mục…\" lại, hoặc Không cho phép.",

@@ -87,6 +87,20 @@ export function AppRunRow({ program }: { program: AppProgram }) {
     <SettingRow
       id={id}
       htmlFor={`commands-${program}`}
+      label={
+        // Blender chưa được test với Blender thật → "Thử nghiệm" cho tới khi có người test (bỏ nhãn = bỏ dòng này).
+        program === 'blender' ? (
+          <span className="inline-flex items-center gap-2">
+            {t(`dialog.items.${id}.label`)}
+            <span
+              className="rounded bg-orange-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-orange-700 dark:text-orange-300"
+              data-testid="commands-blender-experimental"
+            >
+              {t('commands.experimental')}
+            </span>
+          </span>
+        ) : undefined
+      }
       control={
         <Switch
           id={`commands-${program}`}

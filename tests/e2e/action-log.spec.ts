@@ -85,7 +85,9 @@ test('chưa có thao tác: tab Quyền & riêng tư hiện nhật ký trống + 
 
 test('sửa file: Đồng ý → dòng "Sửa file · Đồng ý" kèm tên file và tên cuộc', async () => {
   await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Sửa file', write: true })}`)
-  await card('folder').getByTestId('folder-access-choose').click({ timeout: 20_000 })
+  // Ô "Cho phép sửa file" không tick sẵn (kể cả khi trợ lý xin quyền sửa) — người dùng tự tick.
+  await card('folder').getByTestId('folder-access-write').check({ timeout: 20_000 })
+  await card('folder').getByTestId('folder-access-choose').click()
   await expect(page.getByTestId('message-user').last()).toContainText('đã cấp quyền thư mục', { timeout: 20_000 })
   await send('FAKE_EDIT:ghi-chu.txt')
   await card('code').getByTestId('approval-accept').click({ timeout: 20_000 })

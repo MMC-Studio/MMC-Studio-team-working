@@ -311,7 +311,8 @@
     "unityNoVersion": "{{path}} — không đọc được phiên bản nên app sẽ chặn mọi lần chạy (cần so với phiên bản dự án). Chọn Unity.exe trong thư mục cài của Unity Hub.",
     "chooseExe": "Chọn {{exe}}…",
     "changeExe": "Đổi…",
-    "wrongName": "Cần chọn đúng file {{expected}}."
+    "wrongName": "Cần chọn đúng file {{expected}}.",
+    "experimental": "Thử nghiệm"
   },
   "actionLog": {
     "filterKind": "Lọc theo loại",

@@ -342,6 +342,7 @@
     "suggested": "Suggested:",
     "write": "Allow editing files",
     "writeHint": "Every edit still shows a diff for you to Accept / Reject. Binary files (.blend, .drp…) and generated folders (Library/, .meta…) are always blocked.",
+    "writeRuns": "Edit access also lets the assistant ask to run {{apps}}.",
     "choose": "Choose folder…",
     "deny": "Don't allow",
     "pickAgain": "No folder chosen — click \"Choose folder…\" again, or Don't allow.",

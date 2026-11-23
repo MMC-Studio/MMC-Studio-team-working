@@ -311,7 +311,8 @@
     "unityNoVersion": "{{path}} — could not read its version, so every run will be blocked (it must match the project version). Choose the Unity.exe inside the Unity Hub install folder.",
     "chooseExe": "Choose {{exe}}…",
     "changeExe": "Change…",
-    "wrongName": "Please choose the {{expected}} file."
+    "wrongName": "Please choose the {{expected}} file.",
+    "experimental": "Experimental"
   },
   "actionLog": {
     "filterKind": "Filter by type",

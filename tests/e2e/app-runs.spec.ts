@@ -101,7 +101,11 @@ test('chọn Unity.exe / blender.exe → hiện đường dẫn + phiên bản, 
   await expect(page.getByTestId('commands-blender-status')).toContainText('blender.exe', { timeout: 5_000 })
   await page.getByTestId('commands-blender-switch').check()
   await expect(page.getByTestId('commands-blender-switch')).toBeChecked({ timeout: 1_000 })
+  // Blender chưa được test với Blender thật → nhãn "Thử nghiệm"; Unity thì không.
+  await expect(page.getByTestId('commands-blender-experimental')).toHaveText('Thử nghiệm')
+  await expect(page.locator('[data-setting-id="commandsUnity"]')).not.toContainText('Thử nghiệm')
   await page.getByTestId('commands-unity-status').screenshot({ path: 'test-results/app-runs-settings.png' })
+  await page.locator('[data-setting-id="commandsBlender"]').screenshot({ path: 'test-results/app-runs-settings-blender.png' })
   await page.keyboard.press('Escape')
 })
 
@@ -109,6 +113,20 @@ test('thư mục CHỈ ĐỌC → không có tool chạy Unity / Blender', async
   await sendAndSettle(tool('run_unity', { method: 'BuildTools.Build' }))
   await expect(lastReply()).not.toContainText('KẾT QUẢ TOOL')
   await expect(card()).toHaveCount(0)
+})
+
+test('trợ lý xin quyền sửa: ô "Cho phép sửa file" KHÔNG tick sẵn, ghi rõ quyền sửa mở cả chạy Unity / Blender', async () => {
+  await send(`FAKE_TOOL:request_folder_access ${JSON.stringify({ reason: 'Cần sửa script build', write: true })}`)
+  const folder = page.getByTestId('folder-access')
+  await expect(folder).toBeVisible({ timeout: 20_000 })
+  await expect(folder.getByTestId('folder-access-write')).not.toBeChecked()
+  await expect(folder.getByTestId('folder-access-write-runs')).toHaveText('Quyền sửa cũng cho phép trợ lý xin chạy Unity / Blender.')
+  await folder.screenshot({ path: 'test-results/app-runs-folder-card.png' })
+  // Không cấp — thư mục vẫn chỉ đọc (bước sau tự bật quyền sửa trên thanh thư mục).
+  await folder.getByTestId('approval-reject').click()
+  await expect(folder).toHaveCount(0, { timeout: 1_000 })
+  await expect(page.getByRole('button', { name: 'Gửi' })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByTestId('code-bar').getByRole('checkbox')).not.toBeChecked()
 })
 
 test('bật quyền sửa + trợ lý sửa file C# → thẻ: cảnh báo to, lệnh, phiên bản, file C# vừa sửa; Chạy → log về trợ lý', async () => {

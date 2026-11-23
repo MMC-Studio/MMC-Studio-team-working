@@ -36,6 +36,7 @@ import { DiffView } from '@renderer/components/DiffView'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api'
+import { useSyncedState } from '@renderer/lib/sync'
 import { usePreferences } from '@renderer/stores/preferences'
 import { Markdown } from '../components/Markdown'
 import { useChat } from '../store'
@@ -172,8 +173,9 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [hint, setHint] = useState<string | null>(null)
-  // Thẻ thư mục: cho phép sửa hay không (mặc định theo điều trợ lý xin). Thẻ nháp: nội dung người dùng sửa.
-  const [write, setWrite] = useState(card.kind === 'folder' ? card.request.write : false)
+  // Thẻ thư mục: cho phép sửa hay không — luôn KHÔNG tick sẵn, kể cả khi trợ lý xin quyền sửa (người dùng tự chọn;
+  // quyền sửa còn mở cả chạy Unity / Blender). Thẻ nháp: nội dung người dùng sửa.
+  const [write, setWrite] = useState(false)
   const [body, setBody] = useState(card.kind === 'draft' ? card.request.body : '')
   const answering = card.qa.some((q) => q.status === 'answering')
   const limitReached = questionCount(card) >= APPROVAL_MAX_QUESTIONS
@@ -260,10 +262,18 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
         <>
           <RequestView kind="folder" request={card.request} />
           <label className="flex items-start gap-2">
-            <input type="checkbox" className="mt-0.5" checked={write} disabled={busy} onChange={(e) => setWrite(e.target.checked)} />
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={write}
+              disabled={busy}
+              onChange={(e) => setWrite(e.target.checked)}
+              data-testid="folder-access-write"
+            />
             <span>
               {t('folderAccess.write')}
               <span className="block text-xs text-muted-foreground">{t('folderAccess.writeHint')}</span>
+              <WriteRunsHint />
             </span>
           </label>
           {hint && <p className="text-xs text-orange-700 dark:text-orange-300">{hint}</p>}
@@ -573,4 +583,17 @@ function cardHeader(card: ApprovalCard, t: T, tc: T, ts: T): { icon: ReactNode; 
         title: card.request.program === 'git' ? t('command.title') : t(`command.titleApp.${card.request.program}`)
       }
   }
+}
+
+/** Dưới ô "Cho phép sửa file": khi Chạy Unity / Blender đang bật, quyền sửa cũng mở các tool đó (A2) — nói rõ. */
+function WriteRunsHint() {
+  const { t } = useTranslation('chat')
+  const { data } = useSyncedState('commands', () => api.commands.status())
+  const on = (['unity', 'blender'] as const).filter((p) => data?.apps[p].enabled && data.apps[p].path)
+  if (!on.length) return null
+  return (
+    <span className="mt-1 block text-xs text-orange-700 dark:text-orange-300" data-testid="folder-access-write-runs">
+      {t('folderAccess.writeRuns', { apps: on.map((p) => (p === 'unity' ? 'Unity' : 'Blender')).join(' / ') })}
+    </span>
+  )
 }
