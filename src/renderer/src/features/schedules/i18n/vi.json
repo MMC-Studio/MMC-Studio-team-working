@@ -251,6 +251,7 @@
     "expiresIn_one": "Hết hạn sau {{count}} ngày",
     "expiresIn_other": "Hết hạn sau {{count}} ngày",
     "expired": "Đã hết hạn (quá 7 ngày)",
+    "revoked": "Đã thu hồi quyền của lịch — không duyệt được nữa",
     "revised": "Đã yêu cầu sửa — xem đề xuất mới bên dưới",
     "done": "Đã xử lý",
     "createdAt": "Đề xuất lúc {{when}} — chưa có gì được ghi / tạo",
@@ -269,7 +270,8 @@
       "applied": "đã ghi",
       "rejected": "đã từ chối",
       "conflict": "không ghi",
-      "error": "không ghi"
+      "error": "không ghi",
+      "closed": "không ghi"
     },
     "fileError": {
       "changed": "File đã thay đổi sau khi đề xuất — không ghi để khỏi đè thay đổi của bạn. Nhờ trợ lý làm lại (Yêu cầu sửa).",

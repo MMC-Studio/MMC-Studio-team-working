@@ -36,6 +36,10 @@ export const IPC = {
   commandsRespond: 'commands:respond',
   /** Nhật ký thao tác (Cài đặt → Quyền & riêng tư). */
   actionLogList: 'actionLog:list',
+  /** Quyền đang cấp + thu hồi (Cài đặt → Quyền & riêng tư). */
+  privacyStatus: 'privacy:status',
+  privacyRevokeFolder: 'privacy:revokeFolder',
+  privacyRevokeScheduleGrant: 'privacy:revokeScheduleGrant',
   /** Kho plugin online (8a). */
   pluginStoreSources: 'pluginStore:sources',
   pluginStoreAddSource: 'pluginStore:addSource',

@@ -25,6 +25,7 @@ import { SettingRow, SettingsSection } from './rows'
 import { StyleNotes } from './StyleNotes'
 import { CommandsRow } from './CommandsRow'
 import { ActionLogSection } from './ActionLogSection'
+import { PrivacyGrants } from './PrivacyGrants'
 import { UpdateRows } from './UpdateSection'
 
 /** Nút "Mở" / "Quản lý" dẫn sang trang riêng của tính năng (cửa sổ Cài đặt tự đóng khi đổi trang). */
@@ -287,10 +288,16 @@ function ConnectionsTab() {
 }
 
 function PrivacyTab() {
+  const { t } = useTranslation('settings')
   return (
-    <SettingsSection>
-      <ActionLogSection />
-    </SettingsSection>
+    <>
+      <SettingsSection title={t('privacy.grantsTitle')}>
+        <PrivacyGrants />
+      </SettingsSection>
+      <SettingsSection title={t('privacy.logTitle')}>
+        <ActionLogSection />
+      </SettingsSection>
+    </>
   )
 }
 

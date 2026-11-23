@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, notInArra
 import type {
   Schedule,
   ScheduleInput,
+  ScheduleGrants,
   ScheduleRun,
   ScheduleRunReason,
   ScheduleRunStatus,
@@ -110,6 +111,11 @@ export class ScheduleRepository {
   get(id: string, owner = this.getOwner()): Schedule | null {
     const r = this.db.select({ row: schedules, unseen: unseenCount }).from(schedules).where(this.mine(id, owner)).get()
     return r ? toSchedule(r.row, r.unseen) : null
+  }
+
+  /** Thu hồi quyền (Quyền & riêng tư): chỉ đổi quyền, không đổi giờ hẹn. Bỏ bớt quyền nên không cần xác nhận. */
+  setGrants(id: string, grants: ScheduleGrants): boolean {
+    return this.db.update(schedules).set({ grants, updatedAt: Date.now() }).where(this.mine(id)).run().changes > 0
   }
 
   /** Chủ của lịch (nội bộ: thông báo bấm vào → đúng tài khoản). */

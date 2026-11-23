@@ -61,6 +61,14 @@ File này **tự lớn lên theo thời gian**. Người hoặc AI sửa lỗi x
 
 **Vì sao.** Trang MCP server từng mở cùng lúc form "Thêm server thủ công" và form nhập token → người dùng điền token nhầm vào form thêm mới (#45).
 
+### 1.3. Thêm trạng thái "đã khép" cho thẻ → mọi dòng con phải theo
+
+**Quy tắc.** Khi thêm một trạng thái làm thẻ hết duyệt được (thu hồi, hết hạn, đã yêu cầu sửa…), rà mọi nhãn **bên trong** thẻ (từng file, từng nháp, nút, bộ đếm): nhãn con tính từ trạng thái thẻ cha, không chỉ từ trạng thái riêng của dòng. Dòng "chờ duyệt" trong thẻ đã khép phải đổi thành nhãn đúng (vd "không ghi"). Test kiểm cả nhãn con, không chỉ nhãn của thẻ.
+
+**Vì sao.** #52 thêm trạng thái `revoked` cho thẻ hoãn duyệt: tiêu đề thẻ ghi "Đã thu hồi…" nhưng từng file bên trong vẫn "chờ duyệt" (thẻ hết hạn cũng bị y vậy từ trước) — phát hiện khi test tay.
+
+**Mẫu có sẵn.** `FileRow` trong `src/renderer/src/features/schedules/components/DeferredCards.tsx` (`shown = !open && pending ? 'closed' : status`); e2e "thu hồi quyền của lịch" trong `tests/e2e/schedules-deferred.spec.ts`.
+
 ---
 
 ## 2. Quyền & an toàn

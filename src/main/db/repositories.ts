@@ -287,6 +287,17 @@ export class ConversationRepository {
   }
 
   /** Chọn thư mục dự án mới → tắt quyền sửa (phải bật lại cho thư mục mới). null = gỡ thư mục (thu hồi quyền). */
+  /** Cuộc (của tài khoản này) đang có thư mục — trang Quyền & riêng tư. Mới dùng gần đây trước. */
+  withFolder(): { conversationId: string; title: string; path: string; write: boolean }[] {
+    return this.db
+      .select({ id: conversations.id, title: conversations.title, cwd: conversations.cwd, write: conversations.codeWrite })
+      .from(conversations)
+      .where(and(eq(conversations.owner, this.getOwner()), isNotNull(conversations.cwd)))
+      .orderBy(desc(conversations.updatedAt))
+      .all()
+      .map((r) => ({ conversationId: r.id, title: r.title, path: r.cwd!, write: r.write }))
+  }
+
   setCwd(id: string, cwd: string | null): Conversation | null {
     const row = this.db.update(conversations).set({ cwd, codeWrite: false }).where(this.mine(id)).returning().get()
     return row ? toConversation(row) : null

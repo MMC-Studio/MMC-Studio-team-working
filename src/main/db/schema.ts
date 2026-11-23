@@ -146,7 +146,7 @@ export const deferredApprovals = sqliteTable(
     runId: text('run_id'),
     kind: text('kind').$type<'changeset' | 'draft'>().notNull(),
     payload: text('payload', { mode: 'json' }).notNull(),
-    status: text('status').$type<'pending' | 'done' | 'expired' | 'revised'>().notNull().default('pending'),
+    status: text('status').$type<'pending' | 'done' | 'expired' | 'revised' | 'revoked'>().notNull().default('pending'),
     qa: text('qa', { mode: 'json' }).$type<{ question: string; answer: string; status: 'answering' | 'done' | 'error' }[]>().notNull().default([]),
     createdAt: integer('created_at').notNull(),
     expiresAt: integer('expires_at').notNull(),

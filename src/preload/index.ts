@@ -55,6 +55,11 @@ const api: TeamWorkingApi = {
   actionLog: {
     list: (query) => ipcRenderer.invoke(IPC.actionLogList, query)
   },
+  privacy: {
+    status: () => ipcRenderer.invoke(IPC.privacyStatus),
+    revokeFolder: (conversationId) => ipcRenderer.invoke(IPC.privacyRevokeFolder, { conversationId }),
+    revokeScheduleGrant: (scheduleId, key) => ipcRenderer.invoke(IPC.privacyRevokeScheduleGrant, { scheduleId, key })
+  },
   commands: {
     status: () => ipcRenderer.invoke(IPC.commandsStatus),
     setSettings: (settings) => ipcRenderer.invoke(IPC.commandsSetSettings, settings),

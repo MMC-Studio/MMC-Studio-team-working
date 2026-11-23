@@ -203,6 +203,9 @@ test('quá 7 ngày → thẻ hết hạn, không còn nút duyệt', async () =>
   await expect(page.locator('[data-testid="deferred-card"][data-status="expired"]').first().getByTestId('deferred-state')).toHaveText('Đã hết hạn (quá 7 ngày)')
   await expect(page.getByTestId('deferred-file-approve')).toHaveCount(0)
   await expect(page.getByTestId('deferred-draft-approve')).toHaveCount(0)
+  // File chưa ghi trong thẻ đã khép không còn ghi "chờ duyệt".
+  const expiredFiles = page.locator('[data-testid="deferred-card"][data-status="expired"] [data-testid="deferred-file-status"]')
+  await expect(expiredFiles.filter({ hasText: 'chờ duyệt' })).toHaveCount(0)
 })
 
 test('ảnh sáng / tối 900 / 1280px', async () => {
@@ -228,4 +231,30 @@ test('ảnh sáng / tối 900 / 1280px', async () => {
   }
   await page.getByTestId('theme-toggle').click()
   void advanced
+})
+
+test('thu hồi quyền của lịch (Quyền & riêng tư) → thẻ "Đã thu hồi…", file "không ghi", không còn nút duyệt; số chờ duyệt không đếm thẻ đã thu hồi', async () => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820))
+  // Lần chạy ở test trước để lại 1 bộ thay đổi + 2 nháp đang chờ.
+  await openSchedules()
+  await expect(row('Dọn dẹp').getByTestId('schedule-pending')).toHaveText('3 chờ duyệt', FAST)
+  const id = await page.evaluate(async () => (await window.api.schedules.list()).find((x) => x.name === 'Dọn dẹp')!.id)
+  await page.evaluate((sid) => window.api.privacy.revokeScheduleGrant(sid, 'folder'), id)
+  await expect(row('Dọn dẹp').getByTestId('schedule-pending')).toHaveText('2 chờ duyệt', FAST)
+  await openLastRun('Dọn dẹp')
+  const revoked = page.locator('[data-testid="deferred-card"][data-kind="changeset"][data-status="revoked"]').last()
+  await expect(revoked.getByTestId('deferred-state')).toHaveText('Đã thu hồi quyền của lịch — không duyệt được nữa', FAST)
+  const statuses = revoked.getByTestId('deferred-file-status')
+  await expect(statuses).toHaveText(['không ghi', 'không ghi'])
+  await expect(revoked.getByTestId('deferred-file-approve')).toHaveCount(0)
+  await revoked.scrollIntoViewIfNeeded()
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((dark) => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+    await revoked.screenshot({ path: `test-results/deferred-revoked-${theme}.png` })
+  }
+  await page.evaluate(() => document.documentElement.classList.remove('dark'))
+  // Thu hồi nốt quyền soạn nháp → không còn gì chờ duyệt: số "chờ duyệt" trên lịch biến mất.
+  await page.evaluate((sid) => window.api.privacy.revokeScheduleGrant(sid, 'drafts'), id)
+  await openSchedules()
+  await expect(row('Dọn dẹp').getByTestId('schedule-pending')).toHaveCount(0, FAST)
 })

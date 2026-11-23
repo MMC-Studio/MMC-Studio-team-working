@@ -253,6 +253,26 @@
         "description": "Bấm X thì app ẩn xuống khay (góc phải thanh tác vụ) để lịch hẹn vẫn chạy. Chỉ có khi lịch hẹn đang bật.",
         "keywords": "khay tray thu nho an dong cua so"
       },
+      "grantFolders": {
+        "label": "Thư mục theo cuộc trò chuyện",
+        "description": "Cuộc nào đang cho trợ lý đọc (hoặc đọc + sửa) thư mục. Thu hồi = gỡ thư mục khỏi cuộc, huỷ mọi thẻ đang chờ và dừng lệnh / lượt trả lời đang chạy của cuộc đó.",
+        "keywords": "thu hoi quyen thu muc doc sua code cuoc tro chuyen go thu muc"
+      },
+      "grantGit": {
+        "label": "Lệnh git (chỉ đọc)",
+        "description": "Công tắc chung cho mọi cuộc có thư mục — đổi ở Khả năng. Mỗi lần chạy vẫn phải bấm duyệt.",
+        "keywords": "lenh git quyen trang thai"
+      },
+      "grantSchedules": {
+        "label": "Quyền của lịch hẹn",
+        "description": "Quyền chốt lúc tạo từng lịch. Thu hồi một quyền = lưu ngay, dừng lần chạy đang dùng nó và đóng thẻ hoãn duyệt còn chờ dựa trên quyền đó.",
+        "keywords": "lich hen quyen thu hoi thu muc gmail telegram nhap"
+      },
+      "grantConnections": {
+        "label": "Gmail, Telegram, agent, MCP",
+        "description": "Chỉ hiện trạng thái — bật / tắt, gỡ và \"luôn cho phép\" quản lý ở trang Plugin.",
+        "keywords": "gmail telegram agent mcp ket noi plugin luon cho phep trang thai"
+      },
       "actionLog": {
         "label": "Nhật ký thao tác",
         "description": "Mỗi lần trợ lý xin chạy lệnh, sửa file, gọi tool MCP hay tạo nháp đều được ghi lại kèm quyết định. Chỉ lưu trên máy này, giữ 90 ngày, chỉ ghi tên file / lệnh / tool — không ghi nội dung.",
@@ -292,6 +312,36 @@
       "stopped": "Đã dừng",
       "blocked": "App chặn",
       "auto": "Tự duyệt"
+    }
+  },
+  "privacy": {
+    "grantsTitle": "Quyền đang cấp",
+    "logTitle": "Nhật ký",
+    "noFolders": "Không cuộc nào đang có thư mục.",
+    "noSchedules": "Không lịch hẹn nào có quyền.",
+    "readOnly": "Chỉ đọc",
+    "readWrite": "Đọc + sửa",
+    "revoke": "Thu hồi",
+    "revokeFolder": "Thu hồi thư mục của cuộc \"{{title}}\"",
+    "revokeGrant": "Thu hồi: {{grant}}",
+    "scheduleOff": "đang tắt",
+    "changeInCapabilities": "Đổi ở Khả năng",
+    "openPlugins": "Mở trang Plugin",
+    "on": "Đang bật",
+    "off": "Đang tắt",
+    "alwaysAllowed": "luôn cho phép: {{tools}}",
+    "grantKinds": {
+      "folder": "Đọc thư mục {{value}}",
+      "folderWrite": "Đề xuất sửa file",
+      "gmail": "Đọc Gmail {{value}}",
+      "telegram": "Đọc Telegram",
+      "drafts": "Soạn nháp"
+    },
+    "connections": {
+      "gmail": "Gmail",
+      "telegram": "Telegram",
+      "agents": "Agent ghép đôi",
+      "mcp": "MCP server"
     }
   }
 }

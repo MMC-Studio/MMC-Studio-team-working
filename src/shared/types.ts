@@ -2,6 +2,7 @@ import type { ApprovalAskResult, ApprovalCard, ApprovalDelta } from './approvals
 import type { SyncTopic } from './sync'
 import type { CommandDecision, CommandsSettings, CommandsStatus } from './commands'
 import type { ActionLogPage, ActionLogQuery } from './actionLog'
+import type { PrivacyStatus, ScheduleGrantKey } from './privacy'
 import type { Project, ProjectAddFilesResult, ProjectDeleteInfo, ProjectDetail, ProjectUpdate } from './projects'
 import type {
   Schedule,
@@ -312,6 +313,13 @@ export interface TeamWorkingApi {
   /** Nhật ký thao tác cần quyền (chỉ trên máy, 90 ngày, không nội dung). */
   actionLog: {
     list(query: ActionLogQuery): Promise<ActionLogPage>
+  }
+  /** Quyền trợ lý đang có. Thu hồi = huỷ thẻ đang chờ + dừng lệnh / lượt / lần chạy đang dùng quyền đó. */
+  privacy: {
+    status(): Promise<PrivacyStatus>
+    /** false = cuộc không có thư mục (đã gỡ ở nơi khác). */
+    revokeFolder(conversationId: string): Promise<boolean>
+    revokeScheduleGrant(scheduleId: string, key: ScheduleGrantKey): Promise<boolean>
   }
   commands: {
     status(): Promise<CommandsStatus>

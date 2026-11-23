@@ -74,6 +74,8 @@ function Shell({ card, icon, title, children }: { card: DeferredCard; icon: Reac
             ? t('deferred.expiresIn', { count: days })
             : card.status === 'expired'
               ? t('deferred.expired')
+              : card.status === 'revoked'
+                ? t('deferred.revoked')
               : card.status === 'revised'
                 ? t('deferred.revised')
                 : t('deferred.done')}
@@ -131,8 +133,11 @@ function FileRow({ file: f, open, onApprove, onReject }: { file: DeferredFile; o
   const [show, setShow] = useState(f.status === 'pending')
   const Chevron = show ? ChevronDown : ChevronRight
   const actionable = open && f.status !== 'applied' && f.status !== 'rejected'
+  // Thẻ đã khép (thu hồi quyền / hết hạn / đã yêu cầu sửa): file chưa ghi sẽ không bao giờ được ghi → "không ghi",
+  // không còn "chờ duyệt".
+  const shown = !open && f.status === 'pending' ? 'closed' : f.status
   return (
-    <li className="space-y-2 px-3 py-2" data-testid="deferred-file" data-path={f.path} data-status={f.status}>
+    <li className="space-y-2 px-3 py-2" data-testid="deferred-file" data-path={f.path} data-status={f.status} data-shown={shown}>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" className="flex min-w-0 items-center gap-1.5 text-left" onClick={() => setShow(!show)} aria-expanded={show}>
           <Chevron className="size-3.5 shrink-0" />
@@ -144,8 +149,18 @@ function FileRow({ file: f, open, onApprove, onReject }: { file: DeferredFile; o
         <span className="text-xs text-green-600">+{f.added}</span>
         <span className="text-xs text-red-600">−{f.removed}</span>
         {f.versions > 1 && <span className="rounded-full bg-muted px-2 text-xs text-muted-foreground">{t('deferred.version', { n: f.versions })}</span>}
-        <span className={cn('ml-auto text-xs', f.status === 'applied' ? 'text-green-700 dark:text-green-400' : f.status === 'pending' ? 'text-muted-foreground' : 'text-orange-700 dark:text-orange-300')} data-testid="deferred-file-status">
-          {t(`deferred.fileStatus.${f.status}`)}
+        <span
+          className={cn(
+            'ml-auto text-xs',
+            shown === 'applied'
+              ? 'text-green-700 dark:text-green-400'
+              : shown === 'pending' || shown === 'closed'
+                ? 'text-muted-foreground'
+                : 'text-orange-700 dark:text-orange-300'
+          )}
+          data-testid="deferred-file-status"
+        >
+          {t(`deferred.fileStatus.${shown}`)}
         </span>
         {actionable && (
           <>
