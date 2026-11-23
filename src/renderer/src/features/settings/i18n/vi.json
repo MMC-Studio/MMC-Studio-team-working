@@ -138,6 +138,7 @@
       "ai": "Trò chuyện & AI",
       "capabilities": "Khả năng",
       "connections": "Kết nối",
+      "privacy": "Quyền & riêng tư",
       "updates": "Cập nhật",
       "support": "Hỗ trợ"
     },
@@ -251,6 +252,11 @@
         "label": "Ẩn xuống khay khi đóng cửa sổ",
         "description": "Bấm X thì app ẩn xuống khay (góc phải thanh tác vụ) để lịch hẹn vẫn chạy. Chỉ có khi lịch hẹn đang bật.",
         "keywords": "khay tray thu nho an dong cua so"
+      },
+      "actionLog": {
+        "label": "Nhật ký thao tác",
+        "description": "Mỗi lần trợ lý xin chạy lệnh, sửa file, gọi tool MCP hay tạo nháp đều được ghi lại kèm quyết định. Chỉ lưu trên máy này, giữ 90 ngày, chỉ ghi tên file / lệnh / tool — không ghi nội dung.",
+        "keywords": "nhat ky lich su thao tac quyen rieng tu sua file lenh git mcp nhap gmail telegram duyet tu choi log audit"
       }
     }
   },
@@ -258,5 +264,33 @@
     "gitAt": "git: {{path}} ({{version}})",
     "gitNotFound": "Không tìm thấy git trên máy (cần cài Git for Windows).",
     "gitTooOld": "git {{version}} quá cũ — cần cập nhật Git (bản có tuỳ chọn --attr-source)."
+  },
+  "actionLog": {
+    "filterKind": "Lọc theo loại",
+    "filterConversation": "Lọc theo cuộc trò chuyện",
+    "allKinds": "Mọi loại",
+    "allConversations": "Mọi cuộc trò chuyện",
+    "search": "Tìm tên file, lệnh, tool…",
+    "empty": "Chưa có thao tác nào. Khi trợ lý xin sửa file, chạy lệnh, gọi tool MCP hay tạo nháp, mỗi lần sẽ hiện ở đây.",
+    "noMatch": "Không có thao tác nào khớp bộ lọc.",
+    "more": "Xem thêm ({{count}})",
+    "untitled": "Cuộc chưa đặt tên",
+    "deletedConversation": "Cuộc đã xoá",
+    "open": "Mở cuộc trò chuyện",
+    "exitCode": "mã thoát {{code}}",
+    "kinds": {
+      "command": "Lệnh",
+      "file_edit": "Sửa file",
+      "mcp": "Tool MCP",
+      "draft": "Nháp"
+    },
+    "decisions": {
+      "approved": "Đồng ý",
+      "rejected": "Từ chối",
+      "timeout": "Hết hạn",
+      "stopped": "Đã dừng",
+      "blocked": "App chặn",
+      "auto": "Luôn cho phép"
+    }
   }
 }

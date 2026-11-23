@@ -142,7 +142,8 @@ import { registerSchedulesIpc } from './ipc/schedules'
 import { registerCommandsIpc } from './ipc/commands'
 import { CommandService } from './commands/service'
 import { findGit, probeGit, type GitInfo } from './commands/gitEnv'
-import { ActionLogRepository } from './audit/actionLog'
+import { ActionLogRepository, type ActionLogEntry } from './audit/actionLog'
+import { registerActionLogIpc } from './ipc/actionLog'
 import { commandsSettingsSchema, DEFAULT_COMMANDS_SETTINGS, type CommandsSettings } from '@shared/commands'
 import { registerPluginStoreIpc } from './ipc/pluginStore'
 import { GitHubClient } from './pluginStore/github'
@@ -274,6 +275,16 @@ async function bootstrap(): Promise<void> {
   // Đồng bộ trạng thái toàn app: mọi thay đổi (IPC có `changes`, ghi settings, việc nền) → sync:changed.
   const sync = new StateSync((topics) => mainWindow?.webContents.send(IPC.syncChanged, topics))
   settings.onChange = (key) => sync.settingsChanged(key)
+  // Nhật ký thao tác cần quyền (lệnh, sửa file, MCP, nháp) — chỉ trên máy, theo tài khoản, giữ 90 ngày.
+  const actionLog = new ActionLogRepository(db, getOwner)
+  actionLog.onChange = () => sync.changed('actionLog')
+  const recordAction = (entry: ActionLogEntry): void => {
+    try {
+      actionLog.add(entry)
+    } catch (err) {
+      log.warn(`Ghi nhật ký thao tác lỗi: ${String(err)}`)
+    }
+  }
   scope = new AccountScope({ memories, conversations, settings })
   const accountScope = scope
   const interrupted = messages.markInterrupted()
@@ -293,7 +304,8 @@ async function bootstrap(): Promise<void> {
   const mcpApprovals = new McpApprovals({
     store: mcpStore,
     emit: (req) => mainWindow?.webContents.send(IPC.mcpApprovalEvent, req),
-    log
+    log,
+    record: recordAction
   })
   // MCP server HTTP cài từ kho plugin (8b): CLI đi qua proxy cục bộ — header bí mật chỉ tới đúng tên miền đã duyệt,
   // danh sách tool đổi → tự tắt server. Dùng fetch của Node (redirect: 'manual' trả đúng mã 3xx để kiểm tên miền).
@@ -357,7 +369,8 @@ async function bootstrap(): Promise<void> {
     closed: (id) => approvalHub.remove(id),
     mcpApproval: (conversationId, toolName, input) =>
       mcpApprovals.request(conversationId, toolName, input),
-    log
+    log,
+    record: recordAction
   })
   await approvals.start()
   app.on('before-quit', () => approvals.stop())
@@ -488,7 +501,8 @@ async function bootstrap(): Promise<void> {
       approvalHub.add({ id: request.id, conversationId, kind: 'draft', request }, () => draftApprovals.touch(request.id))
       flashForApproval()
     },
-    log
+    log,
+    record: recordAction
   })
   const connectorLimiter = new RateLimiter(() => 60)
   // Lần chạy theo lịch hẹn: cuộc trò chuyện → tài khoản Gmail lịch được đọc (chỉ trong lúc chạy).
@@ -844,7 +858,6 @@ async function bootstrap(): Promise<void> {
   scheduleProposals.registerTools(tools)
   app.on('before-quit', () => scheduleProposals.cancelAll())
   // ---- Chạy lệnh theo danh sách cho phép (A1: git chỉ đọc), mặc định tắt, duyệt từng lần, ghi nhật ký. ----
-  const actionLog = new ActionLogRepository(db, getOwner)
   try {
     const pruned = actionLog.prune()
     if (pruned) log.info(`Nhật ký thao tác: dọn ${pruned} mục quá 90 ngày`)
@@ -870,13 +883,7 @@ async function bootstrap(): Promise<void> {
       )
       flashForApproval()
     },
-    log: (entry) => {
-      try {
-        actionLog.add(entry)
-      } catch (err) {
-        log.warn(`Ghi nhật ký thao tác lỗi: ${String(err)}`)
-      }
-    },
+    log: recordAction,
     killSwitch,
     logger: log
   })
@@ -886,6 +893,7 @@ async function bootstrap(): Promise<void> {
   const legacyTitles = organizer.fixLegacyTitles()
   if (legacyTitles) log.info(`Sửa ${legacyTitles} tiêu đề chat dạng lệnh tạo artifact`)
   const chat = new ChatService({
+    onAutoTool: (conversationId, toolName) => mcpApprovals.recordAuto(conversationId, toolName),
     conversations,
     messages,
     getProvider,
@@ -1042,7 +1050,8 @@ async function bootstrap(): Promise<void> {
       sync.changed('deferred')
       sync.changed('schedules')
     },
-    log
+    log,
+    record: recordAction
   })
   deferred.registerTools(tools)
   app.on('before-quit', () => deferred.cancelAll())
@@ -1291,6 +1300,7 @@ async function bootstrap(): Promise<void> {
     }
   })
   registerConnectorsIpc({ handle, gmail, telegram, approvals: draftApprovals, hub: approvalHub })
+  registerActionLogIpc({ handle, repo: actionLog })
   registerCommandsIpc({
     handle,
     service: commandService,

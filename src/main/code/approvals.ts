@@ -3,7 +3,9 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { APP_NAME } from '@shared/appConfig'
 import type { CodeApprovalRequest } from '@shared/types'
+import type { ActionLogDecision } from '@shared/actionLog'
 import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
+import type { RecordAction } from '../audit/actionLog'
 import { describeChange } from './change'
 
 export type ApprovalDeps = {
@@ -15,11 +17,19 @@ export type ApprovalDeps = {
   /** Duyệt lần gọi tool của MCP server người dùng thêm (mcp__<server>__<tool>). */
   mcpApproval?(conversationId: string, toolName: string, input: unknown): Promise<Decision>
   log: { warn(msg: string): void }
+  /** Nhật ký thao tác (chỉ đường dẫn file, không nội dung). */
+  record?: RecordAction
   timer?: ApprovalTimerOptions
 }
 
 export type Decision = { allow: boolean; message?: string }
-type Pending = { conversationId: string; resolve(d: Decision): void; timer: ApprovalTimer }
+type Pending = { conversationId: string; path: string; resolve(d: Decision): void; timer: ApprovalTimer }
+
+/** Đường dẫn trợ lý đưa (để ghi nhật ký khi bị chặn trước khi có diff). */
+function inputPath(input: unknown): string {
+  const p = input && typeof input === 'object' ? (input as { file_path?: unknown }).file_path : undefined
+  return typeof p === 'string' && p ? p : '?'
+}
 
 const MAX_BODY = 5 * 1024 * 1024
 
@@ -92,11 +102,15 @@ export class CodeApprovals {
       return this.deps.mcpApproval ? this.deps.mcpApproval(conversationId, toolName, input) : { allow: false, message: 'Không duyệt được tool này.' }
     }
     const root = this.deps.writableRoot(conversationId)
-    if (!root) return { allow: false, message: 'Chế độ sửa file đang tắt.' }
+    if (!root) {
+      this.write(conversationId, inputPath(input), 'blocked', 'write_disabled')
+      return { allow: false, message: 'Chế độ sửa file đang tắt.' }
+    }
 
     const change = await describeChange(root, toolName, input)
     if ('error' in change) {
       this.deps.log.warn(`Từ chối tự động ${toolName}: ${change.error}`)
+      this.write(conversationId, inputPath(input), 'blocked', change.error)
       if (change.error === 'protected_path') return { allow: false, message: `Không được sửa file này. ${change.reason}` }
       const reasons = {
         outside_project: 'Chỉ được sửa file trong thư mục dự án đã chọn.',
@@ -110,18 +124,30 @@ export class CodeApprovals {
 
     const id = randomUUID()
     return new Promise<Decision>((resolve) => {
-      const timer = new ApprovalTimer(() => this.settle(id, { allow: false, message: 'Hết thời gian chờ người dùng duyệt.' }), this.deps.timer)
-      this.pending.set(id, { conversationId, resolve, timer })
+      const timer = new ApprovalTimer(
+        () => this.settle(id, { allow: false, message: 'Hết thời gian chờ người dùng duyệt.' }, 'timeout'),
+        this.deps.timer
+      )
+      this.pending.set(id, { conversationId, path: change.path, resolve, timer })
       this.deps.emit({ id, conversationId, toolName, change })
     })
   }
 
-  private settle(id: string, decision: Decision): boolean {
+  private write(conversationId: string, path: string, decision: ActionLogDecision, detail?: string): void {
+    try {
+      this.deps.record?.({ conversationId: conversationId || null, kind: 'file_edit', target: path, decision, detail })
+    } catch (err) {
+      this.deps.log.warn(`Ghi nhật ký sửa file lỗi: ${String(err)}`)
+    }
+  }
+
+  private settle(id: string, decision: Decision, outcome: ActionLogDecision): boolean {
     const p = this.pending.get(id)
     if (!p) return false
     p.timer.clear()
     this.pending.delete(id)
     this.deps.closed?.(id)
+    this.write(p.conversationId, p.path, outcome)
     p.resolve(decision)
     return true
   }
@@ -135,16 +161,18 @@ export class CodeApprovals {
 
   /** Người dùng bấm Đồng ý / Từ chối (có thể kèm góp ý). */
   respond(id: string, allow: boolean, feedback?: string): boolean {
-    return this.settle(id, allow ? { allow: true } : { allow: false, message: rejectMessage(feedback) })
+    return allow
+      ? this.settle(id, { allow: true }, 'approved')
+      : this.settle(id, { allow: false, message: rejectMessage(feedback) }, 'rejected')
   }
 
   /** Dừng phản hồi / tắt quyền sửa → từ chối mọi yêu cầu đang chờ của hội thoại. */
   cancelConversation(conversationId: string): void {
-    for (const [id, p] of this.pending) if (p.conversationId === conversationId) this.settle(id, { allow: false, message: 'Đã dừng.' })
+    for (const [id, p] of this.pending) if (p.conversationId === conversationId) this.settle(id, { allow: false, message: 'Đã dừng.' }, 'stopped')
   }
 
   stop(): void {
-    for (const id of [...this.pending.keys()]) this.settle(id, { allow: false, message: 'App đang đóng.' })
+    for (const id of [...this.pending.keys()]) this.settle(id, { allow: false, message: 'App đang đóng.' }, 'stopped')
     this.server?.close()
     this.server = null
   }

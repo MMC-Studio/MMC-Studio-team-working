@@ -44,6 +44,14 @@ function killTree(child: ChildProcessWithoutNullStreams): void {
   }
 }
 
+/**
+ * Tool nằm trong `--allowedTools` của lượt (MCP ngoài đã "luôn cho phép") được CLI chạy luôn, không qua bước duyệt
+ * của app → đánh dấu `auto` để ghi nhật ký thao tác.
+ */
+export function markAutoAllowed(event: ChatEvent, autoAllowed: ReadonlySet<string>): ChatEvent {
+  return event.type === 'tool' && autoAllowed.has(event.name) ? { ...event, auto: true } : event
+}
+
 export class ClaudeCliProvider implements AIProvider {
   readonly id = 'claude-cli'
   readonly stateful = true
@@ -174,9 +182,11 @@ export class ClaudeCliProvider implements AIProvider {
     child.stdin.end(prompt, 'utf8')
 
     try {
+      // Tool MCP ngoài đã "luôn cho phép" trong lượt này: CLI chạy luôn, không hỏi app → đánh dấu để ghi nhật ký (auto).
+      const autoAllowed = new Set(external?.allowedTools ?? [])
       for await (const event of queue) {
         if (signal.aborted) break
-        yield event
+        yield markAutoAllowed(event, autoAllowed)
       }
     } finally {
       signal.removeEventListener('abort', onAbort)

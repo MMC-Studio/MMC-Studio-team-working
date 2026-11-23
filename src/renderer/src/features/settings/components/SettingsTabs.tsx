@@ -24,6 +24,7 @@ import { AiConnectionRows, AutoSuggestRow, OrganizeRows } from './AiSection'
 import { SettingRow, SettingsSection } from './rows'
 import { StyleNotes } from './StyleNotes'
 import { CommandsRow } from './CommandsRow'
+import { ActionLogSection } from './ActionLogSection'
 import { UpdateRows } from './UpdateSection'
 
 /** Nút "Mở" / "Quản lý" dẫn sang trang riêng của tính năng (cửa sổ Cài đặt tự đóng khi đổi trang). */
@@ -285,6 +286,14 @@ function ConnectionsTab() {
   )
 }
 
+function PrivacyTab() {
+  return (
+    <SettingsSection>
+      <ActionLogSection />
+    </SettingsSection>
+  )
+}
+
 function UpdatesTab() {
   return (
     <SettingsSection>
@@ -308,6 +317,7 @@ const TAB_CONTENT: Record<SettingsTab, ComponentType> = {
   ai: AiTab,
   capabilities: CapabilitiesTab,
   connections: ConnectionsTab,
+  privacy: PrivacyTab,
   updates: UpdatesTab,
   support: SupportTab
 }

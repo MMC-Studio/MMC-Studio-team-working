@@ -17,7 +17,7 @@ export type FakeEditDecider = (conversationId: string, toolName: string, input: 
 export type FakeToolCaller = (name: string, input: unknown, conversationId: string) => Promise<ToolResult>
 
 /** Cấu hình MCP ngoài của lượt (= thứ CLI nhận qua --mcp-config). */
-export type FakeExternalMcp = (conversationId: string) => { servers: Record<string, object> } | null
+export type FakeExternalMcp = (conversationId: string) => { servers: Record<string, object>; allowedTools?: string[] } | null
 
 /**
  * CHỈ cho test e2e ở bản chưa đóng gói (MMC_FAKE_CHAT=1): trả lời giả lập, không gọi Claude.
@@ -243,7 +243,8 @@ export class FakeChatProvider implements AIProvider {
     const mcpCall = /FAKE_MCP:([a-z0-9_-]+)\s+(\S+)\s+(\{.*\})/.exec(latest)
     if (mcpCall && req.externalMcp && this.decideEdit) {
       const conversationId = req.externalMcp.conversationId
-      const entry = this.externalMcp?.(conversationId)?.servers[mcpCall[1]] as { url?: string; headers?: Record<string, string> } | undefined
+      const external = this.externalMcp?.(conversationId)
+      const entry = external?.servers[mcpCall[1]] as { url?: string; headers?: Record<string, string> } | undefined
       if (!entry?.url) {
         yield { type: 'text', delta: `MCP: không có server ${mcpCall[1]} trong lượt này.` }
         yield { type: 'done' }
@@ -256,8 +257,10 @@ export class FakeChatProvider implements AIProvider {
         const tools = await client.listTools()
         yield { type: 'text', delta: `MCP tools: ${tools.tools.map((t) => t.name).join(', ')}\n` }
         const name = `mcp__${mcpCall[1]}__${mcpCall[2]}`
-        yield { type: 'tool', name, input }
-        const decision = await this.decideEdit(conversationId, name, input)
+        // Như CLI: tool đã "luôn cho phép" chạy luôn, không qua bước duyệt của app.
+        const auto = !!external?.allowedTools?.includes(name)
+        yield auto ? { type: 'tool', name, input, auto } : { type: 'tool', name, input }
+        const decision: { allow: boolean; message?: string } = auto ? { allow: true } : await this.decideEdit(conversationId, name, input)
         if (signal.aborted) return
         if (!decision.allow) {
           yield { type: 'text', delta: `MCP bị từ chối: ${decision.message ?? ''}` }

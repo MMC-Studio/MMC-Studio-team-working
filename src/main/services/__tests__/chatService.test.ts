@@ -52,9 +52,11 @@ describe('ChatService', () => {
   const makeService = (
     provider: AIProvider,
     appToolsFor?: (id: string) => { names: string[]; context: string } | null,
-    projectPromptFor?: (conversationId: string) => string
+    projectPromptFor?: (conversationId: string) => string,
+    onAutoTool?: (conversationId: string, toolName: string) => void
   ): ChatService =>
     new ChatService({
+      onAutoTool,
       appToolsFor,
       projectPromptFor,
       conversations: convs,
@@ -89,6 +91,22 @@ describe('ChatService', () => {
     emitted = []
   })
   afterEach(() => handle.close())
+
+  it('tool CLI tự chạy không qua duyệt (auto) → báo onAutoTool để ghi nhật ký; tool thường thì không', async () => {
+    const onAuto = vi.fn()
+    const provider = new FakeProvider(() =>
+      events(
+        { type: 'tool', name: 'mcp__notion__search', input: { q: 'x' }, auto: true },
+        { type: 'tool', name: 'mcp__notion__create', input: {} },
+        { type: 'text', delta: 'xong' },
+        { type: 'done' }
+      )
+    )
+    const conv = convs.create('free')
+    makeService(provider, undefined, undefined, onAuto).send(conv.id, 'tìm', [])
+    await waitForStatus(conv.id, 'done')
+    expect(onAuto.mock.calls).toEqual([[conv.id, 'mcp__notion__search']])
+  })
 
   describe('trả lời / ghim / thu hồi / sửa & gửi lại', () => {
     const ok = (): FakeProvider =>

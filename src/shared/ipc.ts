@@ -34,6 +34,8 @@ export const IPC = {
   commandsStatus: 'commands:status',
   commandsSetSettings: 'commands:setSettings',
   commandsRespond: 'commands:respond',
+  /** Nhật ký thao tác (Cài đặt → Quyền & riêng tư). */
+  actionLogList: 'actionLog:list',
   /** Kho plugin online (8a). */
   pluginStoreSources: 'pluginStore:sources',
   pluginStoreAddSource: 'pluginStore:addSource',

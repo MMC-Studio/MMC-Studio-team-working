@@ -20,6 +20,8 @@ import {
 import type { ScheduleGrants } from '@shared/schedules'
 import { insideProject, realInside, realRelative } from '../code/paths'
 import { detectProject, protectedReason } from '../code/projectProfile'
+import type { ActionLogEntry, RecordAction } from '../audit/actionLog'
+import { draftTarget } from '../connectors/approvals'
 import type { AppDatabase } from '../db/client'
 import { deferredApprovals, schedules } from '../db/schema'
 import { errorResult, type AppToolRegistry, type ToolResult } from '../tools/registry'
@@ -48,6 +50,9 @@ export type DraftPayload = {
   chatId: string | null
 }
 type Payload = ChangesetPayload | DraftPayload
+
+const deferredDraftTarget = (p: DraftPayload): string =>
+  draftTarget({ service: p.draft.service, account: p.draft.account ?? undefined, target: p.draft.recipients.join(', ') })
 type Row = typeof deferredApprovals.$inferSelect
 
 /** Lần chạy theo lịch đang diễn ra trong một cuộc (quyền của lịch, chốt lúc bắt đầu). */
@@ -77,6 +82,8 @@ export type DeferredDeps = {
   revise(input: { scheduleId: string; conversationId: string; note: string; summary: string }): 'queued' | 'disabled' | 'not_found'
   changed(): void
   log: { info(msg: string): void; warn(msg: string): void }
+  /** Nhật ký thao tác (detail `deferred` = duyệt sau, từ lần chạy theo lịch). */
+  record?: RecordAction
 }
 
 const sha = (buf: Buffer): string => createHash('sha256').update(buf).digest('hex')
@@ -372,6 +379,14 @@ export class DeferredService {
     return r
   }
 
+  private write(row: Row, entry: Omit<ActionLogEntry, 'conversationId'>): void {
+    try {
+      this.deps.record?.({ ...entry, conversationId: row.conversationId })
+    } catch (err) {
+      this.deps.log.warn(`Ghi nhật ký hoãn duyệt lỗi: ${String(err)}`)
+    }
+  }
+
   private save(row: Row, payload: Payload, extra: Partial<Row> = {}): void {
     let status = row.status
     if (payload.kind === 'changeset' && payload.files.every((f) => f.status === 'applied' || f.status === 'rejected')) status = 'done'
@@ -408,6 +423,7 @@ export class DeferredService {
       f.status = error ? (error === 'changed' || error === 'exists' ? 'conflict' : 'error') : 'applied'
       f.error = error
       this.deps.log.info(`Hoãn duyệt: ${f.path} → ${f.status}${error ? ` (${error})` : ''}`)
+      this.write(r.row, { kind: 'file_edit', target: f.path, decision: error ? 'blocked' : 'approved', detail: error ? `deferred: ${error}` : 'deferred' })
     }
     this.save(r.row, payload)
     return this.result(id)
@@ -444,7 +460,11 @@ export class DeferredService {
     const r = this.open(id, 'changeset')
     if (typeof r === 'string') return { status: 'error', error: r }
     const payload = r.row.payload as ChangesetPayload
-    for (const f of payload.files) if (f.status !== 'applied' && (!paths || paths.includes(f.path))) f.status = 'rejected'
+    for (const f of payload.files) {
+      if (f.status === 'applied' || f.status === 'rejected' || (paths && !paths.includes(f.path))) continue
+      f.status = 'rejected'
+      this.write(r.row, { kind: 'file_edit', target: f.path, decision: 'rejected', detail: 'deferred' })
+    }
     this.save(r.row, payload)
     return this.result(id)
   }
@@ -456,8 +476,10 @@ export class DeferredService {
     if (typeof r === 'string') return { status: 'error', error: r }
     const payload = r.row.payload as DraftPayload
     const grants = r.row.scheduleId ? this.deps.scheduleGrants(r.row.scheduleId) : null
+    const target = deferredDraftTarget(payload)
     if (!grants?.drafts) {
       payload.draft.error = 'no_permission'
+      this.write(r.row, { kind: 'draft', target, decision: 'blocked', detail: 'deferred: no_permission' })
       this.save(r.row, payload)
       return this.result(id)
     }
@@ -465,9 +487,10 @@ export class DeferredService {
     try {
       await this.deps.createDraft(payload, text)
       payload.draft = { ...payload.draft, body: text, error: null }
+      this.write(r.row, { kind: 'draft', target, decision: 'approved', detail: 'deferred' })
       this.save(r.row, payload, { status: 'done' })
     } catch (err) {
-      // Vd Gmail hết hạn đăng nhập: thẻ vẫn chờ, nhắc kết nối lại.
+      // Vd Gmail hết hạn đăng nhập: thẻ vẫn chờ, nhắc kết nối lại (không ghi nhật ký — chưa có nháp nào được tạo).
       payload.draft.error = (err as Error).message || 'draft_failed'
       this.save(r.row, payload)
     }
@@ -479,6 +502,7 @@ export class DeferredService {
     if (typeof r === 'string') return { status: 'error', error: r }
     const payload = r.row.payload as DraftPayload
     payload.draft.error = 'rejected'
+    this.write(r.row, { kind: 'draft', target: deferredDraftTarget(payload), decision: 'rejected', detail: 'deferred' })
     this.save(r.row, payload, { status: 'done' })
     return this.result(id)
   }

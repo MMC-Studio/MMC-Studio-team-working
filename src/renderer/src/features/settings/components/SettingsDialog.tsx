@@ -6,6 +6,7 @@ import {
   Plug,
   RefreshCw,
   Search,
+  ShieldCheck,
   Sparkles,
   X,
   type LucideIcon
@@ -24,6 +25,7 @@ const TAB_ICON: Record<SettingsTab, LucideIcon> = {
   ai: MessagesSquare,
   capabilities: Sparkles,
   connections: Plug,
+  privacy: ShieldCheck,
   updates: RefreshCw,
   support: LifeBuoy
 }

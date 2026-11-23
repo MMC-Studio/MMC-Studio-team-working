@@ -15,7 +15,8 @@ export type ChatEvent =
   /** Chỉ trong main: CLI vừa tóm tắt (compact) session — ngữ cảnh theo lượt đã gửi có thể mất, phải gửi lại. */
   | { type: 'compact' }
   | { type: 'text'; delta: string }
-  | { type: 'tool'; name: string; input: unknown }
+  /** `auto`: CLI chạy tool không hỏi app (MCP ngoài đã "luôn cho phép") — chỉ trong main, để ghi nhật ký. */
+  | { type: 'tool'; name: string; input: unknown; auto?: boolean }
   | { type: 'done'; usage?: ChatUsage }
   | { type: 'error'; message: string }
   /** Chỉ main → renderer: câu trả lời đã bỏ thẻ biểu cảm + GIF/sticker kèm theo. */

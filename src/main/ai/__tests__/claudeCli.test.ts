@@ -160,3 +160,13 @@ describe('buildCmdLine', () => {
     }
   })
 })
+
+describe('markAutoAllowed', () => {
+  it('chỉ đánh dấu tool nằm trong danh sách "luôn cho phép" của lượt', async () => {
+    const { markAutoAllowed } = await import('../ClaudeCliProvider')
+    const set = new Set(['mcp__notion__search'])
+    expect(markAutoAllowed({ type: 'tool', name: 'mcp__notion__search', input: {} }, set)).toMatchObject({ auto: true })
+    expect(markAutoAllowed({ type: 'tool', name: 'mcp__notion__create', input: {} }, set)).not.toHaveProperty('auto')
+    expect(markAutoAllowed({ type: 'text', delta: 'mcp__notion__search' }, set)).toEqual({ type: 'text', delta: 'mcp__notion__search' })
+  })
+})
