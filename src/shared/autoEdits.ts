@@ -23,9 +23,10 @@ export type AutoEditEndReason = (typeof AUTO_EDIT_END_REASONS)[number]
 /**
  * Vì sao một lần sửa vẫn phải hỏi (không có nút tự duyệt trên thẻ / phiên đang bật mà vẫn hiện thẻ):
  * risky = file có thể dẫn tới chạy lệnh (lý do cụ thể đi kèm), shrink = file còn ít hơn ½ so với bản gốc đầu phiên,
- * too_large = file > 2 MB (không giữ được bản gốc), hard_link = file có nhiều hard link, limit = phiên đã đủ 50 file.
+ * too_large = file > 2 MB (không giữ được bản gốc), hard_link = file có nhiều hard link, limit = phiên đã đủ 50 file,
+ * extra_folder = file ở thư mục phụ (D — tự duyệt chỉ ở thư mục chính).
  */
-export const AUTO_EDIT_ASK_REASONS = ['risky', 'shrink', 'too_large', 'hard_link', 'limit'] as const
+export const AUTO_EDIT_ASK_REASONS = ['risky', 'shrink', 'too_large', 'hard_link', 'limit', 'extra_folder'] as const
 export type AutoEditAskReason = (typeof AUTO_EDIT_ASK_REASONS)[number]
 
 /** Gắn vào thẻ sửa file: có hiện nút "Đồng ý, và không hỏi lại" không; nếu không thì vì sao. */

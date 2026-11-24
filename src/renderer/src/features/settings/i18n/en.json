@@ -400,6 +400,10 @@
       "telegram": "Telegram",
       "agents": "Paired agents",
       "mcp": "MCP servers"
-    }
+    },
+    "extraFolder": "Extra",
+    "readWriteAsk": "Read + edit (always asks)",
+    "revokeExtraFolder": "Revoke extra folder {{path}}",
+    "revokeFolderExtrasHint": "Revoking the main folder also removes the extra folders"
   }
 }

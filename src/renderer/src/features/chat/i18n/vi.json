@@ -73,7 +73,19 @@
     "reject": "Từ chối",
     "more": "còn {{count}} yêu cầu",
     "clearFolder": "Gỡ thư mục",
-    "clearFolderHint": "Thu hồi quyền: trợ lý không đọc/sửa thư mục này nữa"
+    "clearFolderHint": "Thu hồi quyền: trợ lý không đọc/sửa thư mục này nữa",
+    "clearFolderHintExtras": "Thu hồi quyền: trợ lý không đọc/sửa thư mục này nữa — gỡ luôn các thư mục phụ",
+    "extraLabel": "Phụ:",
+    "extraAdd": "Thư mục phụ ({{count}}/{{max}})",
+    "extraAddHint": "Cho trợ lý đọc thêm một thư mục khác (chỉ đọc; tự tick nếu muốn cho sửa)",
+    "extraFull": "Đã đủ {{max}} thư mục phụ — gỡ bớt một thư mục để thêm",
+    "extraWriteOn": "Được sửa (luôn hỏi)",
+    "extraWriteHint": "Cho phép trợ lý đề xuất sửa file trong thư mục phụ này — mỗi lần sửa luôn hỏi, kể cả khi đang tự duyệt",
+    "extraRemove": "Gỡ thư mục phụ {{name}}",
+    "extraRemoveHint": "Thu hồi: trợ lý không đọc/sửa thư mục này nữa (dừng lượt đang chạy)",
+    "extraEnableTitle": "Cho phép trợ lý sửa file trong thư mục phụ?",
+    "extraRule": "Thư mục phụ không bao giờ tự duyệt: mỗi lần sửa đều hiện thẻ để bạn duyệt.",
+    "extraFolderOfFile": "Thư mục phụ:"
   },
   "suggest": {
     "button": "Gợi ý ghi nhớ",
@@ -101,7 +113,18 @@
     "message_not_found": "Không tìm thấy tin nhắn để tách nhánh.",
     "pin_limit": "Mỗi cuộc trò chuyện chỉ ghim tối đa 5 tin — bỏ bớt một tin đã ghim trước.",
     "message_busy": "Đợi trợ lý trả lời xong rồi thử lại.",
-    "message_not_editable": "Không thao tác được trên tin này."
+    "message_not_editable": "Không thao tác được trên tin này.",
+    "extra_no_main": "Hãy chọn thư mục dự án (thư mục chính) trước khi thêm thư mục phụ.",
+    "extra_limit": "Mỗi cuộc chỉ có tối đa 3 thư mục phụ.",
+    "extra_missing": "Thư mục không tồn tại hoặc không mở được.",
+    "extra_drive_root": "Không được chọn cả một ổ đĩa làm thư mục phụ — hãy chọn một thư mục bên trong.",
+    "extra_system": "Không được chọn thư mục hệ thống (AppData, Windows, Program Files, ProgramData, dữ liệu của app) làm thư mục phụ.",
+    "extra_contains_system": "Thư mục này chứa thư mục hệ thống hoặc cả thư mục người dùng (vd C:\\Users) — hãy chọn một thư mục nhỏ hơn.",
+    "extra_overlap_main": "Thư mục này trùng, nằm trong hoặc chứa thư mục dự án — trợ lý đã đọc được nó rồi.",
+    "extra_overlap_extra": "Thư mục này trùng, nằm trong hoặc chứa một thư mục phụ khác.",
+    "extra_not_found": "Thư mục phụ không còn trong cuộc này.",
+    "folder_overlaps_extra": "Thư mục mới trùng, nằm trong hoặc chứa một thư mục phụ — gỡ thư mục phụ đó trước rồi đổi.",
+    "fork_extra_dropped": "Một số thư mục phụ không còn dùng được nên không chép sang nhánh."
   },
   "tools": {
     "screenshot": "chụp màn hình",
@@ -346,7 +369,9 @@
     "choose": "Chọn thư mục…",
     "deny": "Không cho phép",
     "pickAgain": "Bạn chưa chọn thư mục — bấm \"Chọn thư mục…\" lại, hoặc Không cho phép.",
-    "continue": "Mình đã cấp quyền thư mục rồi, bạn tiếp tục nhé."
+    "continue": "Mình đã cấp quyền thư mục rồi, bạn tiếp tục nhé.",
+    "titleExtra": "Trợ lý xin đọc thêm một thư mục phụ",
+    "extraHint": "Thư mục phụ được thêm ở chế độ chỉ đọc. Muốn cho sửa, tick \"Cho phép sửa\" của thư mục đó trên thanh thư mục — mỗi lần sửa vẫn hỏi."
   },
   "messages": {
     "reply": "Trả lời",
@@ -551,7 +576,8 @@
       "shrink": "Vẫn hỏi dù đang tự duyệt — file sẽ còn chưa tới một nửa so với bản trước phiên.",
       "too_large": "Vẫn hỏi dù đang tự duyệt — file lớn hơn 2 MB.",
       "hard_link": "Vẫn hỏi dù đang tự duyệt — file có nhiều hard link (sửa nó là sửa cả chỗ khác).",
-      "limit": "Vẫn hỏi dù đang tự duyệt — phiên đã đủ số file tối đa."
+      "limit": "Vẫn hỏi dù đang tự duyệt — phiên đã đủ số file tối đa.",
+      "extra_folder": "Vẫn hỏi dù đang tự duyệt — file ở thư mục phụ (chỉ thư mục chính được tự duyệt)."
     }
   }
 }

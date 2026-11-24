@@ -149,6 +149,14 @@ Dùng `cmd /c rmdir <junction>`. **Không** dùng `Remove-Item -Recurse` lên ju
 
 **Mẫu có sẵn.** `killTree` trong `src/main/commands/apps/runner.ts`; tiến trình giả `tests/e2e/fixtures/fake-app.cjs` (`sleepForever`); test "dừng CẢ CÂY" trong `src/main/commands/apps/__tests__/apps.test.ts`.
 
+### 3.4. Thư mục tạm (`os.tmpdir()`) nằm TRONG AppData — luật "chặn thư mục hệ thống" chặn luôn nó
+
+**Quy tắc.** Tính năng chặn vùng hệ thống (AppData, Windows, Program Files…) → test e2e / test tay phải đặt thư mục "hợp lệ" NGOÀI `%TEMP%` (vd `test-results/` của repo); test đơn vị thì giả vùng cấm bằng env riêng (`systemZones(env)`), không dựa vào máy thật. Thêm một test chạy với vùng cấm THẬT của máy để chắc env đọc đúng. Vùng cấm lấy từ biến môi trường, không viết cứng `C:\`.
+
+**Vì sao.** D (thư mục phụ): e2e đặt thư mục dự án trong `mkdtemp(tmpdir())` → `C:\Users\<tên>\AppData\Local\Temp\…` → app báo "thư mục hệ thống" thay vì "chồng lấn" (app đúng, test sai chỗ). Người dùng thật cũng có thể giải nén dự án vào Downloads/Temp — câu báo lỗi phải nói rõ là vùng hệ thống để họ hiểu.
+
+**Mẫu có sẵn.** `systemZones` / `checkExtraFolder` trong `src/main/code/extraFolders.ts`; `src/main/code/__tests__/extraFolders.test.ts` (máy giả + một test với env thật); `tests/e2e/extra-folders.spec.ts` (thư mục trong `test-results/`).
+
 ---
 
 ## 4. Test tay

@@ -51,6 +51,11 @@ type ChatState = {
   /** Chế độ Code: chọn thư mục dự án (tạo hội thoại mới nếu chưa có). */
   chooseFolder(): Promise<void>
   setCodeWrite(id: string, enabled: boolean): Promise<void>
+  /** Thư mục phụ (D): mở hộp chọn thư mục; thư mục bị cấm / chồng lấn / đủ 3 → báo lỗi. */
+  addExtraFolder(id: string): Promise<void>
+  /** Gỡ thư mục phụ = thu hồi (main huỷ thẻ đang chờ + dừng lượt đang chạy). */
+  removeExtraFolder(id: string, path: string): Promise<void>
+  setExtraWrite(id: string, path: string, enabled: boolean): Promise<void>
   /** Gỡ thư mục = thu hồi quyền đọc/sửa của trợ lý. */
   clearFolder(id: string): Promise<void>
   /** Thẻ trợ lý xin quyền thư mục: grant → mở hộp chọn thư mục; cấp xong thì tự gửi `continueText` khi lượt kết thúc. */
@@ -202,9 +207,13 @@ export const useChat = create<ChatState>((set, get) => {
 
     async fork(messageId) {
       try {
+        const parentId = Object.keys(get().messages).find((id) => get().messages[id]?.some((m) => m.id === messageId))
+        const parent = get().conversations.find((c) => c.id === parentId)
         const conv = await api.conversations.fork(messageId)
         set((s) => ({ conversations: [conv, ...s.conversations.filter((c) => c.id !== conv.id)] }))
         await get().select(conv.id)
+        // Thư mục phụ (D) được kiểm lại khi chép sang nhánh — thư mục không còn hợp lệ bị bỏ.
+        if (parent && conv.extraDirs.length < parent.extraDirs.length) set({ error: 'fork_extra_dropped' })
       } catch (err) {
         set({ error: errorCode(err) })
       }
@@ -288,8 +297,13 @@ export const useChat = create<ChatState>((set, get) => {
       let id = get().activeId
       // Thư mục gắn với cuộc trò chuyện ở mọi chế độ — không đổi chế độ.
       if (!id) id = (await get().create('code')).id
-      const updated = await api.code.chooseFolder(id)
-      if (updated) replaceConversation(updated)
+      try {
+        const updated = await api.code.chooseFolder(id)
+        if (updated) replaceConversation(updated)
+      } catch (err) {
+        // vd thư mục mới chồng lấn thư mục phụ (D) — báo lý do, thư mục cũ giữ nguyên.
+        set({ error: errorCode(err) })
+      }
     },
 
     async clearFolder(id) {
@@ -304,6 +318,8 @@ export const useChat = create<ChatState>((set, get) => {
     async respondFolderAccess(request, grant, write, continueText, feedback) {
       try {
         const res = await api.code.respondFolderAccess(request.id, grant, write, feedback)
+        // Thư mục vừa chọn không dùng được (vd thư mục phụ nằm trong vùng hệ thống) → báo lý do, thẻ vẫn chờ.
+        if (res.status === 'pending' && res.error) set({ error: res.error })
         if (res.status !== 'granted') return res.status
         replaceConversation(res.conversation)
         const { conversationId } = request
@@ -323,6 +339,39 @@ export const useChat = create<ChatState>((set, get) => {
       } catch (err) {
         set({ error: errorCode(err) })
       }
+    },
+
+    async addExtraFolder(id) {
+      try {
+        const updated = await api.code.addExtraFolder(id)
+        if (updated) replaceConversation(updated)
+      } catch (err) {
+        set({ error: errorCode(err) })
+      }
+    },
+
+    async removeExtraFolder(id, path) {
+      const before = get().conversations.find((c) => c.id === id)
+      if (!before) return
+      await optimistic({
+        topic: 'conversations',
+        apply: () => patchConversation(id, { extraDirs: before.extraDirs.filter((e) => e.path !== path) }),
+        rollback: () => patchConversation(id, { extraDirs: before.extraDirs }),
+        save: () => api.code.removeExtraFolder(id, path),
+        onError: (code) => set({ error: errorCode(new Error(code)) })
+      })
+    },
+
+    async setExtraWrite(id, path, enabled) {
+      const before = get().conversations.find((c) => c.id === id)
+      if (!before) return
+      await optimistic({
+        topic: 'conversations',
+        apply: () => patchConversation(id, { extraDirs: before.extraDirs.map((e) => (e.path === path ? { ...e, write: enabled } : e)) }),
+        rollback: () => patchConversation(id, { extraDirs: before.extraDirs }),
+        save: () => api.code.setExtraWrite(id, path, enabled),
+        onError: (code) => set({ error: errorCode(new Error(code)) })
+      })
     },
 
     async remove(id) {

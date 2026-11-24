@@ -5,6 +5,7 @@ import {
   MAX_PINNED_MESSAGES,
   type ChatSendResult,
   type ChatStreamPayload,
+  type ExtraFolder,
   type Message,
   type StoredAttachment,
   type ToolEvent
@@ -162,6 +163,8 @@ export type RunOptions = {
   model?: 'cheap'
   /** Lịch hẹn: số bước tối đa của lượt (không có người ngồi máy). */
   maxTurns?: number
+  /** Thư mục phụ (D) — CLI `--add-dir`. Không bao giờ có ở lịch hẹn. */
+  addDirs?: string[]
 }
 
 /** Lượt chạy theo lịch hẹn: quyền chốt sẵn, không có người ngồi máy. */
@@ -222,24 +225,37 @@ export function runOptions(input: {
   codeWrite: boolean
   conversationId: string
   workspaceDir: string
+  /** Thư mục phụ (D). Bỏ qua khi không có thư mục chính. */
+  extraDirs?: ExtraFolder[]
 }): RunOptions {
   if (!input.cwd) return { cwd: input.workspaceDir }
+  const extras = input.extraDirs ?? []
   const notes = projectNotes(detectProject(input.cwd))
   const header = `Thư mục dự án: ${input.cwd}${notes ? `\n${notes}` : ''}`
-  if (!input.codeWrite) {
-    return {
-      cwd: input.cwd,
-      tools: READ_TOOLS,
-      allowedTools: READ_TOOLS,
-      context: `${header}\nQuyền: CHỈ ĐỌC (Read/Grep/Glob). Hãy tự đọc file thay vì bảo người dùng copy-dán. Không sửa file; nếu cần thay đổi, đưa đề xuất dưới dạng diff, hoặc gọi request_folder_access với write=true để xin quyền sửa.`
-    }
-  }
+  const mainRule = input.codeWrite
+    ? 'Quyền: ĐƯỢC SỬA FILE trong thư mục này bằng Edit/Write; mỗi thay đổi người dùng sẽ xem diff và duyệt, có thể bị từ chối — khi bị từ chối thì dừng và hỏi lại. File nhị phân và thư mục tự sinh luôn bị từ chối. Không có lệnh shell.'
+    : 'Quyền: CHỈ ĐỌC (Read/Grep/Glob). Hãy tự đọc file thay vì bảo người dùng copy-dán. Không sửa file trong thư mục này; nếu cần thay đổi, đưa đề xuất dưới dạng diff, hoặc gọi request_folder_access với write=true để xin quyền sửa.'
+  const extraBlock = extras.length
+    ? [
+        'Thư mục phụ (dùng ĐƯỜNG DẪN TUYỆT ĐỐI khi đọc / sửa file ở đây; lệnh git / Unity / Blender chỉ chạy ở thư mục dự án):',
+        ...extras.map((e) => {
+          const n = projectNotes(detectProject(e.path))
+          const rule = e.write ? 'đọc + sửa (mỗi thay đổi người dùng duyệt diff, không bao giờ tự duyệt)' : 'CHỈ ĐỌC'
+          return `- ${e.path} — ${rule}${n ? `\n  ${n.replace(/\n/g, '\n  ')}` : ''}`
+        })
+      ].join('\n')
+    : ''
+  const context = [header, mainRule, extraBlock].filter(Boolean).join('\n')
+  const canWrite = input.codeWrite || extras.some((e) => e.write)
+  const addDirs = extras.length ? { addDirs: extras.map((e) => e.path) } : {}
+  if (!canWrite) return { cwd: input.cwd, tools: READ_TOOLS, allowedTools: READ_TOOLS, context, ...addDirs }
   return {
     cwd: input.cwd,
     tools: [...READ_TOOLS, ...WRITE_TOOLS],
     allowedTools: READ_TOOLS,
     approval: { conversationId: input.conversationId },
-    context: `${header}\nQuyền: ĐƯỢC SỬA FILE trong thư mục này bằng Edit/Write; mỗi thay đổi người dùng sẽ xem diff và duyệt, có thể bị từ chối — khi bị từ chối thì dừng và hỏi lại. File nhị phân và thư mục tự sinh luôn bị từ chối. Không có lệnh shell.`
+    context,
+    ...addDirs
   }
 }
 
@@ -326,6 +342,7 @@ export class ChatService {
         mode: conversation.mode,
         cwd: conversation.cwd,
         codeWrite: conversation.codeWrite,
+        extraDirs: conversation.extraDirs,
         conversationId,
         workspaceDir: this.deps.workspaceDir
       }),
@@ -643,7 +660,8 @@ export class ChatService {
           appTools: args.options.appTools,
           externalMcp: args.options.externalMcp,
           model: args.options.model,
-          maxTurns: args.options.maxTurns
+          maxTurns: args.options.maxTurns,
+          addDirs: args.options.addDirs
         },
         signal
       )

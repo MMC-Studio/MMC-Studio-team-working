@@ -8,6 +8,8 @@ export type PrivacyFolderGrant = {
   title: string
   path: string
   write: boolean
+  /** Thư mục phụ (D); thu hồi thư mục chính thì mất luôn các thư mục này. */
+  extras: { path: string; write: boolean }[]
 }
 
 /**
@@ -43,4 +45,6 @@ export type PrivacyStatus = {
 }
 
 export const revokeFolderSchema = z.object({ conversationId: z.string().min(1).max(100) })
+/** Thư mục phụ (D): đường dẫn đúng như trong `Conversation.extraDirs`. */
+export const extraFolderRefSchema = z.object({ conversationId: z.string().min(1).max(100), path: z.string().min(1).max(1000) })
 export const revokeScheduleGrantSchema = z.object({ scheduleId: z.string().min(1).max(100), key: scheduleGrantKeySchema })

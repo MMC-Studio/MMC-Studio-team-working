@@ -38,7 +38,10 @@ import {
 } from '../assistant/study'
 import type { CodeApprovals } from '../code/approvals'
 import type { AutoEdits } from '../code/autoEdits'
+import type { ExtraFolders } from '../code/extraFolders'
 import type { FolderAccessRequests } from '../code/folderAccess'
+import { extraFolderRefSchema } from '@shared/privacy'
+import type { Conversation } from '@shared/types'
 import type { ConversationRepository, SettingsRepository } from '../db/repositories'
 import type { TimeRepository } from '../db/timeRepository'
 import { cleanText } from '../feedback/prompts'
@@ -58,6 +61,8 @@ export type WorkIpcDeps = {
   folderAccess: FolderAccessRequests
   /** Phiên tự duyệt sửa file (PR C). */
   autoEdits: AutoEdits
+  /** Thư mục phụ (D). */
+  extraFolders: ExtraFolders<Conversation>
   /** Dừng lượt trợ lý đang chạy của cuộc (Hoàn tác tất cả khi phiên đang chạy — trợ lý không ghi tiếp được). */
   abortTurn(conversationId: string): void
   hub: ApprovalHub
@@ -99,10 +104,31 @@ export function registerWorkIpc(deps: WorkIpcDeps): void {
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory'] }
     const picked = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
     if (picked.canceled || !picked.filePaths[0]) return null
+    // Thư mục chính mới không được chồng lấn thư mục phụ đang có (D) — kiểm trước khi đụng gì.
+    await deps.extraFolders.checkMainChange(conversationId, picked.filePaths[0])
     deps.approvals.cancelConversation(conversationId)
     await deps.autoEdits.end(conversationId, 'folder')
     return deps.conversations.setCwd(conversationId, picked.filePaths[0])
   }, { changes: ['conversations', 'autoEdits'] })
+  // ---- Thư mục phụ (D) ----
+  handle(IPC.codeAddExtraFolder, idSchema, async (conversationId) => {
+    const conv = deps.conversations.get(conversationId)
+    if (!conv?.cwd) throw new Error('extra_no_main')
+    const win = deps.getWindow()
+    const options: Electron.OpenDialogOptions = { properties: ['openDirectory'] }
+    const picked = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
+    if (picked.canceled || !picked.filePaths[0]) return null
+    return deps.extraFolders.add(conversationId, picked.filePaths[0])
+  }, { changes: 'conversations' })
+  handle(IPC.codeRemoveExtraFolder, extraFolderRefSchema, ({ conversationId, path }) => deps.extraFolders.remove(conversationId, path), {
+    changes: ['conversations', 'approvals']
+  })
+  handle(
+    IPC.codeSetExtraWrite,
+    extraFolderRefSchema.extend({ enabled: z.boolean() }),
+    ({ conversationId, path, enabled }) => deps.extraFolders.setWrite(conversationId, path, enabled),
+    { changes: ['conversations', 'approvals'] }
+  )
   // Gỡ thư mục = thu hồi mọi quyền đọc/sửa của trợ lý trong hội thoại này.
   handle(
     IPC.codeClearFolder,

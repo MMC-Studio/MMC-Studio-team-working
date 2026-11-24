@@ -176,6 +176,11 @@ export class AutoEdits {
     return { offer: true }
   }
 
+  /** File ở thư mục phụ (D): không bao giờ tự duyệt — thẻ không có nút, phiên đang chạy thì ghi lý do vì sao vẫn hỏi. */
+  extraOffer(conversationId: string): AutoEditOffer {
+    return { offer: false, reason: 'extra_folder', sessionActive: this.activeSession(conversationId) !== null }
+  }
+
   /**
    * Cuộc đang có phiên + lần sửa đủ điều kiện → giữ bản gốc (lần đầu) rồi trả true (app cho phép không hỏi). Thư mục
    * của cuộc đã đổi → kết thúc phiên. Lỗi ghi bản gốc → false (hiện thẻ như thường, không bao giờ sửa khi chưa có bản gốc).

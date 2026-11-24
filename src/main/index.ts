@@ -102,6 +102,8 @@ import { OAuthLoopback } from './services/oauthLoopback'
 import { RateLimiter } from './agents/rateLimiter'
 import { DraftApprovals } from './connectors/approvals'
 import { FolderAccessRequests } from './code/folderAccess'
+import { ExtraFolders, systemZones } from './code/extraFolders'
+import type { Conversation } from '@shared/types'
 import { FakeGmailBackend } from './connectors/gmail/fake'
 import { gmailTokenFileName, GoogleGmailBackend } from './connectors/gmail/google'
 import { GmailService } from './connectors/gmail/service'
@@ -391,6 +393,10 @@ async function bootstrap(): Promise<void> {
       const conv = conversations.get(id)
       return conv && conv.codeWrite && conv.cwd ? conv.cwd : null
     },
+    extraDirs: (id) => {
+      const conv = conversations.get(id)
+      return conv?.cwd ? conv.extraDirs : []
+    },
     emit: (request) => {
       approvalHub.add({ id: request.id, conversationId: request.conversationId, kind: 'code', request }, () => approvals.touch(request.id))
       flashForApproval()
@@ -404,6 +410,20 @@ async function bootstrap(): Promise<void> {
   })
   await approvals.start()
   app.on('before-quit', () => approvals.stop())
+
+  // Thư mục phụ (D): tối đa 3, người dùng tự chọn; chặn vùng hệ thống + mọi thư mục cha của chúng, chặn chồng lấn.
+  const extraFolders = new ExtraFolders<Conversation>({
+    getConversation: (id) => conversations.get(id),
+    addExtraDir: (id, path) => conversations.addExtraDir(id, path),
+    removeExtraDir: (id, path) => conversations.removeExtraDir(id, path),
+    setExtraWrite: (id, path, write) => conversations.setExtraWrite(id, path, write),
+    zones: systemZones(process.env, [userData]),
+    // Khai báo phía dưới — chỉ gọi khi người dùng thao tác, lúc đó đã có.
+    cancelConversation: (id) => cancelConversationAccess(id),
+    cancelEdits: (id) => approvals.cancelConversation(id),
+    abortTurn: (id) => chat.abortConversation(id),
+    log
+  })
   const permissionScript = resourcePath('permission-mcp.cjs', 'resources/permission-mcp.cjs')
 
   // Tool của app cho Claude (MCP `mmc`): hiện có chụp màn hình (điều khiển máy tính — chỉ xem).
@@ -427,7 +447,9 @@ async function bootstrap(): Promise<void> {
       const picked = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options)
       return picked.canceled ? null : (picked.filePaths[0] ?? null)
     },
-    grant: (id, path, write) => {
+    grantExtra: (id, path) => extraFolders.add(id, path),
+    grant: async (id, path, write) => {
+      await extraFolders.checkMainChange(id, path)
       approvals.cancelConversation(id)
       void autoEdits.end(id, 'folder')
       const conv = conversations.setCwd(id, path)
@@ -1183,6 +1205,7 @@ async function bootstrap(): Promise<void> {
   const getWindow = (): BrowserWindow | null => mainWindow
   registerIpc({
     conversations,
+    revalidateExtraDirs: (id) => extraFolders.revalidate(id),
     groups: conversationGroups,
     messages,
     memories,
@@ -1424,8 +1447,10 @@ async function bootstrap(): Promise<void> {
     getConversation: (id) => conversations.get(id),
     clearFolder: (id) => {
       void autoEdits.end(id, 'folder')
+      // setCwd(null) gỡ luôn mọi thư mục phụ (D).
       conversations.setCwd(id, null)
     },
+    removeExtraFolder: (id, path) => void extraFolders.remove(id, path),
     cancelConversation: cancelConversationAccess,
     abortTurn: (id) => chat.abortConversation(id),
     schedules: () => scheduleRepo.list(),
@@ -1494,6 +1519,7 @@ async function bootstrap(): Promise<void> {
     },
     folderAccess,
     autoEdits,
+    extraFolders,
     abortTurn: (id) => chat.abortConversation(id),
     hub: approvalHub,
     memory,

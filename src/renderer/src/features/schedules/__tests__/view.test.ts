@@ -132,6 +132,7 @@ describe('cuộc do lịch hẹn tạo', () => {
     pinned: false,
     cwd: null,
     codeWrite: false,
+    extraDirs: [],
     groupId: null,
     parentId: null,
     suggestedGroupId: null,

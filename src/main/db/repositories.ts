@@ -10,6 +10,7 @@ import type { MemoryAction, MemoryCategory } from '@shared/schemas'
 import type {
   Conversation,
   ConversationGroup,
+  ExtraFolder,
   ConversationUpdate,
   Memory,
   MemorySuggestion,
@@ -20,10 +21,12 @@ import type {
   ToolEvent
 } from '@shared/types'
 import { SNIPPET_CLOSE, SNIPPET_OPEN } from '@shared/search'
+import { MAX_EXTRA_DIRS } from '@shared/types'
 import { normalize } from '../chat/organize'
 import type { AppDatabase } from './client'
 import {
   agentExchanges,
+  conversationExtraDirs,
   conversationGroups,
   conversations,
   memories,
@@ -39,13 +42,14 @@ import {
 type ConversationRow = typeof conversations.$inferSelect
 type MessageRow = typeof messages.$inferSelect
 
-const toConversation = (r: ConversationRow): Conversation => ({
+const toConversation = (r: ConversationRow, extraDirs: ExtraFolder[]): Conversation => ({
   id: r.id,
   title: r.title,
   mode: r.mode,
   pinned: r.pinned,
   cwd: r.cwd,
   codeWrite: r.codeWrite,
+  extraDirs,
   groupId: r.groupId,
   parentId: r.parentId,
   suggestedGroupId: r.suggestedGroupId,
@@ -132,6 +136,50 @@ export class ConversationRepository {
     return and(eq(conversations.owner, this.getOwner()), id === undefined ? undefined : eq(conversations.id, id))
   }
 
+  private conv(r: ConversationRow): Conversation {
+    return toConversation(r, this.extraDirsOf(r.id))
+  }
+
+  /** Thư mục phụ (D) theo thứ tự thêm. Không kiểm chủ sở hữu — chỉ gọi với id đã lấy qua `mine`. */
+  private extraDirsOf(id: string): ExtraFolder[] {
+    return this.db
+      .select({ path: conversationExtraDirs.path, write: conversationExtraDirs.write })
+      .from(conversationExtraDirs)
+      .where(eq(conversationExtraDirs.conversationId, id))
+      .orderBy(asc(conversationExtraDirs.addedAt), asc(conversationExtraDirs.path))
+      .all()
+  }
+
+  /** Thêm thư mục phụ (chỉ đọc). Kiểm thư mục (cấm / chồng lấn) ở `code/extraFolders.ts` — đây chỉ chốt giới hạn 3. */
+  addExtraDir(id: string, path: string): Conversation | null {
+    const row = this.db.select().from(conversations).where(this.mine(id)).get()
+    if (!row?.cwd) return null
+    if (this.extraDirsOf(id).length >= MAX_EXTRA_DIRS) throw new Error('extra_limit')
+    this.db.insert(conversationExtraDirs).values({ conversationId: id, path, write: false, addedAt: Date.now() }).onConflictDoNothing().run()
+    return this.conv(row)
+  }
+
+  removeExtraDir(id: string, path: string): Conversation | null {
+    const row = this.db.select().from(conversations).where(this.mine(id)).get()
+    if (!row) return null
+    this.db
+      .delete(conversationExtraDirs)
+      .where(and(eq(conversationExtraDirs.conversationId, id), eq(conversationExtraDirs.path, path)))
+      .run()
+    return this.conv(row)
+  }
+
+  setExtraWrite(id: string, path: string, write: boolean): Conversation | null {
+    const row = this.db.select().from(conversations).where(this.mine(id)).get()
+    if (!row) return null
+    this.db
+      .update(conversationExtraDirs)
+      .set({ write })
+      .where(and(eq(conversationExtraDirs.conversationId, id), eq(conversationExtraDirs.path, path)))
+      .run()
+    return this.conv(row)
+  }
+
   list(query?: string): Conversation[] {
     const q = query?.trim()
     const match = q ? ftsQuery(q) : ''
@@ -155,7 +203,7 @@ export class ConversationRepository {
         .where(and(this.mine(), where))
         .orderBy(desc(conversations.pinned), desc(conversations.updatedAt))
         .all()
-        .map(toConversation)
+        .map((r) => this.conv(r))
     // Khớp trong nội dung tin nhắn (không phải tiêu đề) → kèm trích đoạn để người dùng hiểu vì sao cuộc này hiện ra.
     return this.db
       .select({
@@ -168,7 +216,7 @@ export class ConversationRepository {
       .orderBy(desc(conversations.pinned), desc(conversations.updatedAt))
       .all()
       .map(({ row, titleHit, snippet }) => ({
-        ...toConversation(row),
+        ...this.conv(row),
         searchSnippet: !titleHit && snippet ? cleanSnippet(snippet) : null
       }))
   }
@@ -187,7 +235,7 @@ export class ConversationRepository {
     const row = this.db.select().from(conversations).where(this.mine(id)).get()
     return row
       ? {
-          ...toConversation(row),
+          ...this.conv(row),
           cliSessionId: row.cliSessionId,
           cliSessionPromptKey: row.cliSessionPromptKey,
           memoryExtractedAt: row.memoryExtractedAt,
@@ -214,7 +262,7 @@ export class ConversationRepository {
     const patch: Partial<ConversationRow> = { suggestedGroupId: null }
     if (accept && row.suggestedGroupId) patch.groupId = row.suggestedGroupId
     const updated = this.db.update(conversations).set(patch).where(this.mine(id)).returning().get()
-    return updated ? toConversation(updated) : null
+    return updated ? this.conv(updated) : null
   }
 
   /**
@@ -251,6 +299,9 @@ export class ConversationRepository {
         })
         .returning()
         .get()
+      // Thư mục phụ (D) chép theo, luôn về chỉ đọc (như thư mục chính — quyền sửa không chép). Kiểm lại ở chỗ gọi.
+      for (const [i, d] of this.extraDirsOf(parent.id).entries())
+        tx.insert(conversationExtraDirs).values({ conversationId: row.id, path: d.path, write: false, addedAt: ts + i }).run()
       const list = tx
         .select()
         .from(messages)
@@ -270,7 +321,7 @@ export class ConversationRepository {
           })
           .run()
       }
-      return toConversation(row)
+      return this.conv(row)
     })
   }
 
@@ -286,26 +337,27 @@ export class ConversationRepository {
     return !!row
   }
 
-  /** Chọn thư mục dự án mới → tắt quyền sửa (phải bật lại cho thư mục mới). null = gỡ thư mục (thu hồi quyền). */
   /** Cuộc (của tài khoản này) đang có thư mục — trang Quyền & riêng tư. Mới dùng gần đây trước. */
-  withFolder(): { conversationId: string; title: string; path: string; write: boolean }[] {
+  withFolder(): { conversationId: string; title: string; path: string; write: boolean; extras: ExtraFolder[] }[] {
     return this.db
       .select({ id: conversations.id, title: conversations.title, cwd: conversations.cwd, write: conversations.codeWrite })
       .from(conversations)
       .where(and(eq(conversations.owner, this.getOwner()), isNotNull(conversations.cwd)))
       .orderBy(desc(conversations.updatedAt))
       .all()
-      .map((r) => ({ conversationId: r.id, title: r.title, path: r.cwd!, write: r.write }))
+      .map((r) => ({ conversationId: r.id, title: r.title, path: r.cwd!, write: r.write, extras: this.extraDirsOf(r.id) }))
   }
 
+  /** Gỡ thư mục chính (null) → gỡ luôn mọi thư mục phụ (D). Đổi thư mục: thư mục phụ giữ nguyên (đã kiểm chồng lấn trước). */
   setCwd(id: string, cwd: string | null): Conversation | null {
     const row = this.db.update(conversations).set({ cwd, codeWrite: false }).where(this.mine(id)).returning().get()
-    return row ? toConversation(row) : null
+    if (row && cwd === null) this.db.delete(conversationExtraDirs).where(eq(conversationExtraDirs.conversationId, id)).run()
+    return row ? this.conv(row) : null
   }
 
   setCodeWrite(id: string, enabled: boolean): Conversation | null {
     const row = this.db.update(conversations).set({ codeWrite: enabled }).where(this.mine(id)).returning().get()
-    return row ? toConversation(row) : null
+    return row ? this.conv(row) : null
   }
 
   setMemoryExtractedAt(id: string, at: number): void {
@@ -347,7 +399,7 @@ export class ConversationRepository {
       })
       .returning()
       .get()
-    return toConversation(row)
+    return this.conv(row)
   }
 
   private insert(mode: ChatMode, projectId: string | null): Conversation {
@@ -357,7 +409,7 @@ export class ConversationRepository {
       .values({ id: randomUUID(), owner: this.getOwner(), mode, projectId, createdAt: ts, updatedAt: ts })
       .returning()
       .get()
-    return toConversation(row)
+    return this.conv(row)
   }
 
   update(input: ConversationUpdate): Conversation | null {
@@ -376,12 +428,12 @@ export class ConversationRepository {
     }
     if (Object.keys(patch).length === 0) {
       const row = this.db.select().from(conversations).where(this.mine(input.id)).get()
-      return row ? toConversation(row) : null
+      return row ? this.conv(row) : null
     }
     // Đổi tên/ghim không đẩy hội thoại lên đầu; đổi chế độ thì có.
     if (input.mode !== undefined) patch.updatedAt = Date.now()
     const row = this.db.update(conversations).set(patch).where(this.mine(input.id)).returning().get()
-    return row ? toConversation(row) : null
+    return row ? this.conv(row) : null
   }
 
   touch(id: string): void {

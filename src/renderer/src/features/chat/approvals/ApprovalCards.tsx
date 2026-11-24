@@ -272,21 +272,28 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
       {card.kind === 'folder' ? (
         <>
           <RequestView kind="folder" request={card.request} />
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={write}
-              disabled={busy}
-              onChange={(e) => setWrite(e.target.checked)}
-              data-testid="folder-access-write"
-            />
-            <span>
-              {t('folderAccess.write')}
-              <span className="block text-xs text-muted-foreground">{t('folderAccess.writeHint')}</span>
-              <WriteRunsHint />
-            </span>
-          </label>
+          {card.request.extra ? (
+            // Thư mục phụ (D) luôn chỉ đọc lúc thêm — người dùng tự tick sửa trên thanh thư mục.
+            <p className="text-xs text-muted-foreground" data-testid="folder-access-extra">
+              {t('folderAccess.extraHint')}
+            </p>
+          ) : (
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={write}
+                disabled={busy}
+                onChange={(e) => setWrite(e.target.checked)}
+                data-testid="folder-access-write"
+              />
+              <span>
+                {t('folderAccess.write')}
+                <span className="block text-xs text-muted-foreground">{t('folderAccess.writeHint')}</span>
+                <WriteRunsHint />
+              </span>
+            </label>
+          )}
           {hint && <p className="text-xs text-orange-700 dark:text-orange-300">{hint}</p>}
         </>
       ) : card.kind === 'draft' ? (
@@ -408,9 +415,18 @@ function CurrentVersion({ card }: { card: ApprovalCard }) {
 function RequestView({ kind, request }: { kind: ApprovalCard['kind']; request: ApprovalRequest }) {
   const { t } = useTranslation('chat')
   if (kind === 'code') {
-    const { change } = request as CodeApprovalRequest
+    const { change, extraFolder } = request as CodeApprovalRequest
     return (
       <div className="space-y-2" data-testid="approval-diff">
+        {extraFolder && (
+          <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground" data-testid="approval-extra-folder">
+            <FolderOpen className="size-3.5 shrink-0" />
+            <span className="shrink-0">{t('code.extraFolderOfFile')}</span>
+            <code className="min-w-0 truncate" title={extraFolder}>
+              {extraFolder}
+            </code>
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <code className="min-w-0 truncate rounded bg-muted px-1.5 py-0.5" title={change.path}>
             {change.path}
@@ -596,7 +612,7 @@ function cardHeader(card: ApprovalCard, t: T, tc: T, ts: T): { icon: ReactNode; 
     case 'folder':
       return {
         icon: <FolderOpen className="size-4" />,
-        title: t(card.request.write ? 'folderAccess.titleWrite' : 'folderAccess.title')
+        title: t(card.request.extra ? 'folderAccess.titleExtra' : card.request.write ? 'folderAccess.titleWrite' : 'folderAccess.title')
       }
     case 'draft':
       return {

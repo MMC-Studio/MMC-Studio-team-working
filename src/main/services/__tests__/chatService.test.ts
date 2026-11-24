@@ -673,6 +673,30 @@ describe('runOptions (thư mục dự án)', () => {
     expect(o.context).toContain('CHỈ ĐỌC')
   })
 
+  it('thư mục phụ (D): --add-dir từng thư mục, ngữ cảnh ghi quyền từng thư mục; chỉ thư mục phụ được sửa → vẫn có Edit/Write + duyệt', () => {
+    const ro = runOptions({ ...base, mode: 'code', cwd: 'D:\\proj', codeWrite: false, extraDirs: [{ path: 'E:\\lib', write: false }] })
+    expect(ro).toMatchObject({ tools: ['Read', 'Grep', 'Glob'], addDirs: ['E:\\lib'] })
+    expect(ro.approval).toBeUndefined()
+    expect(ro.context).toContain('E:\\lib — CHỈ ĐỌC')
+    const rw = runOptions({
+      ...base,
+      mode: 'code',
+      cwd: 'D:\\proj',
+      codeWrite: false,
+      extraDirs: [
+        { path: 'E:\\lib', write: true },
+        { path: 'F:\\assets', write: false }
+      ]
+    })
+    expect(rw).toMatchObject({ tools: ['Read', 'Grep', 'Glob', 'Edit', 'Write'], allowedTools: ['Read', 'Grep', 'Glob'], addDirs: ['E:\\lib', 'F:\\assets'] })
+    expect(rw.approval).toEqual({ conversationId: 'c1' })
+    expect(rw.context).toMatch(/E:\\lib — đọc \+ sửa .*không bao giờ tự duyệt/)
+    expect(rw.context).toContain('Không sửa file trong thư mục này')
+    // Không có thư mục chính → bỏ qua thư mục phụ; không có thư mục phụ → không có addDirs.
+    expect(runOptions({ ...base, mode: 'code', cwd: null, codeWrite: false, extraDirs: [{ path: 'E:\\lib', write: true }] })).toEqual({ cwd: 'C:\\ws' })
+    expect(runOptions({ ...base, mode: 'code', cwd: 'D:\\proj', codeWrite: true }).addDirs).toBeUndefined()
+  })
+
   it('được sửa: Edit/Write có nhưng KHÔNG tự duyệt; bật duyệt từng thay đổi; không bao giờ có Bash', () => {
     const o = runOptions({ ...base, mode: 'code', cwd: 'D:\\proj', codeWrite: true })
     expect(o.tools).toEqual(['Read', 'Grep', 'Glob', 'Edit', 'Write'])

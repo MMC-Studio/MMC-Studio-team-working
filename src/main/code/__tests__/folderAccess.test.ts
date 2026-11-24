@@ -57,7 +57,7 @@ describe('hồ sơ dự án (Unity / Blender / DaVinci)', () => {
 
 describe('trợ lý xin quyền thư mục', () => {
   const conv = (patch: Partial<Conversation> = {}): Conversation =>
-    ({ id: 'c1', mode: 'free', cwd: null, codeWrite: false, ...patch }) as Conversation
+    ({ id: 'c1', mode: 'free', cwd: null, codeWrite: false, extraDirs: [], ...patch }) as Conversation
 
   function setup(over: Partial<FolderAccessDeps> = {}) {
     let current: Conversation | null = conv()
@@ -81,15 +81,66 @@ describe('trợ lý xin quyền thư mục', () => {
   const lastRequest = (events: (FolderAccessRequest | FolderAccessClosed)[]): FolderAccessRequest =>
     events.filter((e): e is FolderAccessRequest => !('closed' in e)).at(-1)!
 
-  it('có tool khi chưa có thư mục hoặc chỉ đọc; đã được sửa thì không cần', () => {
+  it('có tool khi chưa có thư mục hoặc chỉ đọc; đã được sửa thì chỉ còn xin thư mục phụ (D); đủ 3 thì không cần', () => {
     const { access, setConv } = setup()
     expect(access.toolsFor('c1')).toMatchObject({ names: [FOLDER_TOOL], context: expect.stringContaining('copy-dán') })
+    expect(access.toolsFor('c1')?.context).not.toContain('extra=true')
     setConv(conv({ cwd: 'D:\\p' }))
     expect(access.toolsFor('c1')?.context).toContain('write=true')
+    expect(access.toolsFor('c1')?.context).toContain('extra=true')
     setConv(conv({ cwd: 'D:\\p', codeWrite: true }))
+    expect(access.toolsFor('c1')?.context).toContain('extra=true')
+    expect(access.toolsFor('c1')?.context).not.toContain('write=true')
+    const three = ['E:\\a', 'E:\\b', 'E:\\c'].map((path) => ({ path, write: false }))
+    setConv(conv({ cwd: 'D:\\p', codeWrite: true, extraDirs: three }))
     expect(access.toolsFor('c1')).toBeNull()
+    setConv(conv({ cwd: 'D:\\p', extraDirs: three }))
+    expect(access.toolsFor('c1')?.context).not.toContain('extra=true')
     setConv(null)
     expect(access.toolsFor('c1')).toBeNull()
+  })
+
+  it('xin thư mục phụ (extra=true): thẻ không xin sửa, cấp qua grantExtra (chỉ đọc); thư mục bị cấm → thẻ vẫn chờ kèm mã lỗi', async () => {
+    const pick = vi.fn<FolderAccessDeps['pickFolder']>()
+    pick.mockResolvedValueOnce('C:\\Users').mockResolvedValueOnce('E:\\lib')
+    const grantExtra = vi
+      .fn<NonNullable<FolderAccessDeps['grantExtra']>>()
+      .mockRejectedValueOnce(new Error('extra_contains_system'))
+      .mockResolvedValueOnce(conv({ cwd: 'D:\\p', extraDirs: [{ path: 'E:\\lib', write: false }] }))
+    const { access, registry, deps, events, setConv } = setup({ pickFolder: pick, grantExtra })
+    setConv(conv({ cwd: 'D:\\p', codeWrite: true }))
+    const call = registry.call(FOLDER_TOOL, { reason: 'đọc thư viện dùng chung', write: true, extra: true }, { conversationId: 'c1' })
+    await vi.waitFor(() => expect(events).toHaveLength(1))
+    const req = lastRequest(events)
+    // Trợ lý xin cả sửa cũng không được: thư mục phụ luôn thêm ở chế độ chỉ đọc.
+    expect(req).toMatchObject({ extra: true, write: false })
+    expect(await access.respond(req.id, true, true)).toEqual({ status: 'pending', error: 'extra_contains_system' })
+    const res = await access.respond(req.id, true, true)
+    expect(res).toMatchObject({ status: 'granted', conversation: { extraDirs: [{ path: 'E:\\lib', write: false }] } })
+    expect(grantExtra).toHaveBeenLastCalledWith('c1', 'E:\\lib')
+    expect(deps.grant).not.toHaveBeenCalled()
+    expect((await call).content[0]).toMatchObject({ text: expect.stringContaining('thư mục phụ (chỉ đọc): E:\\lib') })
+  })
+
+  it('xin thư mục phụ khi chưa có thư mục chính → xin như thư mục chính; đã đủ 3 → trả lời ngay, không hiện thẻ', async () => {
+    const { registry, events, setConv } = setup()
+    void registry.call(FOLDER_TOOL, { reason: 'a', extra: true }, { conversationId: 'c1' })
+    await vi.waitFor(() => expect(events).toHaveLength(1))
+    expect(lastRequest(events).extra).toBeUndefined()
+    const three = ['E:\\a', 'E:\\b', 'E:\\c'].map((path) => ({ path, write: false }))
+    setConv(conv({ cwd: 'D:\\p', extraDirs: three }))
+    const full = await registry.call(FOLDER_TOOL, { reason: 'b', extra: true }, { conversationId: 'c1' })
+    expect(full.content[0]).toMatchObject({ text: expect.stringContaining('đủ 3 thư mục phụ') })
+  })
+
+  it('đổi thư mục chính chồng lấn thư mục phụ → grant ném lỗi → thẻ vẫn chờ kèm mã lỗi', async () => {
+    const grant = vi.fn<FolderAccessDeps['grant']>(() => {
+      throw new Error('folder_overlaps_extra')
+    })
+    const { access, registry, events } = setup({ grant })
+    void registry.call(FOLDER_TOOL, { reason: 'a' }, { conversationId: 'c1' })
+    await vi.waitFor(() => expect(events).toHaveLength(1))
+    expect(await access.respond(lastRequest(events).id, true, false)).toEqual({ status: 'pending', error: 'folder_overlaps_extra' })
   })
 
   it('luồng đầy đủ: cấp đúng thư mục NGƯỜI DÙNG chọn (không phải đường dẫn trợ lý đưa); huỷ hộp thoại thì thẻ vẫn chờ', async () => {

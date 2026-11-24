@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { IPC } from '@shared/ipc'
-import { revokeFolderSchema, revokeScheduleGrantSchema } from '@shared/privacy'
+import { extraFolderRefSchema, revokeFolderSchema, revokeScheduleGrantSchema } from '@shared/privacy'
 import type { PrivacyService } from '../privacy/service'
 import type { HandleFn } from './register'
 
@@ -14,6 +14,9 @@ export function registerPrivacyIpc(deps: PrivacyIpcDeps): void {
   const { handle, service } = deps
   handle(IPC.privacyStatus, z.undefined(), () => service.status())
   handle(IPC.privacyRevokeFolder, revokeFolderSchema, ({ conversationId }) => service.revokeFolder(conversationId), {
+    changes: ['conversations', 'approvals']
+  })
+  handle(IPC.privacyRevokeExtraFolder, extraFolderRefSchema, ({ conversationId, path }) => service.revokeExtraFolder(conversationId, path), {
     changes: ['conversations', 'approvals']
   })
   handle(IPC.privacyRevokeScheduleGrant, revokeScheduleGrantSchema, ({ scheduleId, key }) => !!service.revokeScheduleGrant(scheduleId, key), {
