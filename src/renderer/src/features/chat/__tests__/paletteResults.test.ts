@@ -11,6 +11,7 @@ const conv = (id: string, extra: Partial<Conversation> = {}): Conversation => ({
   pinned: false,
   cwd: null,
   codeWrite: false,
+  extraDirs: [],
   groupId: null,
   parentId: null,
   suggestedGroupId: null,

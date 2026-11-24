@@ -73,7 +73,19 @@
     "reject": "Reject",
     "more": "{{count}} more requests",
     "clearFolder": "Remove folder",
-    "clearFolderHint": "Revoke access: the assistant can no longer read/edit this folder"
+    "clearFolderHint": "Revoke access: the assistant can no longer read/edit this folder",
+    "clearFolderHintExtras": "Revoke access: the assistant can no longer read/edit this folder — also removes the extra folders",
+    "extraLabel": "Extra:",
+    "extraAdd": "Extra folder ({{count}}/{{max}})",
+    "extraAddHint": "Let the assistant read one more folder (read-only; tick it yourself to allow edits)",
+    "extraFull": "Already {{max}} extra folders — remove one to add another",
+    "extraWriteOn": "Can edit (always asks)",
+    "extraWriteHint": "Let the assistant propose edits in this extra folder — every edit asks, even while auto-approve is on",
+    "extraRemove": "Remove extra folder {{name}}",
+    "extraRemoveHint": "Revoke: the assistant can no longer read/edit this folder (stops the running turn)",
+    "extraEnableTitle": "Allow the assistant to edit files in the extra folder?",
+    "extraRule": "Extra folders are never auto-approved: every edit shows a card for you to review.",
+    "extraFolderOfFile": "Extra folder:"
   },
   "suggest": {
     "button": "Suggest memories",
@@ -101,7 +113,18 @@
     "message_not_found": "Message to branch from was not found.",
     "pin_limit": "You can pin at most 5 messages per chat — unpin one first.",
     "message_busy": "Wait for the assistant to finish, then try again.",
-    "message_not_editable": "This message can't be changed."
+    "message_not_editable": "This message can't be changed.",
+    "extra_no_main": "Choose a project (main) folder before adding extra folders.",
+    "extra_limit": "A chat can have at most 3 extra folders.",
+    "extra_missing": "The folder doesn't exist or can't be opened.",
+    "extra_drive_root": "A whole drive can't be an extra folder — pick a folder inside it.",
+    "extra_system": "System folders (AppData, Windows, Program Files, ProgramData, the app's data) can't be extra folders.",
+    "extra_contains_system": "This folder contains a system folder or a whole user folder (e.g. C:\\Users) — pick a smaller folder.",
+    "extra_overlap_main": "This folder is, contains or is inside the project folder — the assistant can already read it.",
+    "extra_overlap_extra": "This folder is, contains or is inside another extra folder.",
+    "extra_not_found": "That extra folder is no longer part of this chat.",
+    "folder_overlaps_extra": "The new folder is, contains or is inside an extra folder — remove that extra folder first.",
+    "fork_extra_dropped": "Some extra folders are no longer usable, so they weren't copied to the branch."
   },
   "tools": {
     "screenshot": "screenshot",
@@ -346,7 +369,9 @@
     "choose": "Choose folder…",
     "deny": "Don't allow",
     "pickAgain": "No folder chosen — click \"Choose folder…\" again, or Don't allow.",
-    "continue": "I've granted folder access, please continue."
+    "continue": "I've granted folder access, please continue.",
+    "titleExtra": "The assistant asks to read an extra folder",
+    "extraHint": "Extra folders are added read-only. To allow edits, tick \"Allow edits\" for that folder on the folder bar — every edit still asks."
   },
   "messages": {
     "reply": "Reply",
@@ -551,7 +576,8 @@
       "shrink": "Asking even though auto-approve is on — the file would be less than half its size before the session.",
       "too_large": "Asking even though auto-approve is on — the file is over 2 MB.",
       "hard_link": "Asking even though auto-approve is on — the file has several hard links (editing it edits other places too).",
-      "limit": "Asking even though auto-approve is on — the session reached the file limit."
+      "limit": "Asking even though auto-approve is on — the session reached the file limit.",
+      "extra_folder": "Still asking while auto-approve is on — the file is in an extra folder (only the main folder is auto-approved)."
     }
   }
 }

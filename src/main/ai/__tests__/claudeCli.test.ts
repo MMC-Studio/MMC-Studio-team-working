@@ -50,6 +50,11 @@ describe('buildCliArgs', () => {
     expect(buildCliArgs({ ...base, mode: 'free' })).not.toContain('--model')
   })
 
+  it('mỗi thư mục thêm một cặp --add-dir', () => {
+    const args = buildCliArgs({ ...base, mode: 'code', tools: ['Read'], addDirs: ['E:\\lib', 'F:\\assets'] })
+    expect(args.filter((_, i) => args[i - 1] === '--add-dir')).toEqual(['E:\\lib', 'F:\\assets'])
+  })
+
   it('không đưa prompt vào args, bật restricted và không tool ở chế độ thường', () => {
     const args = buildCliArgs({ ...base, mode: 'free' })
     expect(args).toEqual([

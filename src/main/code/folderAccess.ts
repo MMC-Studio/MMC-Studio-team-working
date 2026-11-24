@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import type { Conversation, FolderAccessClosed, FolderAccessRequest, FolderAccessResult } from '@shared/types'
+import { MAX_EXTRA_DIRS, type Conversation, type FolderAccessClosed, type FolderAccessRequest, type FolderAccessResult } from '@shared/types'
 import { ApprovalTimer, type ApprovalTimerOptions } from '../approvals/timer'
 import type { AppToolRegistry, ToolSet } from '../tools/registry'
 
-type Verdict = { granted: true; path: string; write: boolean } | { granted: false; reason: string }
+type Verdict = { granted: true; path: string; write: boolean; extra: boolean } | { granted: false; reason: string }
 type Pending = FolderAccessRequest & { resolve(v: Verdict): void; timer: ApprovalTimer }
 
 export type FolderAccessDeps = {
@@ -12,7 +12,12 @@ export type FolderAccessDeps = {
   /** Mở hộp chọn thư mục (gợi ý sẵn đường dẫn); null = người dùng huỷ. */
   pickFolder(suggestedPath: string | null): Promise<string | null>
   /** Gắn thư mục + quyền sửa cho hội thoại (đổi thư mục luôn reset quyền sửa trước). */
-  grant(conversationId: string, path: string, write: boolean): Conversation | null
+  grant(conversationId: string, path: string, write: boolean): Conversation | null | Promise<Conversation | null>
+  /**
+   * Gắn thư mục phụ (D, chỉ đọc) sau khi kiểm vùng cấm / chồng lấn / giới hạn. Thư mục không dùng được → ném Error có
+   * mã (thẻ vẫn chờ, người dùng chọn lại).
+   */
+  grantExtra?(conversationId: string, path: string): Promise<Conversation | null>
   emit(event: FolderAccessRequest | FolderAccessClosed): void
   log: { info(msg: string): void }
   timer?: ApprovalTimerOptions
@@ -23,13 +28,19 @@ export const FOLDER_TOOL = 'request_folder_access'
 const input = z.object({
   path: z.string().max(1000).optional().describe('Đường dẫn người dùng nhắc tới (vd D:\\unity\\3DCo_Ban), nếu có.'),
   write: z.boolean().default(false).describe('true nếu cần SỬA file (mỗi thay đổi người dùng vẫn duyệt diff); chỉ đọc thì false.'),
-  reason: z.string().min(1).max(300).describe('Một câu ngắn: cần thư mục này để làm gì.')
+  reason: z.string().min(1).max(300).describe('Một câu ngắn: cần thư mục này để làm gì.'),
+  extra: z
+    .boolean()
+    .default(false)
+    .describe(`true = xin THÊM một thư mục phụ (tối đa ${MAX_EXTRA_DIRS}, luôn chỉ đọc) khi đã có thư mục dự án và cần đọc thêm thư mục khác.`)
 })
 
 const NO_FOLDER_CONTEXT = `## Truy cập thư mục trên máy
 Bạn CHƯA đọc được file trên máy người dùng. Khi người dùng nhắc tới file / thư mục / dự án trên máy (code, Unity, Blender, DaVinci…) hoặc muốn bạn xem / sửa nó: gọi ${FOLDER_TOOL} (kèm path nếu họ nêu) — KHÔNG bảo họ copy-dán và KHÔNG nói là không làm được. Người dùng sẽ tự chọn thư mục để cấp quyền.`
 
 const READ_ONLY_CONTEXT = `Nếu cần sửa file mà đang chỉ có quyền đọc: gọi ${FOLDER_TOOL} với write=true.`
+
+const EXTRA_CONTEXT = `Cần đọc file ở một thư mục KHÁC ngoài thư mục dự án: gọi ${FOLDER_TOOL} với extra=true (thư mục phụ, chỉ đọc; người dùng tự chọn và tự bật sửa nếu muốn). Không xin thư mục hệ thống / cả ổ đĩa / cả thư mục người dùng — app sẽ chặn.`
 
 /**
  * Trợ lý tự xin quyền thư mục: tool `request_folder_access` hiện thẻ cho người dùng; quyền chỉ có khi
@@ -42,11 +53,14 @@ export class FolderAccessRequests {
 
   constructor(private readonly deps: FolderAccessDeps) {}
 
-  /** Tool + hướng dẫn cho lượt chat; đã có quyền sửa → không cần tool. */
+  /** Tool + hướng dẫn cho lượt chat; đã có quyền sửa và đủ thư mục phụ → không cần tool. */
   toolsFor(conversationId: string): ToolSet | null {
     const conv = this.deps.getConversation(conversationId)
-    if (!conv || (conv.cwd && conv.codeWrite)) return null
-    return { names: [FOLDER_TOOL], context: conv.cwd ? READ_ONLY_CONTEXT : NO_FOLDER_CONTEXT }
+    if (!conv) return null
+    if (!conv.cwd) return { names: [FOLDER_TOOL], context: NO_FOLDER_CONTEXT }
+    const canAddExtra = conv.extraDirs.length < MAX_EXTRA_DIRS
+    const context = [conv.codeWrite ? '' : READ_ONLY_CONTEXT, canAddExtra ? EXTRA_CONTEXT : ''].filter(Boolean).join('\n')
+    return context ? { names: [FOLDER_TOOL], context } : null
   }
 
   registerTools(registry: AppToolRegistry): void {
@@ -58,12 +72,29 @@ export class FolderAccessRequests {
       input,
       available: (ctx) => this.toolsFor(ctx.conversationId) !== null,
       run: async (args, ctx) => {
+        const conv = this.deps.getConversation(ctx.conversationId)
+        // Thư mục phụ chỉ khi đã có thư mục chính; chưa có thì xin như thư mục chính.
+        const extra = args.extra && !!conv?.cwd
+        if (extra && conv && conv.extraDirs.length >= MAX_EXTRA_DIRS)
+          return { content: [{ type: 'text', text: `Cuộc này đã có đủ ${MAX_EXTRA_DIRS} thư mục phụ — không thêm được nữa.` }] }
         const verdict = await this.request(ctx.conversationId, {
           suggestedPath: args.path?.trim() || null,
-          write: args.write,
-          reason: args.reason
+          write: extra ? false : args.write,
+          reason: args.reason,
+          ...(extra ? { extra: true } : {})
         })
         if (!verdict.granted) return { content: [{ type: 'text', text: verdict.reason }] }
+        if (verdict.extra)
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  `Người dùng đã thêm thư mục phụ (chỉ đọc): ${verdict.path}. Đọc được từ lượt sau, dùng đường dẫn tuyệt đối. ` +
+                  'Hãy KẾT THÚC câu trả lời ngay bằng một câu ngắn — app sẽ tự gửi lượt tiếp theo.'
+              }
+            ]
+          }
         const level = verdict.write ? 'đọc + sửa (mỗi thay đổi người dùng duyệt diff)' : 'chỉ đọc'
         return {
           content: [
@@ -121,13 +152,26 @@ export class FolderAccessRequests {
     if (!path) return { status: 'pending' }
     // Trong lúc mở hộp thoại, lượt chat có thể đã dừng.
     if (!this.pending.has(id)) return { status: 'expired' }
-    const conversation = this.deps.grant(p.conversationId, path, write)
+    const extra = !!p.extra
+    let conversation: Conversation | null
+    try {
+      // Thư mục phụ luôn chỉ đọc (người dùng tự tick sửa trên thanh thư mục); thư mục chính theo ô "Cho phép sửa".
+      const { grantExtra } = this.deps
+      if (!extra) conversation = await this.deps.grant(p.conversationId, path, write)
+      else if (grantExtra) conversation = await grantExtra(p.conversationId, path)
+      else throw new Error('extra_no_main')
+    } catch (err) {
+      // Thư mục bị cấm / chồng lấn → thẻ vẫn chờ, renderer báo lý do để người dùng chọn lại.
+      return { status: 'pending', error: (err as Error).message }
+    }
+    if (!this.pending.has(id)) return { status: 'expired' }
     if (!conversation) {
       this.settle(id, { granted: false, reason: 'Không tìm thấy cuộc trò chuyện.' })
       return { status: 'expired' }
     }
-    this.deps.log.info(`Cấp quyền thư mục (${write ? 'đọc + sửa' : 'chỉ đọc'}) cho hội thoại ${p.conversationId}`)
-    this.settle(id, { granted: true, path, write })
+    const granted = extra ? false : write
+    this.deps.log.info(`Cấp quyền thư mục${extra ? ' phụ' : ''} (${granted ? 'đọc + sửa' : 'chỉ đọc'}) cho hội thoại ${p.conversationId}`)
+    this.settle(id, { granted: true, path, write: granted, extra })
     return { status: 'granted', conversation }
   }
 

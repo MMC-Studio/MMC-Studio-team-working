@@ -52,6 +52,7 @@ describe('PrivacyService', () => {
   let aborted: string[]
   let stopped: string[]
   let service: PrivacyService
+  let deps: PrivacyDeps
 
   beforeEach(() => {
     handle = openDatabase(':memory:', migrations)
@@ -91,7 +92,7 @@ describe('PrivacyService', () => {
     aborted = []
     stopped = []
     const commands = { cancelConversation: (id: string) => void runningCommands.delete(id) }
-    const deps: PrivacyDeps = {
+    deps = {
       foldersInUse: () => convs.withFolder(),
       getConversation: (id) => convs.get(id),
       clearFolder: (id) => void convs.setCwd(id, null),
@@ -178,6 +179,31 @@ describe('PrivacyService', () => {
     expect(otherSettled).toBe(false)
     expect(service.status().folders.map((f) => f.conversationId)).toEqual([other.id])
     mcp.cancelAll()
+  })
+
+  it('thu hồi thư mục chính → gỡ luôn thư mục phụ; trang liệt kê thư mục phụ dưới từng cuộc', () => {
+    const conv = convs.create('code')
+    convs.setCwd(conv.id, folder)
+    convs.addExtraDir(conv.id, 'E:\\lib')
+    convs.setExtraWrite(conv.id, 'E:\\lib', true)
+    expect(service.status().folders).toEqual([expect.objectContaining({ conversationId: conv.id, extras: [{ path: 'E:\\lib', write: true }] })])
+    expect(service.revokeFolder(conv.id)).toBe(true)
+    expect(convs.get(conv.id)).toMatchObject({ cwd: null, extraDirs: [] })
+  })
+
+  it('thu hồi một thư mục phụ: gọi đường gỡ (huỷ thẻ + dừng lượt ở ExtraFolders); không còn / tài khoản khác → false', () => {
+    const removed: string[] = []
+    service = new PrivacyService({ ...deps, removeExtraFolder: (id, p) => void removed.push(`${id}|${p}`) })
+    const conv = convs.create('code')
+    convs.setCwd(conv.id, folder)
+    convs.addExtraDir(conv.id, 'E:\\lib')
+    expect(service.revokeExtraFolder(conv.id, 'E:\\khac')).toBe(false)
+    expect(service.revokeExtraFolder(conv.id, 'E:\\lib')).toBe(true)
+    expect(removed).toEqual([`${conv.id}|E:\\lib`])
+    owner = 'u2'
+    expect(service.revokeExtraFolder(conv.id, 'E:\\lib')).toBe(false)
+    owner = 'u1'
+    expect(removed).toHaveLength(1)
   })
 
   it('thu hồi thư mục: cuộc không có thư mục / của tài khoản khác → false, không huỷ gì', () => {

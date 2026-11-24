@@ -25,9 +25,11 @@ export type PrivacyDeps = {
   /** Cuộc của tài khoản hiện tại đang có thư mục. */
   foldersInUse(): PrivacyFolderGrant[]
   /** null = không phải cuộc của tài khoản này. */
-  getConversation(id: string): { cwd: string | null } | null
-  /** Gỡ thư mục (kèm bỏ quyền sửa). */
+  getConversation(id: string): { cwd: string | null; extraDirs?: { path: string }[] } | null
+  /** Gỡ thư mục (kèm bỏ quyền sửa và mọi thư mục phụ). */
   clearFolder(conversationId: string): void
+  /** Gỡ một thư mục phụ (D) — huỷ thẻ, dừng lượt, gỡ (`ExtraFolders.remove`). */
+  removeExtraFolder?(conversationId: string, path: string): void
   /** Huỷ MỌI thẻ đang chờ của cuộc (sửa file, MCP, nháp, xin quyền, đề xuất lịch, lệnh) + dừng lệnh đang chạy. */
   cancelConversation(conversationId: string): void
   /** Dừng lượt trợ lý đang chạy của cuộc (CLI giữ quyền đọc thư mục tới hết lượt). */
@@ -81,6 +83,15 @@ export class PrivacyService {
     this.deps.abortTurn(conversationId)
     this.deps.clearFolder(conversationId)
     this.deps.log.info(`Quyền & riêng tư: thu hồi thư mục của cuộc ${conversationId}`)
+    return true
+  }
+
+  /** Thu hồi một thư mục phụ (D) của cuộc. */
+  revokeExtraFolder(conversationId: string, path: string): boolean {
+    const conv = this.deps.getConversation(conversationId)
+    if (!conv?.extraDirs?.some((e) => e.path === path) || !this.deps.removeExtraFolder) return false
+    this.deps.removeExtraFolder(conversationId, path)
+    this.deps.log.info(`Quyền & riêng tư: thu hồi một thư mục phụ của cuộc ${conversationId}`)
     return true
   }
 

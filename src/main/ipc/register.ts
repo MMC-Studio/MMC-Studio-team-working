@@ -1,3 +1,4 @@
+import type { Conversation as SharedConversation } from '@shared/types'
 import type { MediaRef, MessageMedia } from '@shared/expressive'
 import { writeFile } from 'node:fs/promises'
 import { dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
@@ -57,8 +58,12 @@ import type { SecretStore } from '../services/secrets'
 import type { StateSync } from '../services/stateSync'
 import type { SyncTopic } from '@shared/sync'
 
+type Conversation = SharedConversation
+
 export type IpcDeps = {
   conversations: ConversationRepository
+  /** Nhánh vừa tạo: kiểm lại thư mục phụ đã chép (D). */
+  revalidateExtraDirs?(conversationId: string): Promise<Conversation | null>
   groups: ConversationGroupRepository
   messages: MessageRepository
   memories: MemoryRepository
@@ -167,10 +172,11 @@ export function registerIpc(deps: IpcDeps): void {
     deps,
     IPC.conversationsFork,
     idSchema,
-    (messageId) => {
+    async (messageId) => {
       const forked = deps.conversations.fork(messageId)
       if (!forked) throw new Error('message_not_found')
-      return forked
+      // Thư mục phụ (D) chép theo nhánh (chỉ đọc) — kiểm lại, thư mục không còn hợp lệ bị bỏ.
+      return (await deps.revalidateExtraDirs?.(forked.id)) ?? forked
     },
     conv
   )

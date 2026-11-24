@@ -120,6 +120,13 @@
       "when": 1795346425796,
       "tag": "0016_action_log",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795484367349,
+      "tag": "0017_conversation_extra_dirs",
+      "breakpoints": true
     }
   ]
 }

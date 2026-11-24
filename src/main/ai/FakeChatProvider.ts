@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import type { ChatEvent } from '@shared/ai'
 import type { AIProvider, ChatRequest } from './AIProvider'
 import type { ToolResult } from '../tools/registry'
@@ -157,7 +157,8 @@ export class FakeChatProvider implements AIProvider {
     const latest = this.stateful ? (req.prompt.split('\n---\n').pop() ?? '') : req.prompt
     const edit = /FAKE_EDIT:(\S+)/.exec(latest)
     if (edit && this.decideEdit && req.approval) {
-      const file = join(req.cwd, edit[1])
+      // Đường dẫn tuyệt đối = file ở thư mục phụ (D), như CLI thật dùng đường dẫn tuyệt đối ngoài cwd.
+      const file = isAbsolute(edit[1]) ? edit[1] : join(req.cwd, edit[1])
       let content = 'phiên bản 1\n'
       for (let attempt = 1; attempt <= 3; attempt++) {
         const input = { file_path: file, content }

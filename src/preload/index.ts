@@ -58,6 +58,7 @@ const api: TeamWorkingApi = {
   privacy: {
     status: () => ipcRenderer.invoke(IPC.privacyStatus),
     revokeFolder: (conversationId) => ipcRenderer.invoke(IPC.privacyRevokeFolder, { conversationId }),
+    revokeExtraFolder: (conversationId, path) => ipcRenderer.invoke(IPC.privacyRevokeExtraFolder, { conversationId, path }),
     revokeScheduleGrant: (scheduleId, key) => ipcRenderer.invoke(IPC.privacyRevokeScheduleGrant, { scheduleId, key })
   },
   commands: {
@@ -334,6 +335,9 @@ const api: TeamWorkingApi = {
       ipcRenderer.invoke(IPC.codeSetWrite, { conversationId, enabled }),
     respond: (id, allow, feedback) => ipcRenderer.invoke(IPC.codeRespond, { id, allow, feedback }),
     clearFolder: (conversationId) => ipcRenderer.invoke(IPC.codeClearFolder, conversationId),
+    addExtraFolder: (conversationId) => ipcRenderer.invoke(IPC.codeAddExtraFolder, conversationId),
+    removeExtraFolder: (conversationId, path) => ipcRenderer.invoke(IPC.codeRemoveExtraFolder, { conversationId, path }),
+    setExtraWrite: (conversationId, path, enabled) => ipcRenderer.invoke(IPC.codeSetExtraWrite, { conversationId, path, enabled }),
     respondFolderAccess: (id, grant, write, feedback) =>
       ipcRenderer.invoke(IPC.folderAccessRespond, { id, grant, write, feedback }),
     respondAuto: (id) => ipcRenderer.invoke(IPC.codeRespondAuto, { id })

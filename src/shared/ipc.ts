@@ -45,6 +45,7 @@ export const IPC = {
   /** Quyền đang cấp + thu hồi (Cài đặt → Quyền & riêng tư). */
   privacyStatus: 'privacy:status',
   privacyRevokeFolder: 'privacy:revokeFolder',
+  privacyRevokeExtraFolder: 'privacy:revokeExtraFolder',
   privacyRevokeScheduleGrant: 'privacy:revokeScheduleGrant',
   /** Kho plugin online (8a). */
   pluginStoreSources: 'pluginStore:sources',
@@ -166,6 +167,9 @@ export const IPC = {
   codeSetWrite: 'code:setWrite',
   codeRespond: 'code:respond',
   codeClearFolder: 'code:clearFolder',
+  codeAddExtraFolder: 'code:addExtraFolder',
+  codeRemoveExtraFolder: 'code:removeExtraFolder',
+  codeSetExtraWrite: 'code:setExtraWrite',
   codeRespondAuto: 'code:respondAuto',
   autoEditsList: 'autoEdits:list',
   autoEditsStop: 'autoEdits:stop',

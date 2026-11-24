@@ -29,6 +29,18 @@ export function PrivacyGrants() {
       save: () => api.privacy.revokeFolder(conversationId)
     })
   }
+  const revokeExtra = (conversationId: string, path: string): void => {
+    void optimistic({
+      topic: 'conversations',
+      apply: () =>
+        setData({
+          ...data,
+          folders: data.folders.map((x) => (x.conversationId === conversationId ? { ...x, extras: x.extras.filter((e) => e.path !== path) } : x))
+        }),
+      rollback: () => setData(data),
+      save: () => api.privacy.revokeExtraFolder(conversationId, path)
+    })
+  }
   const revokeGrant = (scheduleId: string, key: ScheduleGrantKey): void => {
     const drop = (s: PrivacyScheduleGrant): PrivacyScheduleGrant => ({
       ...s,
@@ -48,7 +60,7 @@ export function PrivacyGrants() {
   }
   return (
     <>
-      <FoldersRow data={data} revoke={revokeFolder} />
+      <FoldersRow data={data} revoke={revokeFolder} revokeExtra={revokeExtra} />
       <AutoEditsRow />
       <GitRow enabled={data.git.enabled} />
       <GitRow id="grantUnity" focus="commandsUnity" testId="grant-unity" enabled={data.apps.unity.enabled} />
@@ -59,7 +71,7 @@ export function PrivacyGrants() {
   )
 }
 
-function FoldersRow({ data, revoke }: { data: PrivacyStatus; revoke(id: string): void }) {
+function FoldersRow({ data, revoke, revokeExtra }: { data: PrivacyStatus; revoke(id: string): void; revokeExtra(id: string, path: string): void }) {
   const { t } = useTranslation('settings')
   return (
     <SettingRow id="grantFolders">
@@ -70,32 +82,66 @@ function FoldersRow({ data, revoke }: { data: PrivacyStatus; revoke(id: string):
       ) : (
         <ul className="divide-y rounded-lg border" data-testid="grant-folders">
           {data.folders.map((f) => (
-            <li key={f.conversationId} className="flex items-center gap-3 px-3 py-2" data-testid="grant-folder" data-conversation={f.conversationId}>
-              <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm">{f.title || t('actionLog.untitled')}</div>
-                <div className="truncate font-mono text-[11px] text-muted-foreground" title={f.path}>
-                  {f.path}
+            <li key={f.conversationId} className="px-3 py-2" data-testid="grant-folder" data-conversation={f.conversationId}>
+              <div className="flex items-center gap-3">
+                <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{f.title || t('actionLog.untitled')}</div>
+                  <div className="truncate font-mono text-[11px] text-muted-foreground" title={f.path}>
+                    {f.path}
+                  </div>
                 </div>
+                <span
+                  className={cn(
+                    'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                    f.write ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'bg-muted text-muted-foreground'
+                  )}
+                  data-testid="grant-folder-access"
+                >
+                  {f.write ? t('privacy.readWrite') : t('privacy.readOnly')}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => revoke(f.conversationId)}
+                  title={f.extras.length ? t('privacy.revokeFolderExtrasHint') : undefined}
+                  aria-label={t('privacy.revokeFolder', { title: f.title || t('actionLog.untitled') })}
+                  data-testid="grant-folder-revoke"
+                >
+                  {t('privacy.revoke')}
+                </Button>
               </div>
-              <span
-                className={cn(
-                  'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium',
-                  f.write ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'bg-muted text-muted-foreground'
-                )}
-                data-testid="grant-folder-access"
-              >
-                {f.write ? t('privacy.readWrite') : t('privacy.readOnly')}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => revoke(f.conversationId)}
-                aria-label={t('privacy.revokeFolder', { title: f.title || t('actionLog.untitled') })}
-                data-testid="grant-folder-revoke"
-              >
-                {t('privacy.revoke')}
-              </Button>
+              {/* Thư mục phụ (D): thu hồi từng thư mục; thu hồi thư mục chính ở trên gỡ luôn cả các dòng này. */}
+              {f.extras.length > 0 && (
+                <ul className="mt-1.5 ml-7 space-y-1 border-l pl-3" data-testid="grant-extra-folders">
+                  {f.extras.map((e) => (
+                    <li key={e.path} className="flex items-center gap-3" data-testid="grant-extra-folder" data-path={e.path}>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{t('privacy.extraFolder')}</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground" title={e.path}>
+                        {e.path}
+                      </span>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                          e.write ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {e.write ? t('privacy.readWriteAsk') : t('privacy.readOnly')}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6"
+                        onClick={() => revokeExtra(f.conversationId, e.path)}
+                        aria-label={t('privacy.revokeExtraFolder', { path: e.path })}
+                        data-testid="grant-extra-folder-revoke"
+                      >
+                        {t('privacy.revoke')}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>

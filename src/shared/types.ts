@@ -90,6 +90,12 @@ import type {
   ChatOrganizeSettings
 } from './schemas'
 
+/** Một thư mục phụ của cuộc trò chuyện (D). */
+export type ExtraFolder = { path: string; write: boolean }
+
+/** Tối đa số thư mục phụ mỗi cuộc. */
+export const MAX_EXTRA_DIRS = 3
+
 export type Conversation = {
   id: string
   title: string
@@ -99,6 +105,8 @@ export type Conversation = {
   cwd: string | null
   /** Chế độ Code: người dùng đã bật cho phép sửa file (mỗi lần sửa vẫn phải duyệt). */
   codeWrite: boolean
+  /** Thư mục phụ (D): tối đa 3, chỉ khi có thư mục chính; mặc định chỉ đọc, sửa = tick riêng (luôn hỏi, không tự duyệt). */
+  extraDirs: ExtraFolder[]
   /** Nhóm ở thanh bên (null = chưa xếp nhóm). */
   groupId: string | null
   /** Nhánh: hội thoại gốc (null = không phải nhánh, hoặc gốc đã bị xoá). */
@@ -244,13 +252,15 @@ export type FolderAccessRequest = {
   /** Xin cả quyền sửa (mỗi lần sửa vẫn phải duyệt diff). */
   write: boolean
   reason: string
+  /** Xin THÊM một thư mục phụ (D) — luôn chỉ đọc; cấp xong người dùng tự tick sửa nếu muốn. */
+  extra?: boolean
 }
 /** Thẻ xin quyền đóng lại (hết giờ, dừng lượt…) mà người dùng chưa trả lời. */
 export type FolderAccessClosed = { id: string; closed: true }
 export type FolderAccessResult =
   | { status: 'granted'; conversation: Conversation }
-  /** Người dùng đóng hộp chọn thư mục mà chưa chọn — thẻ vẫn chờ. */
-  | { status: 'pending' }
+  /** Người dùng đóng hộp chọn thư mục mà chưa chọn — thẻ vẫn chờ. `error`: thư mục vừa chọn không dùng được (mã lỗi). */
+  | { status: 'pending'; error?: string }
   | { status: 'denied' }
   /** Yêu cầu không còn (lượt chat đã kết thúc). */
   | { status: 'expired' }
@@ -262,6 +272,8 @@ export type CodeApprovalRequest = {
   change: { path: string; isNewFile: boolean; patch: string; added: number; removed: number }
   /** Có nút "Đồng ý, và không hỏi lại trong phiên này" không; không → vì sao (PR C). */
   autoEdit?: AutoEditOffer
+  /** File nằm trong thư mục phụ này (D); không có = thư mục chính. `change.path` tương đối với thư mục này. */
+  extraFolder?: string
 }
 
 /** Sự kiện main → renderer khi danh sách đề xuất memory thay đổi. */
@@ -322,6 +334,8 @@ export interface TeamWorkingApi {
     status(): Promise<PrivacyStatus>
     /** false = cuộc không có thư mục (đã gỡ ở nơi khác). */
     revokeFolder(conversationId: string): Promise<boolean>
+    /** Thu hồi một thư mục phụ (D). false = không còn. */
+    revokeExtraFolder(conversationId: string, path: string): Promise<boolean>
     revokeScheduleGrant(scheduleId: string, key: ScheduleGrantKey): Promise<boolean>
   }
   commands: {
@@ -679,6 +693,11 @@ export interface TeamWorkingApi {
     respond(id: string, allow: boolean, feedback?: string): Promise<void>
     /** Gỡ thư mục khỏi hội thoại = thu hồi quyền đọc/sửa. */
     clearFolder(conversationId: string): Promise<Conversation | null>
+    /** Thư mục phụ (D): mở hộp chọn thư mục (null = huỷ); bị cấm / chồng lấn / đủ 3 → lỗi có mã. */
+    addExtraFolder(conversationId: string): Promise<Conversation | null>
+    /** Gỡ một thư mục phụ = thu hồi (huỷ thẻ đang chờ, dừng lượt đang chạy). */
+    removeExtraFolder(conversationId: string, path: string): Promise<Conversation | null>
+    setExtraWrite(conversationId: string, path: string, enabled: boolean): Promise<Conversation>
     /** Trả lời thẻ trợ lý xin quyền thư mục (grant = mở hộp chọn thư mục). */
     respondFolderAccess(id: string, grant: boolean, write: boolean, feedback?: string): Promise<FolderAccessResult>
     /** "Đồng ý, và không hỏi lại trong phiên này" (PR C). Không đủ điều kiện nữa → lỗi, thẻ vẫn chờ. */

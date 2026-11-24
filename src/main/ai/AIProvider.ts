@@ -31,6 +31,8 @@ export type ChatRequest = {
   model?: 'cheap'
   /** Số bước tối đa (CLI `--max-turns`) — lần chạy không có người ngồi máy (lịch hẹn). */
   maxTurns?: number
+  /** Thư mục phụ (D) được đọc thêm (CLI `--add-dir`); sửa file vẫn qua bước duyệt của app. */
+  addDirs?: string[]
 }
 
 export interface AIProvider {

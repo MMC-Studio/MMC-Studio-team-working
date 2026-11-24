@@ -2,7 +2,7 @@ import type { ArtifactType, MessageArtifact } from '@shared/artifacts'
 import type { MessageVoice } from '@shared/voice'
 import type { MessageMedia, Reaction } from '@shared/expressive'
 import { sql } from 'drizzle-orm'
-import { index, integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import type { ChatMode, ChatUsage } from '@shared/ai'
 import type {
   Recurrence,
@@ -193,6 +193,23 @@ export const conversations = sqliteTable(
     updatedAt: integer('updated_at').notNull().default(now)
   },
   (t) => [index('conversations_updated_idx').on(t.pinned, t.updatedAt), index('conversations_owner_idx').on(t.owner)]
+)
+
+/**
+ * Thư mục phụ của cuộc trò chuyện (D): tối đa 3 (kiểm ở repository), chỉ trên máy. `write` = người dùng đã tick
+ * "Cho phép sửa" cho riêng thư mục này (mỗi lần sửa vẫn hỏi — không tự duyệt). Xoá cuộc → xoá theo.
+ */
+export const conversationExtraDirs = sqliteTable(
+  'conversation_extra_dirs',
+  {
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    write: integer('write', { mode: 'boolean' }).notNull().default(false),
+    addedAt: integer('added_at').notNull().default(now)
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.path] })]
 )
 
 export const messages = sqliteTable(

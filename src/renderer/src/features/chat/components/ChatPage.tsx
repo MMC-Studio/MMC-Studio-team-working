@@ -166,7 +166,7 @@ export function ChatPage() {
             </div>
           )}
           {error && (
-            <div className="flex items-center justify-between rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="flex items-center justify-between rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="chat-error">
               {t(`errors.${error}`, {
                 defaultValue: t('common:errors.generic', { message: error })
               })}

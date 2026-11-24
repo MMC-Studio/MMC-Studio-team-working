@@ -133,7 +133,8 @@ export class ClaudeCliProvider implements AIProvider {
       mcpConfigFile,
       permissionTool: bridge ? PERMISSION_TOOL : undefined,
       // File đính kèm nằm ở workspace; ở chế độ Code (cwd = dự án) phải cho phép đọc thêm thư mục đó.
-      addDirs: [...new Set(attachmentPaths.map((p) => dirname(p)))].filter((d) => !isInside(req.cwd, d)),
+      // Thư mục phụ (D) của cuộc: người dùng tự chọn, app đã kiểm (không vùng cấm, không chồng lấn).
+      addDirs: [...new Set([...(req.addDirs ?? []), ...attachmentPaths.map((p) => dirname(p))])].filter((d) => !isInside(req.cwd, d)),
       ephemeral: req.ephemeral,
       cheap: req.model === 'cheap',
       maxTurns: req.maxTurns

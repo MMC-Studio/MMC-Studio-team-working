@@ -400,6 +400,10 @@
       "telegram": "Telegram",
       "agents": "Agent ghép đôi",
       "mcp": "MCP server"
-    }
+    },
+    "extraFolder": "Phụ",
+    "readWriteAsk": "Đọc + sửa (luôn hỏi)",
+    "revokeExtraFolder": "Thu hồi thư mục phụ {{path}}",
+    "revokeFolderExtrasHint": "Thu hồi thư mục chính gỡ luôn các thư mục phụ"
   }
 }
