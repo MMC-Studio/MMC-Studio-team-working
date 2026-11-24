@@ -47,9 +47,9 @@
 | #54 | Các mức quyền thêm **C**: sửa file không hỏi lại suốt phiên (tự duyệt có hoàn tác 7 ngày) + sửa "App chặn" nhầm Edit trên file CRLF |
 
 ## Các mức quyền thêm — đang làm
-Thứ tự (kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm): ~~symlink (#47)~~ → ~~A1 (#49)~~ → ~~B1 nhật ký (#51)~~ → ~~B2 quyền + thu hồi (#52)~~ → ~~A2 Unity / Blender (#53)~~ → ~~C tự duyệt sửa file (#54)~~ → **D** thư mục phụ (`feat/extra-folders`, chờ duyệt).
+Thứ tự (kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm): ~~symlink (#47)~~ → ~~A1 (#49)~~ → ~~B1 nhật ký (#51)~~ → ~~B2 quyền + thu hồi (#52)~~ → ~~A2 Unity / Blender (#53)~~ → ~~C tự duyệt sửa file (#54)~~ → **D** thư mục phụ (`feat/extra-folders`, #55 chờ duyệt).
 
-- **D — `feat/extra-folders`** (kế hoạch duyệt 2026-11-24 kèm 4 sửa của người dùng — xem "Quyết định đã duyệt" → D): thư mục phụ, tối đa 3 / cuộc.
+- **D — `feat/extra-folders`** (#55 chờ duyệt, mở 2026-11-24; kế hoạch duyệt 2026-11-24 kèm 4 sửa của người dùng — xem "Quyết định đã duyệt" → D): thư mục phụ, tối đa 3 / cuộc.
   - **Dữ liệu**: migration `0017_conversation_extra_dirs` (cuộc, đường dẫn, `write`, thời điểm thêm; xoá cuộc → xoá theo). `Conversation.extraDirs` (theo thứ tự thêm). Repository chốt tối đa 3 (`extra_limit`); `setCwd(null)` gỡ luôn thư mục phụ; `fork` chép thư mục phụ về chỉ đọc.
   - **Kiểm thư mục** (`src/main/code/extraFolders.ts`, so cả đường dẫn chữ lẫn đường dẫn thật): không tồn tại → gốc ổ đĩa → TRONG vùng cấm (AppData, Windows, Program Files, Program Files (x86), ProgramData, dữ liệu app — `extra_system`) → CHỨA vùng cấm hoặc thư mục người dùng (mọi thư mục cha, vd `C:\Users` — `extra_contains_system`) → chồng lấn thư mục chính → chồng lấn thư mục phụ khác. Vùng cấm lấy từ biến môi trường (`systemZones`), không viết cứng ổ C. Thư mục con của thư mục người dùng (Documents…) được.
   - **Thư mục chính ↔ phụ**: chưa có thư mục chính → không thêm được. Đổi thư mục chính (thanh thư mục hoặc thẻ trợ lý xin quyền) mà chồng lấn thư mục phụ → `folder_overlaps_extra`, giữ thư mục cũ. Gỡ / Thu hồi thư mục chính → gỡ luôn thư mục phụ. Gỡ một thư mục phụ = thu hồi: huỷ mọi thẻ đang chờ của cuộc + dừng lượt đang chạy (CLI giữ `--add-dir` cho cả lượt).
