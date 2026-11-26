@@ -9,7 +9,7 @@ metadata:
     - file:src/renderer/src/features/chat
     - file:src/renderer/src/features/__tests__/i18n-keys.test.ts
     - file:src/main/ipc
-    - file:src/main/index.ts
+    - file:src/main/boot
     - file:src/shared/ipc.ts
     - file:src/shared/schemas.ts
     - file:src/shared/types.ts
@@ -26,7 +26,7 @@ metadata:
    - `index.ts` — export `FeatureDefinition` `{ id, titleKey, icon, route, roles, component, i18n, nav, setup? }` (`id` cũng là namespace i18n; `setup` chạy một lần lúc app khởi động, ví dụ đăng ký listener IPC)
    - `components/`, `store.ts` (Zustand), `api.ts` (gọi preload/Supabase), `i18n/vi.json`, `i18n/en.json`
    - `__tests__/`
-3. Nếu cần main process: logic thuần trong `src/main/<ten>/` (kèm `__tests__/`), handler IPC trong `src/main/ipc/<khu-vực>.ts` (thêm vào file sẵn có như `work.ts`/`team.ts`/`app.ts` hoặc tạo `register<Ten>Ipc` mới và gọi trong `bootstrap()` của `src/main/index.ts`). Tên kênh trong `src/shared/ipc.ts`, schema zod trong `src/shared/schemas.ts`, kiểu trong `TeamWorkingApi` (`src/shared/types.ts`), expose qua `src/preload/index.ts` dưới namespace `window.api.<ten>.*`.
+3. Nếu cần main process: logic thuần trong `src/main/<ten>/` (kèm `__tests__/`), handler IPC trong `src/main/ipc/<khu-vực>.ts` (thêm vào file sẵn có như `work.ts`/`team.ts`/`app.ts` hoặc tạo `register<Ten>Ipc` mới và gọi trong `createIpc` của `src/main/boot/ipc.ts`; dịch vụ mới tạo trong file `src/main/boot/<mảng>.ts` của mảng mình, đừng đổi thứ tự gọi trong `bootstrap()` vì đó là thứ tự `before-quit`). Tên kênh trong `src/shared/ipc.ts`, schema zod trong `src/shared/schemas.ts`, kiểu trong `TeamWorkingApi` (`src/shared/types.ts`), expose qua `src/preload/index.ts` dưới namespace `window.api.<ten>.*`.
 4. Dữ liệu local → bảng Drizzle mới + `npm run db:generate`. Dữ liệu team → skill `supabase-migration`.
 5. Cần AI → dùng `AIProvider` (skill `claude-bridge`); nếu cần hành vi riêng, thêm skill vào `assistant-skills/<ten>/SKILL.md`.
 6. Đăng ký trong `src/renderer/src/features/registry.ts`: ở renderer đây là chỗ duy nhất chạm vào lõi (menu, route, i18n lấy từ đây) để các module không sửa đè nhau; phía main thì thêm lời gọi `register…Ipc` ở bước 3. Test `features/__tests__/i18n-keys.test.ts` đỏ nếu `vi.json`/`en.json` lệch khóa.
