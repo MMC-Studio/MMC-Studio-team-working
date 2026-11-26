@@ -1,0 +1,37 @@
+{
+  "title": "UI kit (dev)",
+  "intro": "Dev-only page: every component in components/ui/. New screens only use components shown here.",
+  "controls": {
+    "theme": "Theme",
+    "accent": "Accent",
+    "motion": "Motion"
+  },
+  "sections": {
+    "buttons": "Buttons",
+    "iconButtons": "Icon-only buttons (hover or Tab to see the tooltip)",
+    "switches": "Switches",
+    "segmented": "Segmented control"
+  },
+  "demo": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "more": "More",
+    "link": "View details",
+    "filter": "Filter",
+    "loading": "Click to try loading",
+    "add": "Add task",
+    "settings": "Settings",
+    "on": "On",
+    "off": "Off",
+    "locked": "Locked",
+    "view": "View",
+    "table": "Table",
+    "cards": "Cards",
+    "pageTabs": "Page",
+    "dashboard": "Overview",
+    "members": "Members",
+    "tasks": "Tasks",
+    "reports": "Reports"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "title": "Bộ giao diện (dev)",
+  "intro": "Trang chỉ có ở bản dev: mọi thành phần trong components/ui/. Màn hình mới chỉ dùng thành phần có ở đây.",
+  "controls": {
+    "theme": "Nền",
+    "accent": "Màu nhấn",
+    "motion": "Chuyển động"
+  },
+  "sections": {
+    "buttons": "Nút",
+    "iconButtons": "Nút chỉ có icon (rê chuột hoặc Tab để thấy tooltip)",
+    "switches": "Công tắc",
+    "segmented": "Nhóm lựa chọn"
+  },
+  "demo": {
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "delete": "Xoá",
+    "more": "Thêm",
+    "link": "Xem chi tiết",
+    "filter": "Lọc",
+    "loading": "Bấm để thử đang tải",
+    "add": "Thêm task",
+    "settings": "Cài đặt",
+    "on": "Đang bật",
+    "off": "Đang tắt",
+    "locked": "Bị khoá",
+    "view": "Kiểu xem",
+    "table": "Bảng",
+    "cards": "Thẻ",
+    "pageTabs": "Trang",
+    "dashboard": "Tổng quan",
+    "members": "Thành viên",
+    "tasks": "Task",
+    "reports": "Báo cáo"
+  }
+}

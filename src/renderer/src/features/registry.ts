@@ -18,6 +18,7 @@ import { teamFeature } from './team'
 import { timeFeature } from './time'
 import { todayFeature } from './today'
 import type { FeatureDefinition } from './types'
+import { uiKitFeature } from './ui-kit'
 import { workFeature } from './work'
 
 /**
@@ -45,5 +46,8 @@ export const features: FeatureDefinition[] = [
   computerFeature,
   agentsFeature,
   connectorsFeature,
-  settingsFeature
+  settingsFeature,
+  // Trang mẫu bộ giao diện — CHỈ bản dev. Viết điều kiện thẳng ở đây (không qua hàm) để lúc build Vite thay
+  // `import.meta.env.DEV` = false và bỏ hẳn code trang khỏi bản cài.
+  ...(import.meta.env.DEV ? [uiKitFeature] : [])
 ]
