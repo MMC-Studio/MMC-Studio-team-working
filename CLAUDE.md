@@ -31,10 +31,10 @@ App desktop Windows (Electron + React + TypeScript) — trợ lý AI cho học t
 
 ## Kiến trúc
 - `src/main/` — Electron main process: `index.ts` (cửa sổ + vòng đời app, gọi `boot/`), `boot/` (khởi tạo dịch vụ theo mảng, mỗi file một `createX(env, …)`; thứ tự gọi trong `bootstrap()` = thứ tự `before-quit`, không đổi; dịch vụ tạo sau mà phần trước cần gọi lúc chạy đi qua `LateRefs` trong `boot/context.ts`), `ipc/register.ts` (handler + zod), `ai/` (AIProvider, ClaudeCliProvider, parser stream-json, system prompt), `db/` (SQLite + Drizzle, migrations), `services/` (chat, logger…).
-- `src/preload/` — API có kiểu expose qua `contextBridge` (`window.api`, kiểu `TeamWorkingApi` trong `src/shared/types.ts`). Renderer không bao giờ truy cập Node trực tiếp.
+- `src/preload/` — API có kiểu expose qua `contextBridge` (`window.api`, kiểu `TeamWorkingApi` trong `src/shared/types.ts`). Phần cài đặt nằm trong `api/<nhóm>.ts`, `index.ts` chỉ gộp lại. Renderer không bao giờ truy cập Node trực tiếp.
 - `src/renderer/src/` — React UI. `features/<tên>/` cho từng module, đăng ký trong `features/registry.ts` (`roles` lọc menu theo vai trò qua `features/access.ts`).
 - `.github/` — CI (lint/typecheck/test + e2e trên windows-latest), release, mẫu issue/PR, CODEOWNERS. Hướng dẫn đóng góp: `CONTRIBUTING.md`.
-- `src/shared/` — types, zod schemas, tên kênh IPC dùng chung main/renderer.
+- `src/shared/` — types, zod schemas, tên kênh IPC dùng chung main/renderer. Kiểu `window.api` nằm trong `api/<nhóm>.ts`, tên kênh trong `ipc/<nhóm>.ts`; `types.ts` và `ipc.ts` chỉ gộp các nhóm lại, nên import giữ nguyên `@shared/types` / `@shared/ipc`. Nhóm: `common` (chung), `assistant` (A), `team` (B), `integrations` (C). Test `ipc.test.ts` chặn kênh trùng tên.
 - `supabase/migrations/` — schema dữ liệu team; mọi bảng bật RLS vì app phát hành kèm anon key — RLS là lớp chặn duy nhất giữa người dùng và dữ liệu team khác (chi tiết: skill `supabase-migration`).
 - `assistant-skills/` — skill dành cho con trợ lý lúc chạy; app đọc `SKILL.md` theo chế độ hội thoại và chèn vào system prompt (đóng gói qua `extraResources`).
 - Dữ liệu người dùng: `%APPDATA%/Team Working/` (`team-working.db`, `logs/main.log`, `workspace/`). Thư mục giữ tên cũ dù app đã đổi tên thành MMC studio (`LEGACY_USER_DATA_DIR` trong `src/shared/appConfig.ts`); đổi nó là người dùng mất dữ liệu. Tên hiển thị lấy từ `APP_NAME`.
