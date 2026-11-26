@@ -1,0 +1,25 @@
+/** Kênh IPC — Mảng B — Team & Quản lý: chấm công, học tập, ý tưởng, feedback, lập kế hoạch, thông báo. */
+export const TEAM_IPC = {
+  notifyShow: 'notify:show',
+  plannerPlanTasks: 'planner:planTasks',
+  feedbackCoach: 'feedback:coach',
+  feedbackSummarize: 'feedback:summarize',
+  timeCurrent: 'time:current',
+  timeStart: 'time:start',
+  timeStop: 'time:stop',
+  timeList: 'time:list',
+  timeAddManual: 'time:addManual',
+  timeUpdate: 'time:update',
+  timeRemove: 'time:remove',
+  timeExportCsv: 'time:exportCsv',
+  timeChanged: 'time:changed',
+  settingsGetWorkday: 'settings:getWorkday',
+  settingsSetWorkday: 'settings:setWorkday',
+  learningPath: 'learning:path',
+  learningQuiz: 'learning:quiz',
+  learningGrade: 'learning:grade',
+  plannerDay: 'planner:day',
+  plannerReport: 'planner:report',
+  memorySuggest: 'memory:suggest',
+  ideasFormat: 'ideas:format'
+} as const
