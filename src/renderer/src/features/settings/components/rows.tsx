@@ -1,6 +1,5 @@
-import type { ComponentProps, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@renderer/lib/utils'
 
 /** Nhóm dòng cài đặt trong một tab (tiêu đề nhỏ đậm, như Claude). */
 export function SettingsSection({ title, children }: { title?: string; children: ReactNode }) {
@@ -51,18 +50,5 @@ export function SettingRow({
   )
 }
 
-/** Công tắc bật / tắt — vẫn là checkbox thật (bàn phím, trình đọc màn hình, test `check()` đều dùng được). */
-export function Switch({ className, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
-  return (
-    <input
-      type="checkbox"
-      role="switch"
-      className={cn(
-        'relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-input transition-colors outline-none checked:bg-primary focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50',
-        'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-full before:bg-white before:shadow before:transition-transform checked:before:translate-x-4',
-        className
-      )}
-      {...props}
-    />
-  )
-}
+/** Công tắc dùng chung — nay ở bộ giao diện chung (C0.1); giữ export ở đây để các chỗ cũ không phải đổi import. */
+export { Switch } from '@renderer/components/ui/switch'
