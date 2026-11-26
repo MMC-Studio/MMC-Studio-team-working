@@ -25,6 +25,7 @@ export type SettingItem = { id: string; tab: SettingsTab }
 export const SETTING_ITEMS: SettingItem[] = [
   { id: 'theme', tab: 'appearance' },
   { id: 'accent', tab: 'appearance' },
+  { id: 'motion', tab: 'appearance' },
   { id: 'profile', tab: 'assistant' },
   { id: 'myStyle', tab: 'assistant' },
   { id: 'autoSuggestMemory', tab: 'assistant' },

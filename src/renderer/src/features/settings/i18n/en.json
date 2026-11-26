@@ -34,6 +34,11 @@
       "green": "Green",
       "orange": "Orange",
       "rose": "Rose"
+    },
+    "motions": {
+      "system": "Follow Windows",
+      "reduce": "Always reduce",
+      "full": "Don't reduce"
     }
   },
   "support": {
@@ -152,6 +157,11 @@
         "label": "Accent color",
         "description": "Color of buttons, selected items and highlighted borders.",
         "keywords": "accent color"
+      },
+      "motion": {
+        "label": "Reduce motion",
+        "description": "Turns off sliding, lifting and counting effects across the app. \"Follow Windows\" uses the Windows animation effects setting.",
+        "keywords": "reduce motion animation effects"
       },
       "profile": {
         "label": "Name, avatar, personality, language",

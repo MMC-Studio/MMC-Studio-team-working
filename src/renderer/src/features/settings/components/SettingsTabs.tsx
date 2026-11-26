@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import {
   ACCENTS,
   LANGUAGES,
+  MOTIONS,
   PERSONAS,
   THEMES,
   assistantProfileSchema,
@@ -13,6 +14,7 @@ import {
 import { AssistantAvatar } from '@renderer/components/AssistantAvatar'
 import { Button } from '@renderer/components/ui/button'
 import { Input, Label, Select, Textarea } from '@renderer/components/ui/input'
+import { Segmented } from '@renderer/components/ui/segmented'
 import { cn } from '@renderer/lib/utils'
 import { usePreferences } from '@renderer/stores/preferences'
 import { ExpressiveSettings } from '@renderer/features/chat/expressive/ExpressiveSettings'
@@ -88,6 +90,21 @@ function AppearanceTab() {
               />
             ))}
           </div>
+        }
+      />
+      <SettingRow
+        id="motion"
+        control={
+          <Segmented
+            label={t('dialog.items.motion.label')}
+            value={appearance.motion}
+            onValueChange={(motion) => void saveAppearance({ ...appearance, motion })}
+            items={MOTIONS.map((motion) => ({
+              value: motion,
+              label: t(`appearance.motions.${motion}`),
+              testId: `motion-${motion}`
+            }))}
+          />
         }
       />
     </SettingsSection>

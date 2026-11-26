@@ -34,6 +34,11 @@
       "green": "Xanh lá",
       "orange": "Cam",
       "rose": "Hồng"
+    },
+    "motions": {
+      "system": "Theo Windows",
+      "reduce": "Luôn giảm",
+      "full": "Không giảm"
     }
   },
   "support": {
@@ -152,6 +157,11 @@
         "label": "Màu nhấn",
         "description": "Màu của nút, mục đang chọn và đường viền nổi bật.",
         "keywords": "accent mau sac"
+      },
+      "motion": {
+        "label": "Giảm chuyển động",
+        "description": "Tắt hiệu ứng trượt, nổi, đếm số trong cả app. \"Theo Windows\" dùng cài đặt Hiệu ứng hoạt hình của Windows.",
+        "keywords": "giam chuyen dong hieu ung animation motion hoat hinh"
       },
       "profile": {
         "label": "Tên, avatar, tính cách, ngôn ngữ",
