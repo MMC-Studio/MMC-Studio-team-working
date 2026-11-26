@@ -30,7 +30,7 @@ App desktop Windows (Electron + React + TypeScript) — trợ lý AI cho học t
 - Môi trường: `.env` = project dev, `.env.production` = project prod (xem `docs/supabase-setup.md`)
 
 ## Kiến trúc
-- `src/main/` — Electron main process: `ipc/register.ts` (handler + zod), `ai/` (AIProvider, ClaudeCliProvider, parser stream-json, system prompt), `db/` (SQLite + Drizzle, migrations), `services/` (chat, logger…).
+- `src/main/` — Electron main process: `index.ts` (cửa sổ + vòng đời app, gọi `boot/`), `boot/` (khởi tạo dịch vụ theo mảng, mỗi file một `createX(env, …)`; thứ tự gọi trong `bootstrap()` = thứ tự `before-quit`, không đổi; dịch vụ tạo sau mà phần trước cần gọi lúc chạy đi qua `LateRefs` trong `boot/context.ts`), `ipc/register.ts` (handler + zod), `ai/` (AIProvider, ClaudeCliProvider, parser stream-json, system prompt), `db/` (SQLite + Drizzle, migrations), `services/` (chat, logger…).
 - `src/preload/` — API có kiểu expose qua `contextBridge` (`window.api`, kiểu `TeamWorkingApi` trong `src/shared/types.ts`). Renderer không bao giờ truy cập Node trực tiếp.
 - `src/renderer/src/` — React UI. `features/<tên>/` cho từng module, đăng ký trong `features/registry.ts` (`roles` lọc menu theo vai trò qua `features/access.ts`).
 - `.github/` — CI (lint/typecheck/test + e2e trên windows-latest), release, mẫu issue/PR, CODEOWNERS. Hướng dẫn đóng góp: `CONTRIBUTING.md`.
