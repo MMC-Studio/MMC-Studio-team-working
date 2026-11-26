@@ -144,6 +144,43 @@ test('link cũ: #/settings → tab Giao diện; #/settings/voice → tab Khả n
   await page.keyboard.press('Escape')
 })
 
+test('Giảm chuyển động (C0.1a): cả app đổi trong 1 giây, mũi tên đổi lựa chọn, "Theo Windows" theo hệ thống, lưu lại', async () => {
+  const html = page.locator('html')
+  const option = (v: string) => page.getByTestId(`motion-${v}`)
+  const transitionMs = () =>
+    page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('[data-testid="motion-full"]')!).transitionDuration) * 1000)
+
+  await page.evaluate(() => (window.location.hash = '#/?settings=appearance'))
+  await expect(row('motion')).toBeVisible()
+  await expect(option('system')).toHaveAttribute('aria-checked', 'true')
+
+  await option('reduce').click()
+  await expect(html).toHaveAttribute('data-motion', 'reduce', FAST)
+  await expect(option('reduce')).toHaveAttribute('aria-checked', 'true')
+  expect(await transitionMs()).toBeLessThan(1) // mọi transition trong app gần 0
+
+  // Bàn phím: mũi tên sang mục kế, focus đi theo.
+  await option('reduce').focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(option('full')).toBeFocused()
+  await expect(html).toHaveAttribute('data-motion', 'full', FAST)
+  expect(await transitionMs()).toBeGreaterThan(100)
+
+  // "Theo Windows": đổi cài đặt hệ thống → app đổi theo, không cần mở lại.
+  await page.keyboard.press('Home')
+  await expect(option('system')).toHaveAttribute('aria-checked', 'true')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(html).toHaveAttribute('data-motion', 'reduce', FAST)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await expect(html).toHaveAttribute('data-motion', 'full', FAST)
+
+  await option('reduce').click()
+  expect(await external('settings', 'getAppearance')).toMatchObject({ motion: 'reduce' })
+  await page.screenshot({ path: 'test-results/settings-motion.png' })
+  await option('system').click()
+  await page.keyboard.press('Escape')
+})
+
 test('ảnh sáng / tối, 900px và 1280px', async () => {
   for (const width of [1280, 900]) {
     await app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 820), width)

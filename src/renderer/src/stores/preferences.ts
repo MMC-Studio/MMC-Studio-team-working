@@ -24,15 +24,28 @@ type PreferencesState = {
 }
 
 const darkQuery = (): MediaQueryList => window.matchMedia('(prefers-color-scheme: dark)')
+const reduceMotionQuery = (): MediaQueryList => window.matchMedia('(prefers-reduced-motion: reduce)')
 
 export function resolveDark(theme: Appearance['theme'], systemDark: boolean): boolean {
   return theme === 'dark' || (theme === 'system' && systemDark)
+}
+
+/** "Theo Windows" → theo `prefers-reduced-motion` của hệ thống. */
+export function resolveReduceMotion(motion: Appearance['motion'], systemReduce: boolean): boolean {
+  return motion === 'reduce' || (motion === 'system' && systemReduce)
+}
+
+/** Đang giảm chuyển động? Thành phần dùng để bỏ hiệu ứng chạy bằng JS (vd số đếm lên). */
+export function isMotionReduced(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.dataset.motion === 'reduce'
 }
 
 export function applyAppearance(appearance: Appearance): void {
   const root = document.documentElement
   root.classList.toggle('dark', resolveDark(appearance.theme, darkQuery().matches))
   root.dataset.accent = appearance.accent
+  // styles.css: 'reduce' tắt mọi animation / transition trong app; 'full' bật biến thể `motion-ok:`.
+  root.dataset.motion = resolveReduceMotion(appearance.motion, reduceMotionQuery().matches) ? 'reduce' : 'full'
 }
 
 export const usePreferences = create<PreferencesState>((set, get) => ({
@@ -49,6 +62,7 @@ export const usePreferences = create<PreferencesState>((set, get) => ({
     await i18n.changeLanguage(assistant.language)
     set({ assistant, appearance, loaded: true })
     darkQuery().addEventListener('change', () => applyAppearance(get().appearance))
+    reduceMotionQuery().addEventListener('change', () => applyAppearance(get().appearance))
   },
 
   async reloadAssistant() {

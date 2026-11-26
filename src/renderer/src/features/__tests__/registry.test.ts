@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { canSeeFeature } from '../access'
 import { features } from '../registry'
 
@@ -31,5 +31,27 @@ describe('canSeeFeature', () => {
     expect(canSeeFeature({ roles: [...f.roles] }, 'manager')).toBe(true)
     expect(canSeeFeature({ roles: [...f.roles] }, 'member')).toBe(false)
     expect(canSeeFeature({ roles: [...f.roles] }, null)).toBe(false)
+  })
+})
+
+describe('trang mẫu bộ giao diện (ui-kit)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  it('có ở bản dev', async () => {
+    vi.stubEnv('DEV', true)
+    vi.resetModules()
+    const { features: list } = await import('../registry')
+    expect(list.map((f) => f.id)).toContain('ui-kit')
+  })
+
+  it('KHÔNG có ở bản cài (DEV = false)', async () => {
+    vi.stubEnv('DEV', false)
+    vi.resetModules()
+    const { features: list } = await import('../registry')
+    expect(list.map((f) => f.id)).not.toContain('ui-kit')
+    expect(list.length).toBeGreaterThan(10)
   })
 })

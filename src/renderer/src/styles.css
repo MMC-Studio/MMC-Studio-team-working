@@ -17,6 +17,21 @@
   --primary-foreground: oklch(0.99 0 0);
   --radius: 0.6rem;
   --primary: oklch(0.55 0.2 260);
+
+  /* Bộ giao diện chung (C0.1) — chỉ thêm mới, không đổi biến cũ. */
+  --surface-2: oklch(0.965 0.004 260);
+  --radius-card: 1rem;
+  --status-todo: oklch(0.52 0.015 260);
+  --status-progress: oklch(0.53 0.17 250);
+  --status-review: oklch(0.53 0.19 300);
+  --status-done: oklch(0.52 0.13 155);
+  --status-blocked: oklch(0.55 0.2 27);
+  --success: oklch(0.52 0.13 155);
+  --warning: oklch(0.56 0.13 65);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 300ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dark {
@@ -29,7 +44,40 @@
   --input: oklch(0.32 0.01 260);
   --sidebar: oklch(0.2 0.01 260);
   --destructive: oklch(0.65 0.2 25);
+
+  --surface-2: oklch(0.25 0.01 260);
+  --status-todo: oklch(0.72 0.015 260);
+  --status-progress: oklch(0.72 0.14 250);
+  --status-review: oklch(0.74 0.14 300);
+  --status-done: oklch(0.74 0.15 155);
+  --status-blocked: oklch(0.7 0.18 25);
+  --success: oklch(0.74 0.15 155);
+  --warning: oklch(0.8 0.14 75);
 }
+
+/*
+ * Giảm chuyển động: `data-motion` do stores/preferences.ts đặt trên <html> ('reduce' | 'full').
+ * Áp cho CẢ APP (kể cả menu, hộp thoại cũ) — người dùng bật là mọi hiệu ứng tắt.
+ * 0.01ms thay vì 0 để sự kiện animationend / transitionend vẫn chạy.
+ */
+[data-motion='reduce'] {
+  --dur-fast: 0ms;
+  --dur-base: 0ms;
+  --dur-slow: 0ms;
+}
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Hiệu ứng chỉ chạy khi KHÔNG giảm chuyển động (vd thẻ nổi khi rê, nút lún khi bấm): `motion-ok:hover:-translate-y-0.5`. */
+@custom-variant motion-ok (&:where([data-motion='full'], [data-motion='full'] *));
 
 /* Màu nhấn do người dùng chọn */
 [data-accent='blue'] { --primary: oklch(0.55 0.2 260); }
@@ -50,6 +98,14 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-destructive: var(--destructive);
+  --color-surface-2: var(--surface-2);
+  --color-status-todo: var(--status-todo);
+  --color-status-progress: var(--status-progress);
+  --color-status-review: var(--status-review);
+  --color-status-done: var(--status-done);
+  --color-status-blocked: var(--status-blocked);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

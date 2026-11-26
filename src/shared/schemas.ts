@@ -114,6 +114,8 @@ export const PERSONAS = ['friendly', 'serious', 'humorous', 'concise', 'custom']
 export const LANGUAGES = ['vi', 'en'] as const
 export const THEMES = ['system', 'light', 'dark'] as const
 export const ACCENTS = ['blue', 'violet', 'green', 'orange', 'rose'] as const
+/** Giảm chuyển động: theo cài đặt của Windows / luôn giảm / không giảm. */
+export const MOTIONS = ['system', 'reduce', 'full'] as const
 
 /** Avatar: emoji chọn sẵn hoặc ảnh upload dạng data URL (giới hạn ~256KB). */
 export const avatarSchema = z.union([
@@ -134,7 +136,10 @@ export const assistantProfileSchema = z.object({
 
 export const appearanceSchema = z.object({
   theme: z.enum(THEMES),
-  accent: z.enum(ACCENTS)
+  accent: z.enum(ACCENTS),
+  // Có mặc định: cài đặt đã lưu trước khi có trường này vẫn hợp lệ — thiếu default thì
+  // SettingsRepository.get trả mặc định cho CẢ CỤM (mất theme + màu nhấn người dùng đã chọn).
+  motion: z.enum(MOTIONS).default('system')
 })
 
 export const externalUrlSchema = z.url({ protocol: /^https?$/ })
@@ -613,7 +618,8 @@ export const DEFAULT_ASSISTANT: AssistantProfile = {
 
 export const DEFAULT_APPEARANCE: Appearance = {
   theme: 'system',
-  accent: 'blue'
+  accent: 'blue',
+  motion: 'system'
 }
 
 // ---- Kết nối agent / MCP ----

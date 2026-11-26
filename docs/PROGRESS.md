@@ -60,7 +60,16 @@ Mỗi người chỉ sửa mục của mình. Kế hoạch tổng + quy ước: 
 - **B0.1** cầu dữ liệu team cho trợ lý (`docs/tasks/b0.1-team-data-bridge.md`) — chờ A0.1 merge; trong lúc chờ làm trước bước 1 (`teamData.ts`, `teamMetrics.ts` + test).
 
 ### Đang làm — Dev C (@duonghoan285205-lgtm)
-- **C0.1** bộ giao diện chung (`docs/tasks/c0.1-ui-kit.md`) — bắt đầu được ngay, chia C0.1a / C0.1b.
+- **C0.1** bộ giao diện chung (`docs/tasks/c0.1-ui-kit.md`), chia C0.1a / C0.1b.
+  - **C0.1a `feat/c0.1-ui-kit`** (code xong 2026-11-26, chờ mở PR):
+    - **Biến theme** (`styles.css`, sáng + tối, chỉ thêm mới): `--surface-2`, `--radius-card`, `--status-todo|progress|review|done|blocked`, `--success`, `--warning`, `--dur-fast|base|slow`, `--ease-out`. Lớp Tailwind: `bg-surface-2`, `text-status-*`, `text-success`… Bo góc / thời gian dùng thẳng biến: `rounded-(--radius-card)`, `duration-(--dur-fast)`, `ease-(--ease-out)`.
+    - **Giảm chuyển động** (Cài đặt → Giao diện: Theo Windows / Luôn giảm / Không giảm): trường `motion` trong `appearanceSchema` **có default `system`** (thiếu default → `SettingsRepository.get` trả mặc định cả cụm → mọi người mất theme + màu nhấn sau khi cập nhật; có test). `applyAppearance` đặt `data-motion='reduce'|'full'` trên `<html>`, nghe `prefers-reduced-motion`. `reduce` tắt MỌI animation / transition của cả app (kể cả màn hình cũ). Hiệu ứng chỉ chạy khi không giảm: biến thể `motion-ok:` (vd `motion-ok:active:scale-[0.97]`). JS cần biết thì gọi `isMotionReduced()`.
+    - **Thành phần** (`components/ui/`): `Button` (thêm `loading` — giữ độ rộng, tự khoá, `aria-busy`; cỡ `pill`; lún khi bấm), `Tooltip` (400 ms, hiện cả khi focus bằng Tab; mỗi tooltip tự có Provider), `IconButton` (`label` bắt buộc → tooltip + `aria-label`), `Switch` (chuyển từ `settings/components/rows.tsx`, đường import cũ vẫn dùng được), `Segmented` (2 cỡ `sm` / `lg`; mọi mục rộng bằng nhau để nền chỉ trượt bằng `transform`; mũi tên / Home / End; `lg` = viên thuốc màu chữ đảo theo theme, không theo màu nhấn).
+    - **Trang mẫu** `#/ui-kit` (`features/ui-kit`, CHỈ bản dev — điều kiện `import.meta.env.DEV` viết thẳng trong `registry.ts` để bản build bỏ hẳn code; đã kiểm bundle). Đổi nền / màu nhấn / chuyển động ngay trên trang.
+    - Không đụng 4 file A0.1. File nóng đã sửa: `src/shared/schemas.ts` (thêm `MOTIONS` + 1 trường vào `appearanceSchema` có sẵn — không thể đặt sang file khác), còn lại là file của mảng C.
+    - Test: `components/ui/__tests__/ui-kit-a.test.ts` (phím của `Segmented`, HTML radiogroup / transform, `IconButton` thiếu `label` → lỗi typecheck, `Button` loading), `db/__tests__/appearanceSettings.test.ts` (cài đặt cũ không có `motion`), `stores/__tests__/preferences.test.ts`, `registry.test.ts` (trang mẫu chỉ có khi DEV); e2e `settings.spec.ts` (đổi trong 1 giây, bàn phím, Theo Windows theo hệ thống, lưu). Kiểm thử ngược: bỏ default `motion` → 1 test đỏ; `label` không bắt buộc → typecheck đỏ; bỏ điều kiện DEV → 1 test đỏ.
+    - Chưa có: e2e chụp trang mẫu — e2e chạy trên bản build (DEV = false) nên không có trang mẫu; cần quyết cách trước C0.1b.
+  - **C0.1b** `feat/c0.1b-ui-kit-data` — sau khi C0.1a merge.
 
 ## Các mức quyền thêm — đang làm
 Thứ tự (kế hoạch ở "Quyết định đã duyệt" → Các mức quyền thêm): ~~symlink (#47)~~ → ~~A1 (#49)~~ → ~~B1 nhật ký (#51)~~ → ~~B2 quyền + thu hồi (#52)~~ → ~~A2 Unity / Blender (#53)~~ → ~~C tự duyệt sửa file (#54)~~ → ~~D thư mục phụ (#55)~~ — xong cả đợt.
