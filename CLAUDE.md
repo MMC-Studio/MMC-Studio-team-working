@@ -53,6 +53,7 @@ App desktop Windows (Electron + React + TypeScript) — trợ lý AI cho học t
 ## Quy trình làm việc (cố định — không cần nhắc lại)
 - KHÔNG tự merge PR, KHÔNG tạo / sửa Release, không push lên `main`. Người dùng tự merge.
 - Mỗi việc làm trên nhánh mới tạo từ `main` mới nhất, mở PR riêng.
+- Trước khi sửa file trong bảng "File nóng" (`CONTRIBUTING.md` → Làm việc song song), kiểm tra người giữ và ghi trong mô tả PR là đã đụng file nào. Tài liệu giao việc nằm ở `docs/tasks/`.
 - Kiểm tra lint / typecheck / test bằng **mã thoát** của lệnh, không lọc chữ trong output.
 - Chạy e2e cả ở chế độ không có Claude CLI (bỏ `~/.local/bin` khỏi PATH; dùng `MMC_FAKE_*` cho phần cần Claude / giọng nói).
 - Push xong chờ CI xanh rồi mới báo, kèm danh sách test tay (bấm gì, phải thấy gì).

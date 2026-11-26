@@ -8,3 +8,18 @@
 /src/main/ai/ @phanduongthien
 # Nguồn kho plugin mặc định (code tải từ Internet) — chỉ chủ repo duyệt.
 /resources/plugin-sources.json @phanduongthien
+
+# Người duyệt theo mảng (CONTRIBUTING.md → Làm việc song song). Dòng sau ghi đè dòng trước,
+# nên các dòng nhạy cảm ở trên vẫn về chủ repo vì không trùng đường dẫn với các dòng dưới.
+# Mảng B — Team & Quản lý
+/src/renderer/src/features/work/ @matchasoda2201
+/src/renderer/src/features/dashboard/ @matchasoda2201
+/src/renderer/src/features/feedback/ @matchasoda2201
+/src/renderer/src/features/today/ @matchasoda2201
+/src/renderer/src/features/team/ @matchasoda2201
+# Mảng C — Trải nghiệm & Kết nối ngoài
+/src/renderer/src/components/ui/ @duonghoan285205-lgtm
+/src/renderer/src/styles.css @duonghoan285205-lgtm
+/src/renderer/src/features/settings/ @duonghoan285205-lgtm
+/src/renderer/src/features/plugins/ @duonghoan285205-lgtm
+/src/renderer/src/features/registry.ts @duonghoan285205-lgtm
